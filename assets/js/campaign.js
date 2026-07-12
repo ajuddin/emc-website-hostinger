@@ -77,11 +77,100 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* =====================
-       Donor Wall — Empty slots link to donate section
+       Badr Wall membership selection and card payment
        ===================== */
+    const badrCard = document.getElementById('badr-membership');
+    const badrTierBtns = badrCard ? badrCard.querySelectorAll('.badr-tier-option') : [];
+    const badrLabel = document.getElementById('badr-selected-label');
+    const badrAmount = document.getElementById('badr-selected-amount');
+
+    function formatMoney(amount, plus = false) {
+        return `£${Number(amount || 0).toLocaleString()}${plus ? '+' : ''}`;
+    }
+
+    function selectBadrTier(btn) {
+        if (!btn) return;
+        badrTierBtns.forEach(option => {
+            option.classList.remove('active');
+            option.setAttribute('aria-checked', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-checked', 'true');
+
+        const label = btn.dataset.label || '';
+        const amount = parseInt(btn.dataset.amount || '0', 10);
+        const plus = btn.dataset.plus === '1';
+        if (badrLabel) badrLabel.textContent = label;
+        if (badrAmount) badrAmount.textContent = formatMoney(amount, plus);
+    }
+
+    function showBadrError(message) {
+        if (!badrCard) return;
+        let err = badrCard.querySelector('.badr-inline-error');
+        if (!err) {
+            err = document.createElement('p');
+            err.className = 'badr-inline-error';
+            badrCard.querySelector('.badr-payment-actions')?.before(err);
+        }
+        err.textContent = message;
+        err.hidden = false;
+    }
+
+    badrTierBtns.forEach(btn => {
+        btn.addEventListener('click', () => selectBadrTier(btn));
+    });
+
     document.querySelectorAll('.donor-slot.empty').forEach(slot => {
-        slot.addEventListener('click', () => {
-            document.getElementById('campaign-donate')?.scrollIntoView({ behavior: 'smooth' });
+        slot.addEventListener('click', event => {
+            event.preventDefault();
+            const tier = slot.dataset.badrTier;
+            const matchingTier = tier ? badrCard?.querySelector(`.badr-tier-option[data-tier="${tier}"]`) : null;
+            selectBadrTier(matchingTier || badrCard?.querySelector('.badr-tier-option.active'));
+            badrCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    document.getElementById('badr-card-pay')?.addEventListener('click', () => {
+        const activeTier = badrCard?.querySelector('.badr-tier-option.active');
+        const amount = parseInt(activeTier?.dataset.amount || '0', 10);
+        const label = activeTier?.dataset.label || 'Badr Wall Membership';
+        const name = document.getElementById('badr-donor-name')?.value.trim() || '';
+        const email = document.getElementById('badr-donor-email')?.value.trim() || '';
+        const address = document.getElementById('badr-donor-address')?.value.trim() || '';
+
+        if (!amount) {
+            showBadrError('Please choose a Badr Wall level.');
+            return;
+        }
+        if (!name) {
+            showBadrError('Please enter your full name.');
+            return;
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showBadrError('Please enter a valid email address.');
+            return;
+        }
+        if (!address) {
+            showBadrError('Please enter your address.');
+            return;
+        }
+        if (typeof window.emcOpenStripeModal !== 'function') {
+            showBadrError('Card payments are not available yet. Please use Pay by Bank or WhatsApp Pledge.');
+            return;
+        }
+
+        const err = badrCard?.querySelector('.badr-inline-error');
+        if (err) err.hidden = true;
+
+        window.emcOpenStripeModal({
+            amount: amount * 100,
+            fund: `Badr Wall - ${label}`,
+            tab: 'badr-wall',
+            name,
+            email,
+            address,
+            message: `Badr Wall membership level: ${label}`,
+            giftAid: false,
         });
     });
 });

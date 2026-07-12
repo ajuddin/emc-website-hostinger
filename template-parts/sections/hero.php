@@ -72,7 +72,7 @@ $hero_img_url = $bg_image_id ? wp_get_attachment_image_url( $bg_image_id, 'emc-h
                         <?php esc_html_e( 'Daily Salah', 'emc-theme' ); ?>
                     </h2>
                     <p style="color:var(--text-muted);font-size:var(--step--1)">
-                        <?php echo esc_html( emc_option( 'emc_location', 'Cuton Hall Lane, Chelmsford' ) ); ?>
+                        <?php echo esc_html( emc_option( 'emc_location', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ) ); ?>
                     </p>
                 </div>
                 <div class="countdown-timer">

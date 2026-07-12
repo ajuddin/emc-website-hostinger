@@ -31,15 +31,16 @@ function emc_option( $option, $default = '' ) {
  * @return string HTML or empty string.
  */
 function emc_get_address() {
+    $name     = 'Essex Muslim Centre';
     $line1    = emc_option( 'emc_address_line1', 'Cuton Hall Lane' );
     $line2    = emc_option( 'emc_address_line2', '' );
-    $city     = emc_option( 'emc_address_city',  'Chelmsford' );
+    $city     = emc_option( 'emc_address_city',  '' );
     $postcode = emc_option( 'emc_address_postcode', 'CM2 6PB' );
-    $location = emc_option( 'emc_location', 'Cuton Hall Lane, Chelmsford' );
+    $location = emc_option( 'emc_location', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' );
 
     // If specific fields are populated, build multi-line address.
     if ( $line1 || $postcode ) {
-        $parts = array_filter( array( $line1, $line2, $city, $postcode ) );
+        $parts = array_filter( array( $name, $line1, $line2, $city, $postcode ) );
         return implode( '<br>', array_map( 'esc_html', $parts ) );
     }
 
@@ -140,51 +141,109 @@ function emc_social_icons( $class = '' ) {
    ========================================================================== */
 
 /**
- * Fallback for the primary desktop nav when no menu is assigned.
- * Generates links from published pages by slug.
+ * Return the curated header navigation used by desktop and mobile headers.
+ *
+ * @return array[]
+ */
+function emc_get_header_nav_items() {
+    $campaign_url   = get_permalink( get_page_by_path( 'campaign' ) ) ?: home_url( '/campaign/' );
+    $membership_url = get_permalink( get_page_by_path( 'membership' ) ) ?: $campaign_url . '#badr-membership';
+    $service_items  = array(
+        array( 'slug' => 'islamic-education',   'label' => __( 'Islamic Education', 'emc-theme' ) ),
+        array( 'slug' => 'nikah-marriage',      'label' => __( 'Nikah Marriage', 'emc-theme' ) ),
+        array( 'slug' => 'janaza-services',     'label' => __( 'Janaza Services', 'emc-theme' ) ),
+        array( 'slug' => 'meet-an-imam',        'label' => __( 'Meet an Imam', 'emc-theme' ) ),
+        array( 'slug' => 'welfare-services',    'label' => __( 'Welfare Services', 'emc-theme' ) ),
+        array( 'slug' => 'general-events',      'label' => __( 'General Events', 'emc-theme' ) ),
+        array( 'slug' => 'school-visit',        'label' => __( 'School Visit', 'emc-theme' ) ),
+        array( 'slug' => 'bereavement-support', 'label' => __( 'Bereavement Support', 'emc-theme' ) ),
+    );
+    $service_children = array();
+
+    foreach ( $service_items as $service_item ) {
+        $service_post = get_page_by_path( $service_item['slug'], OBJECT, 'emc_service' );
+        $service_children[] = array(
+            'slug'  => $service_item['slug'],
+            'label' => $service_item['label'],
+            'url'   => $service_post ? get_permalink( $service_post ) : home_url( '/service/' . $service_item['slug'] . '/' ),
+        );
+    }
+
+    return array(
+        array( 'slug' => 'about',      'label' => __( 'About Us', 'emc-theme' ),    'url' => get_permalink( get_page_by_path( 'about' ) ) ?: home_url( '/about/' ) ),
+        array( 'slug' => 'services',   'label' => __( 'Services', 'emc-theme' ),    'url' => get_permalink( get_page_by_path( 'services' ) ) ?: home_url( '/services/' ), 'children' => $service_children ),
+        array( 'slug' => 'events',     'label' => __( 'Events', 'emc-theme' ),      'url' => get_permalink( get_page_by_path( 'events' ) ) ?: home_url( '/events/' ) ),
+        array( 'slug' => 'membership', 'label' => __( 'Membership', 'emc-theme' ),  'url' => $membership_url ),
+        array( 'slug' => 'contact',    'label' => __( 'Contact', 'emc-theme' ),     'url' => get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) ),
+    );
+}
+
+/**
+ * Render a header nav item, including an optional one-level submenu.
+ *
+ * @param array $item Navigation item.
+ */
+function emc_render_header_nav_item( $item ) {
+    $children = ! empty( $item['children'] ) && is_array( $item['children'] ) ? $item['children'] : array();
+    $classes  = array();
+
+    if ( is_page( $item['slug'] ) ) {
+        $classes[] = 'current-menu-item';
+    }
+
+    if ( $children ) {
+        $classes[] = 'menu-item-has-children';
+    }
+
+    $class_attr = $classes ? ' class="' . esc_attr( implode( ' ', $classes ) ) . '"' : '';
+
+    echo '<li' . $class_attr . '>';
+    echo '<a href="' . esc_url( $item['url'] ) . '">' . esc_html( $item['label'] ) . '</a>';
+
+    if ( $children ) {
+        echo '<ul class="sub-menu">';
+        foreach ( $children as $child ) {
+            $child_current = is_singular( 'emc_service' ) && get_post_field( 'post_name', get_queried_object_id() ) === $child['slug'] ? ' class="current-menu-item"' : '';
+            echo '<li' . $child_current . '><a href="' . esc_url( $child['url'] ) . '">' . esc_html( $child['label'] ) . '</a></li>';
+        }
+        echo '</ul>';
+    }
+
+    echo '</li>';
+}
+
+/**
+ * Render the curated desktop header nav.
  */
 function emc_header_nav_fallback() {
-    $nav_items = array(
-        ''             => __( 'Home',         'emc-theme' ),
-        'about'        => __( 'About Us',     'emc-theme' ),
-        'services'     => __( 'Services',     'emc-theme' ),
-        'events'       => __( 'Events',       'emc-theme' ),
-        'prayer-times' => __( 'Prayer Times', 'emc-theme' ),
-        'media'        => __( 'Media',        'emc-theme' ),
-        'contact'      => __( 'Contact',      'emc-theme' ),
-    );
     echo '<ul>';
-    foreach ( $nav_items as $slug => $label ) {
-        $url     = $slug ? ( get_permalink( get_page_by_path( $slug ) ) ?: home_url( '/' . $slug . '/' ) ) : home_url( '/' );
-        $current = ( $slug === '' && is_front_page() ) || ( $slug && is_page( $slug ) ) ? ' class="current-menu-item"' : '';
-        echo '<li' . $current . '><a href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a></li>';
+    foreach ( emc_get_header_nav_items() as $item ) {
+        emc_render_header_nav_item( $item );
     }
     echo '</ul>';
 }
 
 /**
- * Fallback for the mobile nav overlay when no menu is assigned.
+ * Render the curated mobile header nav.
  */
 function emc_mobile_nav_fallback() {
-    $nav_items = array(
-        ''             => __( 'Home',         'emc-theme' ),
-        'about'        => __( 'About Us',     'emc-theme' ),
-        'services'     => __( 'Services',     'emc-theme' ),
-        'events'       => __( 'Events',       'emc-theme' ),
-        'prayer-times' => __( 'Prayer Times', 'emc-theme' ),
-        'media'        => __( 'Media',        'emc-theme' ),
-        'contact'      => __( 'Contact',      'emc-theme' ),
-    );
     echo '<ul class="mobile-menu">';
     $delay = 0.1;
-    foreach ( $nav_items as $slug => $label ) {
-        $url = $slug ? ( get_permalink( get_page_by_path( $slug ) ) ?: home_url( '/' . $slug . '/' ) ) : home_url( '/' );
-        printf(
-            '<li style="transition-delay:%ss"><a href="%s">%s</a></li>',
-            esc_attr( number_format( $delay, 2 ) ),
-            esc_url( $url ),
-            esc_html( $label )
-        );
+    foreach ( emc_get_header_nav_items() as $item ) {
+        $children = ! empty( $item['children'] ) && is_array( $item['children'] ) ? $item['children'] : array();
+        $classes  = $children ? ' class="menu-item-has-children sub-open"' : '';
+
+        echo '<li' . $classes . ' style="transition-delay:' . esc_attr( number_format( $delay, 2 ) ) . 's">';
+        echo '<a href="' . esc_url( $item['url'] ) . '">' . esc_html( $item['label'] ) . '</a>';
+        if ( $children ) {
+            echo '<ul class="sub-menu">';
+            foreach ( $children as $child ) {
+                echo '<li><a href="' . esc_url( $child['url'] ) . '">' . esc_html( $child['label'] ) . '</a></li>';
+            }
+            echo '</ul>';
+        }
+        echo '</li>';
+
         $delay = round( $delay + 0.05, 2 );
     }
     echo '</ul>';
@@ -286,7 +345,7 @@ function emc_prayer_compact_widget() {
     ob_start();
     ?>
     <div class="header-prayer-compact" id="header-prayer-compact" aria-live="polite">
-        <i class="fas fa-clock" aria-hidden="true"></i>
+        <i class="fas fa-circle" aria-hidden="true"></i>
         <span><?php esc_html_e( 'Loading…', 'emc-theme' ); ?></span>
     </div>
     <?php
@@ -513,7 +572,7 @@ body { background-color: <?php echo esc_html( $bg_body ); ?>; color: <?php echo 
 }
 .site-footer { background-color: <?php echo esc_html( $deep_blue ); ?>; }
 .btn { border-radius: <?php echo esc_html( $btn_radius ); ?>; padding: <?php echo esc_html( $btn_padding_y ); ?> <?php echo esc_html( $btn_padding_x ); ?>; }
-<?php $logo_h = max( 30, min( 100, (int) emc_option( 'emc_logo_height', 52 ) ) ); ?>
+<?php $logo_h = max( 30, min( 120, (int) emc_option( 'emc_logo_height', 88 ) ) ); ?>
 .logo-img, .logo .custom-logo { height: <?php echo esc_html( $logo_h ); ?>px; width: auto !important; }
 </style>
     <?php

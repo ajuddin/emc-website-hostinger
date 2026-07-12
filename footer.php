@@ -19,7 +19,7 @@ $nl_sub          = emc_option( 'emc_footer_newsletter_sub',       __( 'Get the l
 $custom_copy     = emc_option( 'emc_footer_copyright_text', '' );
 $show_privacy    = (bool) emc_option( 'emc_footer_show_privacy', true );
 $show_gift_aid   = (bool) emc_option( 'emc_footer_show_gift_aid', true );
-$footer_address  = emc_option( 'emc_footer_address', "Essex Muslim Centre\nCuton Hall Lane\nChelmsford\nCM2 6PB" );
+$footer_address  = emc_option( 'emc_footer_address', "Essex Muslim Centre\nCuton Hall Lane\nCM2 6PB" );
 $show_prayer_lnk = (bool) emc_option( 'emc_footer_show_prayer_link', true );
 
 // Column 2 & 3 links from Customizer (format: "Label|slug" per line)

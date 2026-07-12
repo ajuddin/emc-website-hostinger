@@ -1,0 +1,27 @@
+pyrefly.toml
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Local environment and logs
+.env
+.env.*
+*.log
+debug.log
+
+# Dependencies and build output
+node_modules/
+vendor/
+dist/
+build/
+
+# WordPress/generated files
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+.wordpress-org/
+

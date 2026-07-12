@@ -10,9 +10,9 @@ $desc        = emc_option( 'emc_campaign_desc',     __( 'Help us build a lasting
 $raised      = (int) emc_option( 'emc_campaign_raised', 68400 );
 $target      = (int) emc_option( 'emc_campaign_target', 100000 );
 $donors      = (int) emc_option( 'emc_campaign_donors', 247 );
-$cta_label   = emc_option( 'emc_campaign_cta_label', __( 'Donate to Campaign', 'emc-theme' ) );
-$cta_url     = emc_option( 'emc_campaign_cta_url', '' ) ?: ( get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' ) );
+$cta_label   = emc_option( 'emc_campaign_cta_label', __( 'Choose Badr Wall Level', 'emc-theme' ) );
 $learn_url   = get_permalink( get_page_by_path( 'campaign' ) ) ?: home_url( '/campaign/' );
+$cta_url     = emc_option( 'emc_campaign_cta_url', '' ) ?: $learn_url . '#badr-membership';
 
 $percent = $target > 0 ? min( 100, round( ( $raised / $target ) * 100 ) ) : 0;
 ?>

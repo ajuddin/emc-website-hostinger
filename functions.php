@@ -414,7 +414,7 @@ foreach ( $emc_includes as $file ) {
 
 /* ==========================================================================
    5b. Auto-seed Service Posts
-   Creates the 6 core emc_service posts automatically on first theme load.
+   Creates the 8 core emc_service posts automatically on first theme load.
    Re-runs on any environment (local / Hostinger) where posts are missing.
    ========================================================================== */
 function emc_auto_seed_services() {
@@ -426,17 +426,17 @@ function emc_auto_seed_services() {
 
     $services = array(
         array(
-            'title'   => 'Arabic Education',
-            'slug'    => 'arabic-education',
+            'title'   => 'Islamic Education',
+            'slug'    => 'islamic-education',
             'icon'    => 'fas fa-book-open',
-            'excerpt' => 'Weekend Madrasah, Arabic classes, and Quran lessons for children and adults of all levels.',
+            'excerpt' => 'Weekend Madrasah, Quran lessons, and Islamic studies for children and adults of all levels.',
             'order'   => 1,
-            'content' => '<h2>About Our Arabic Education Programme</h2>
-<p>At Essex Muslim Centre, we believe that every Muslim should have the opportunity to connect with the Quran and Islamic teachings in their original language. Our Arabic Education programme serves children and adults across Chelmsford and Essex.</p>
+            'content' => '<h2>About Our Islamic Education Programme</h2>
+<p>At Essex Muslim Centre, we believe that every Muslim should have the opportunity to connect with the Quran and Islamic teachings. Our Islamic Education programme serves children and adults across Chelmsford and Essex.</p>
 <h3>What We Offer</h3>
 <ul>
-<li><strong>Weekend Madrasah (Ages 5–16):</strong> Saturday and Sunday classes covering Quran recitation with Tajweed, Islamic Studies, Arabic language, and Seerah.</li>
-<li><strong>Adult Arabic Classes:</strong> Beginner to advanced conversational and classical Arabic, taught in small groups by qualified instructors.</li>
+<li><strong>Weekend Madrasah (Ages 5–16):</strong> Saturday and Sunday classes covering Quran recitation with Tajweed, Islamic Studies, Seerah, and core Islamic knowledge.</li>
+<li><strong>Adult Islamic Studies:</strong> Beginner-friendly classes covering worship, Quran, character, and everyday Islamic practice.</li>
 <li><strong>Quran Memorisation (Hifz):</strong> Structured programme for dedicated students with individual mentor support.</li>
 <li><strong>Quran Recitation &amp; Tajweed:</strong> Perfecting pronunciation and application of Tajweed rules for all ages.</li>
 </ul>
@@ -579,6 +579,144 @@ function emc_auto_seed_services() {
 }
 add_action( 'init', 'emc_auto_seed_services', 20 );
 
+/**
+ * Keep core service posts aligned with the current EMC service list.
+ */
+function emc_update_core_services_v2() {
+    $seed_version = 2;
+
+    if ( (int) get_option( 'emc_services_seed_version', 0 ) >= $seed_version ) {
+        return;
+    }
+
+    $changed = false;
+
+    $education = array(
+        'title'   => 'Islamic Education',
+        'slug'    => 'islamic-education',
+        'icon'    => 'fas fa-book-open',
+        'excerpt' => 'Weekend Madrasah, Quran lessons, and Islamic studies for children and adults of all levels.',
+        'order'   => 1,
+        'content' => '<h2>About Our Islamic Education Programme</h2>
+<p>At Essex Muslim Centre, we believe that every Muslim should have the opportunity to connect with the Quran and Islamic teachings. Our Islamic Education programme serves children and adults across Chelmsford and Essex.</p>
+<h3>What We Offer</h3>
+<ul>
+<li><strong>Weekend Madrasah:</strong> Classes covering Quran recitation with Tajweed, Islamic Studies, Seerah, and core Islamic knowledge.</li>
+<li><strong>Adult Islamic Studies:</strong> Beginner-friendly classes covering worship, Quran, character, and everyday Islamic practice.</li>
+<li><strong>Quran Memorisation:</strong> Structured support for dedicated students.</li>
+<li><strong>Quran Recitation &amp; Tajweed:</strong> Perfecting pronunciation and application of Tajweed rules for all ages.</li>
+</ul>
+<h3>How to Enrol</h3>
+<p>Registration is open at the beginning of each term. Contact our office or visit the centre to pick up a registration form.</p>',
+    );
+
+    $existing_education = get_page_by_path( 'islamic-education', OBJECT, 'emc_service' );
+    if ( ! $existing_education ) {
+        $existing_education = get_page_by_path( 'arabic-education', OBJECT, 'emc_service' );
+    }
+
+    if ( $existing_education ) {
+        wp_update_post( array(
+            'ID'           => $existing_education->ID,
+            'post_title'   => $education['title'],
+            'post_name'    => $education['slug'],
+            'post_content' => $education['content'],
+            'post_excerpt' => $education['excerpt'],
+            'menu_order'   => $education['order'],
+        ) );
+        update_post_meta( $existing_education->ID, '_emc_service_icon',     $education['icon'] );
+        update_post_meta( $existing_education->ID, '_emc_service_order',    $education['order'] );
+        update_post_meta( $existing_education->ID, '_emc_service_featured', '1' );
+        $changed = true;
+    } else {
+        $post_id = wp_insert_post( array(
+            'post_type'    => 'emc_service',
+            'post_title'   => $education['title'],
+            'post_name'    => $education['slug'],
+            'post_content' => $education['content'],
+            'post_excerpt' => $education['excerpt'],
+            'post_status'  => 'publish',
+            'menu_order'   => $education['order'],
+        ) );
+
+        if ( $post_id && ! is_wp_error( $post_id ) ) {
+            update_post_meta( $post_id, '_emc_service_icon',     $education['icon'] );
+            update_post_meta( $post_id, '_emc_service_order',    $education['order'] );
+            update_post_meta( $post_id, '_emc_service_featured', '1' );
+            $changed = true;
+        }
+    }
+
+    $new_services = array(
+        array(
+            'title'   => 'School Visit',
+            'slug'    => 'school-visit',
+            'icon'    => 'fas fa-school',
+            'excerpt' => 'Welcoming local schools for mosque visits, faith learning, guided tours, and Q&A sessions.',
+            'order'   => 7,
+            'content' => '<h2>School Visits to EMC</h2>
+<p>Essex Muslim Centre welcomes local schools and educational groups for guided visits that help pupils learn about Islam, mosque life, and the Muslim community in Essex.</p>
+<h3>Visits Can Include</h3>
+<ul>
+<li><strong>Mosque Tours:</strong> A guided walk through the centre and prayer spaces.</li>
+<li><strong>Faith Learning:</strong> Age-appropriate introductions to Islamic beliefs, worship, and community life.</li>
+<li><strong>Q&amp;A Sessions:</strong> Opportunities for pupils and teachers to ask respectful questions.</li>
+<li><strong>Curriculum Support:</strong> Visits tailored around RE, citizenship, diversity, and interfaith learning.</li>
+</ul>
+<h3>Arrange a Visit</h3>
+<p>Please contact the centre with your preferred dates, year group, group size, and any curriculum topics you would like covered.</p>',
+        ),
+        array(
+            'title'   => 'Bereavement Support',
+            'slug'    => 'bereavement-support',
+            'icon'    => 'fas fa-hands-helping',
+            'excerpt' => 'Compassionate spiritual and practical support for individuals and families after the loss of a loved one.',
+            'order'   => 8,
+            'content' => '<h2>Bereavement Support</h2>
+<p>Bereavement can be overwhelming. Essex Muslim Centre offers compassionate support for individuals and families dealing with loss, with care rooted in Islamic guidance and community support.</p>
+<h3>How We Can Help</h3>
+<ul>
+<li><strong>Spiritual Support:</strong> Guidance, duas, and reminders for families navigating grief.</li>
+<li><strong>Family Support:</strong> A confidential space to talk through difficult moments after a loss.</li>
+<li><strong>Janaza Signposting:</strong> Help connecting families with the appropriate funeral and burial support.</li>
+<li><strong>Ongoing Care:</strong> Follow-up support and signposting to suitable local services where needed.</li>
+</ul>
+<h3>Speak to Us</h3>
+<p>Please contact the centre if you or your family would benefit from bereavement support. All enquiries are handled with sensitivity and confidentiality.</p>',
+        ),
+    );
+
+    foreach ( $new_services as $svc ) {
+        if ( get_page_by_path( $svc['slug'], OBJECT, 'emc_service' ) ) {
+            continue;
+        }
+
+        $post_id = wp_insert_post( array(
+            'post_type'    => 'emc_service',
+            'post_title'   => $svc['title'],
+            'post_name'    => $svc['slug'],
+            'post_content' => $svc['content'],
+            'post_excerpt' => $svc['excerpt'],
+            'post_status'  => 'publish',
+            'menu_order'   => $svc['order'],
+        ) );
+
+        if ( $post_id && ! is_wp_error( $post_id ) ) {
+            update_post_meta( $post_id, '_emc_service_icon',     $svc['icon'] );
+            update_post_meta( $post_id, '_emc_service_order',    $svc['order'] );
+            update_post_meta( $post_id, '_emc_service_featured', '1' );
+            $changed = true;
+        }
+    }
+
+    if ( $changed ) {
+        flush_rewrite_rules( false );
+    }
+
+    update_option( 'emc_services_seed_version', (string) $seed_version );
+}
+add_action( 'init', 'emc_update_core_services_v2', 21 );
+
 
 /* ==========================================================================
    5c. Auto-seed Event Posts
@@ -629,7 +767,7 @@ function emc_auto_seed_events() {
 <li>Free parking nearby</li>
 </ul>
 <h3>Location</h3>
-<p>Essex Muslim Centre, Cuton Hall Lane, Chelmsford, CM2 6PB. Please use the exact map pin for the most accurate entrance and drop-off point.</p>',
+<p>Essex Muslim Centre, Cuton Hall Lane, CM2 6PB. Please use the exact map pin for the most accurate entrance and drop-off point.</p>',
         ),
         array(
             'title'    => 'Arabic Education Open Day',

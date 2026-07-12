@@ -140,24 +140,24 @@ function emc_demo_get_pages() {
  */
 function emc_demo_get_primary_menu() {
     return array(
-        array( 'label' => 'Home',         'slug' => 'home',         'children' => array() ),
-        array( 'label' => 'About Us',     'slug' => 'about',        'children' => array() ),
-        array( 'label' => 'Services',     'slug' => 'services',     'children' => array() ),
-        array( 'label' => 'Events',       'slug' => 'events',       'children' => array() ),
-        array( 'label' => 'Prayer Times', 'slug' => 'prayer-times', 'children' => array() ),
+        array( 'label' => 'About Us',    'slug' => 'about',    'children' => array() ),
         array(
-            'label'    => 'Giving',
-            'slug'     => 'donate',
+            'label'    => 'Services',
+            'slug'     => 'services',
             'children' => array(
-                array( 'label' => 'Donate',           'slug' => 'donate' ),
-                array( 'label' => 'Ramadan Giving',   'slug' => 'ramadan' ),
-                array( 'label' => 'Our Campaign',     'slug' => 'campaign' ),
-                array( 'label' => 'Gift Aid',         'slug' => 'gift-aid' ),
-                array( 'label' => 'Standing Order',   'slug' => 'standing-order' ),
+                array( 'label' => 'Islamic Education',   'slug' => 'islamic-education' ),
+                array( 'label' => 'Nikah Marriage',      'slug' => 'nikah-marriage' ),
+                array( 'label' => 'Janaza Services',     'slug' => 'janaza-services' ),
+                array( 'label' => 'Meet an Imam',        'slug' => 'meet-an-imam' ),
+                array( 'label' => 'Welfare Services',    'slug' => 'welfare-services' ),
+                array( 'label' => 'General Events',      'slug' => 'general-events' ),
+                array( 'label' => 'School Visit',        'slug' => 'school-visit' ),
+                array( 'label' => 'Bereavement Support', 'slug' => 'bereavement-support' ),
             ),
         ),
-        array( 'label' => 'Media',        'slug' => 'media',        'children' => array() ),
-        array( 'label' => 'Contact',      'slug' => 'contact',      'children' => array() ),
+        array( 'label' => 'Events',      'slug' => 'events',     'children' => array() ),
+        array( 'label' => 'Membership',  'slug' => 'membership', 'children' => array() ),
+        array( 'label' => 'Contact',     'slug' => 'contact',    'children' => array() ),
     );
 }
 
@@ -227,9 +227,9 @@ function emc_demo_get_theme_mods() {
         'emc_header_donate_label' => 'Donate Now',
 
         /* ── Contact Info ─────────────────────────────────────── */
-        'emc_location'         => 'Cuton Hall Lane, Chelmsford',
+        'emc_location'         => 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB',
         'emc_address_line1'    => 'Cuton Hall Lane',
-        'emc_address_city'     => 'Chelmsford',
+        'emc_address_city'     => '',
         'emc_address_postcode' => 'CM2 6PB',
         'emc_admin_email'      => 'admin@essexmuslimcentre.org',
         'emc_charity_number'   => '1209815',
@@ -238,7 +238,7 @@ function emc_demo_get_theme_mods() {
         'emc_footer_newsletter'         => true,
         'emc_footer_newsletter_heading' => 'Stay in the Loop',
         'emc_footer_newsletter_sub'     => 'Get the latest news, events and announcements delivered to your inbox.',
-        'emc_footer_about_text'         => 'Advancing Islamic faith, education, and community welfare from Cuton Hall Lane, Chelmsford.',
+        'emc_footer_about_text'         => 'Advancing Islamic faith, education, and community welfare from Cuton Hall Lane.',
         'emc_footer_col2_heading'       => 'Quick Links',
         'emc_footer_col3_heading'       => 'Community',
         'emc_footer_col4_heading'       => 'Contact Us',

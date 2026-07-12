@@ -44,7 +44,7 @@ if ( file_exists( $prayer_js_path ) ) {
             <div class="today-widget-header">
                 <div>
                     <p class="today-label"><?php echo esc_html( emc_acf( 'prayer_widget_label', "Today's Prayer Times" ) ); ?></p>
-                    <p class="today-location"><i class="fas fa-map-marker-alt"></i> <?php echo esc_html( emc_acf( 'prayer_location_label', 'Cuton Hall Lane, Chelmsford' ) ); ?></p>
+                    <p class="today-location"><i class="fas fa-map-marker-alt"></i> <?php echo esc_html( emc_acf( 'prayer_location_label', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ) ); ?></p>
                 </div>
                 <div class="countdown-badge">
                     <p><?php echo esc_html( emc_acf( 'prayer_next_label', 'Next:' ) ); ?> <strong id="next-prayer-name"><?php esc_html_e( 'Asr', 'emc-theme' ); ?></strong></p>
@@ -124,7 +124,7 @@ if ( file_exists( $prayer_js_path ) ) {
                 <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <h4><?php echo esc_html( emc_acf( 'prayer_location_card_heading', 'Our Location' ) ); ?></h4>
                 <p><?php echo esc_html( get_bloginfo( 'name' ) ); ?></p>
-                <p><?php echo esc_html( emc_acf( 'prayer_location_city', 'Cuton Hall Lane, Chelmsford' ) ); ?></p>
+                <p><?php echo esc_html( emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ) ); ?></p>
             </div>
             <div class="prayer-info-card scroll-reveal" style="transition-delay:0.3s">
                 <div class="info-icon"><i class="fas fa-mobile-alt"></i></div>

@@ -16,7 +16,7 @@ $contact_url  = get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/co
 // Query featured services from CPT
 $cpt_query = new WP_Query( array(
     'post_type'      => 'emc_service',
-    'posts_per_page' => 6,
+    'posts_per_page' => 8,
     'post_status'    => 'publish',
     'meta_query'     => array(
         array(
@@ -29,11 +29,11 @@ $cpt_query = new WP_Query( array(
     'order'     => 'ASC',
 ) );
 
-// If no featured found, fall back to latest 6
+// If no featured found, fall back to latest 8
 if ( ! $cpt_query->have_posts() ) {
     $cpt_query = new WP_Query( array(
         'post_type'      => 'emc_service',
-        'posts_per_page' => 6,
+        'posts_per_page' => 8,
         'post_status'    => 'publish',
         'orderby'        => 'menu_order date',
         'order'          => 'ASC',
@@ -46,9 +46,9 @@ $use_cpt = $cpt_query->have_posts();
 $static_services = array(
     array(
         'icon'  => 'fas fa-book-open',
-        'slug'  => 'arabic-education',
-        'title' => __( 'Arabic Education', 'emc-theme' ),
-        'desc'  => __( 'Weekend Madrasah, Arabic classes, and Quran lessons for children and adults of all levels.', 'emc-theme' ),
+        'slug'  => 'islamic-education',
+        'title' => __( 'Islamic Education', 'emc-theme' ),
+        'desc'  => __( 'Weekend Madrasah, Quran lessons, and Islamic studies for children and adults of all levels.', 'emc-theme' ),
         'delay' => '0s',
     ),
     array(
@@ -86,9 +86,23 @@ $static_services = array(
         'desc'  => __( 'Community gatherings, Islamic talks, sports days, and interfaith activities throughout the year.', 'emc-theme' ),
         'delay' => '.5s',
     ),
+    array(
+        'icon'  => 'fas fa-school',
+        'slug'  => 'school-visit',
+        'title' => __( 'School Visit', 'emc-theme' ),
+        'desc'  => __( 'Welcoming local schools for mosque visits, faith learning, guided tours, and Q&A sessions.', 'emc-theme' ),
+        'delay' => '.6s',
+    ),
+    array(
+        'icon'  => 'fas fa-hands-helping',
+        'slug'  => 'bereavement-support',
+        'title' => __( 'Bereavement Support', 'emc-theme' ),
+        'desc'  => __( 'Compassionate spiritual and practical support for individuals and families after the loss of a loved one.', 'emc-theme' ),
+        'delay' => '.7s',
+    ),
 );
 ?>
-<section class="services section-padding" id="services" aria-labelledby="services-heading">
+<section class="services services-preview section-padding" id="services" aria-labelledby="services-heading">
     <div class="container">
         <div class="section-header">
             <span class="subtitle"><?php echo esc_html( $subheading ); ?></span>

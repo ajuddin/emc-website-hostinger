@@ -40,6 +40,10 @@ if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $ramadan_start_date ) ) {
     $ramadan_start_date = '2027-02-08';
 }
 
+// TEMP TEST OVERRIDE: start Ramadan scheduled payments immediately for testing.
+// Remove this line after testing to restore the ACF/default Ramadan start date.
+$ramadan_start_date = date_i18n( 'Y-m-d', current_time( 'timestamp' ) );
+
 wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
     'startDate' => $ramadan_start_date,
 ) );
@@ -178,7 +182,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                         <label for="ramadan-donor-name"><?php esc_html_e( 'Your Details', 'emc-theme' ); ?></label>
                         <input type="text" id="ramadan-donor-name" class="form-control" placeholder="<?php esc_attr_e( 'Full name', 'emc-theme' ); ?>" required>
                         <input type="email" id="ramadan-donor-email" class="form-control" placeholder="<?php esc_attr_e( 'Email address', 'emc-theme' ); ?>" required style="margin-top:0.75rem;">
-                        <textarea id="ramadan-donor-address" class="form-control" rows="2" placeholder="<?php esc_attr_e( 'Address for Gift Aid (optional)', 'emc-theme' ); ?>" style="margin-top:0.75rem;"></textarea>
+                        <textarea id="ramadan-donor-address" class="form-control" rows="2" placeholder="<?php esc_attr_e( 'Address', 'emc-theme' ); ?>" required style="margin-top:0.75rem;"></textarea>
                     </div>
 
                     <!-- Schedule Summary -->

@@ -11,7 +11,7 @@
             <div class="prayer-strip-label">
                 <i class="fas fa-mosque" aria-hidden="true"></i>
                 <strong><?php esc_html_e( 'Today\'s Prayer Times', 'emc-theme' ); ?></strong>
-                <span class="prayer-strip-location">— <?php echo esc_html( emc_option( 'emc_location', 'Cuton Hall Lane, Chelmsford' ) ); ?></span>
+                <span class="prayer-strip-location">— <?php echo esc_html( emc_option( 'emc_location', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ) ); ?></span>
             </div>
 
             <div class="prayer-strip-times" id="prayer-strip-times">

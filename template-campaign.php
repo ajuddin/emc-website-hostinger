@@ -11,11 +11,32 @@
 
 get_header();
 
-wp_enqueue_style( 'emc-page-campaign', EMC_ASSETS . '/css/campaign.css', array( 'emc-style' ), EMC_VERSION );
+wp_enqueue_style( 'emc-page-donate',   EMC_ASSETS . '/css/donate.css',   array( 'emc-style' ), EMC_VERSION );
+wp_enqueue_style( 'emc-page-campaign', EMC_ASSETS . '/css/campaign.css', array( 'emc-style', 'emc-page-donate' ), EMC_VERSION );
+
+// Stripe.js - must load from js.stripe.com for PCI compliance.
+wp_register_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
+wp_enqueue_script( 'stripe-js' );
+
+$donate_js_path = EMC_DIR . '/assets/js/donate.js';
+if ( file_exists( $donate_js_path ) ) {
+    wp_enqueue_script(
+        'emc-page-donate',
+        EMC_ASSETS . '/js/donate.js',
+        array( 'emc-script', 'stripe-js' ),
+        filemtime( $donate_js_path ),
+        true
+    );
+    wp_localize_script( 'emc-page-donate', 'emcStripeConfig', array(
+        'publishableKey' => emc_stripe_pub_key(),
+        'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+        'nonce'          => wp_create_nonce( 'emc_donate_nonce' ),
+    ) );
+}
 
 $campaign_js_path = EMC_DIR . '/assets/js/campaign.js';
 if ( file_exists( $campaign_js_path ) ) {
-    wp_enqueue_script( 'emc-page-campaign', EMC_ASSETS . '/js/campaign.js', array( 'emc-script' ), filemtime( $campaign_js_path ), true );
+    wp_enqueue_script( 'emc-page-campaign', EMC_ASSETS . '/js/campaign.js', array( 'emc-script', 'emc-page-donate' ), filemtime( $campaign_js_path ), true );
 }
 
 // Campaign data from Customizer
@@ -25,13 +46,50 @@ $desc       = emc_option( 'emc_campaign_desc',     __( 'Help us build a lasting 
 $raised     = (int) emc_option( 'emc_campaign_raised', 68400 );
 $target     = (int) emc_option( 'emc_campaign_target', 100000 );
 $donors     = (int) emc_option( 'emc_campaign_donors', 247 );
-$cta_label  = emc_option( 'emc_campaign_cta_label', __( 'Donate to Campaign', 'emc-theme' ) );
-$cta_url    = emc_option( 'emc_campaign_cta_url', '' ) ?: ( get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' ) );
+$cta_label  = emc_option( 'emc_campaign_cta_label', __( 'Choose Badr Wall Level', 'emc-theme' ) );
+$cta_url    = emc_option( 'emc_campaign_cta_url', '' ) ?: '#badr-membership';
 $percent    = $target > 0 ? min( 100, round( ( $raised / $target ) * 100 ) ) : 0;
 $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-8fe1-41fe-aa6b-9109dc847445';
 $phone_digits = preg_replace( '/\D+/', '', emc_option( 'emc_phone', '' ) );
 $pledge_text  = rawurlencode( 'Assalamu alaikum, I would like to pledge towards the Badr Wall building fund.' );
 $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $pledge_text : ( get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) );
+$badr_levels  = array(
+    array(
+        'id'     => 'founder',
+        'label'  => __( 'Founder of the Centre', 'emc-theme' ),
+        'amount' => 10000,
+        'icon'   => 'fas fa-trophy',
+        'class'  => 'tier-founder',
+    ),
+    array(
+        'id'     => 'co-founder',
+        'label'  => __( 'Co-Founder of the Centre', 'emc-theme' ),
+        'amount' => 5000,
+        'icon'   => 'fas fa-star',
+        'class'  => 'tier-cofunder',
+    ),
+    array(
+        'id'     => 'golden',
+        'label'  => __( 'Golden Donor of the Centre', 'emc-theme' ),
+        'amount' => 3000,
+        'icon'   => 'fas fa-gem',
+        'class'  => 'tier-golden',
+    ),
+    array(
+        'id'     => 'silver',
+        'label'  => __( 'Silver Donor of the Centre', 'emc-theme' ),
+        'amount' => 2000,
+        'icon'   => 'fas fa-medal',
+        'class'  => 'tier-silver',
+    ),
+    array(
+        'id'     => 'friend',
+        'label'  => __( 'Friends of the Centre', 'emc-theme' ),
+        'amount' => 1000,
+        'icon'   => 'fas fa-handshake',
+        'class'  => 'tier-friend',
+    ),
+);
 ?>
 
 <!-- Campaign Hero -->
@@ -81,9 +139,9 @@ $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $p
                 </div>
 
                 <div class="campaign-cta-row" style="display:flex;gap:1rem;flex-wrap:wrap;">
-                    <a href="<?php echo esc_url( $cta_url ); ?>" class="btn btn-primary">
+                    <a href="#badr-membership" class="btn btn-primary">
                         <i class="fas fa-heart" aria-hidden="true"></i>
-                        <?php echo esc_html( $cta_label ); ?>
+                        <?php esc_html_e( 'Choose Your Badr Wall Level', 'emc-theme' ); ?>
                     </a>
                 </div>
             </div>
@@ -117,113 +175,162 @@ $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $p
         <!-- Tier Legend -->
         <div class="badr-tier-legend">
             <div class="tier-legend-item tier-founder">
-                <i class="fas fa-crown"></i>
+                <i class="fas fa-trophy"></i>
                 <div>
-                    <strong><?php esc_html_e( 'Founder of the Mosque', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( '£1,000+ or £313/month pledge', 'emc-theme' ); ?></span>
+                    <strong><?php esc_html_e( 'Founder of the Centre', 'emc-theme' ); ?></strong>
+                    <span><?php esc_html_e( '£10,000+', 'emc-theme' ); ?></span>
                 </div>
             </div>
             <div class="tier-legend-item tier-cofunder">
-                <i class="fas fa-award"></i>
+                <i class="fas fa-star"></i>
                 <div>
-                    <strong><?php esc_html_e( 'Co-Founder of the Mosque', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( '£313 – £999 contribution', 'emc-theme' ); ?></span>
+                    <strong><?php esc_html_e( 'Co-Founder of the Centre', 'emc-theme' ); ?></strong>
+                    <span><?php esc_html_e( '£5,000+', 'emc-theme' ); ?></span>
                 </div>
             </div>
-            <div class="tier-legend-item tier-supporter">
+            <div class="tier-legend-item tier-golden">
+                <i class="fas fa-gem"></i>
+                <div>
+                    <strong><?php esc_html_e( 'Golden Donor of the Centre', 'emc-theme' ); ?></strong>
+                    <span><?php esc_html_e( '£3,000', 'emc-theme' ); ?></span>
+                </div>
+            </div>
+            <div class="tier-legend-item tier-silver">
                 <i class="fas fa-medal"></i>
                 <div>
-                    <strong><?php esc_html_e( 'Supporter', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( '£100 – £312 contribution', 'emc-theme' ); ?></span>
+                    <strong><?php esc_html_e( 'Silver Donor of the Centre', 'emc-theme' ); ?></strong>
+                    <span><?php esc_html_e( '£2,000', 'emc-theme' ); ?></span>
                 </div>
             </div>
             <div class="tier-legend-item tier-friend">
-                <i class="fas fa-heart"></i>
+                <i class="fas fa-handshake"></i>
                 <div>
-                    <strong><?php esc_html_e( 'Friend of the Mosque', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( 'Any generous contribution', 'emc-theme' ); ?></span>
+                    <strong><?php esc_html_e( 'Friends of the Centre', 'emc-theme' ); ?></strong>
+                    <span><?php esc_html_e( '£1,000', 'emc-theme' ); ?></span>
                 </div>
             </div>
         </div>
 
-        <div class="badr-payment-options">
-            <?php
-            $badr_options = array(
-                array( 'title' => 'Founder of the Mosque', 'amount' => '1000', 'desc' => 'One-off £1,000+ gift or £313 monthly pledge.' ),
-                array( 'title' => 'Co-Founder of the Mosque', 'amount' => '313', 'desc' => 'A £313-£999 contribution towards the Badr Wall.' ),
-                array( 'title' => 'Supporter', 'amount' => '100', 'desc' => 'A £100-£312 contribution to secure a supporter place.' ),
-            );
-            foreach ( $badr_options as $option ) :
-                $stripe_link = add_query_arg(
-                    array(
-                        'fund'   => 'Building Fund',
-                        'amount' => $option['amount'],
-                    ),
-                    $cta_url
-                );
-            ?>
-            <div class="badr-payment-card">
-                <h3><?php echo esc_html( $option['title'] ); ?></h3>
-                <p><?php echo esc_html( $option['desc'] ); ?></p>
-                <div class="badr-payment-actions">
-                    <a href="<?php echo esc_url( $stripe_link ); ?>" class="btn btn-primary">
-                        <i class="fas fa-credit-card" aria-hidden="true"></i>
-                        <?php esc_html_e( 'Pay by Card', 'emc-theme' ); ?>
-                    </a>
-                    <a href="<?php echo esc_url( $bank_pay_url ); ?>" class="btn btn-outline" target="_blank" rel="noopener noreferrer">
-                        <i class="fas fa-university" aria-hidden="true"></i>
-                        <?php esc_html_e( 'Pay by Bank', 'emc-theme' ); ?>
-                    </a>
+        <div class="badr-membership-card glass-card" id="badr-membership">
+            <div class="badr-membership-head">
+                <div>
+                    <span class="campaign-tag"><i class="fas fa-heart" aria-hidden="true"></i> <?php esc_html_e( 'Badr Wall Membership', 'emc-theme' ); ?></span>
+                    <h3><?php esc_html_e( 'Secure Your Place on the Badr Wall', 'emc-theme' ); ?></h3>
+                    <p><?php esc_html_e( 'Choose your recognition level, then pay by card, pay by bank, or contact the team to agree an instalment schedule.', 'emc-theme' ); ?></p>
+                </div>
+                <div class="badr-selected-summary" aria-live="polite">
+                    <span><?php esc_html_e( 'Selected', 'emc-theme' ); ?></span>
+                    <strong id="badr-selected-label"><?php echo esc_html( $badr_levels[0]['label'] ); ?></strong>
+                    <em id="badr-selected-amount"><?php echo esc_html( '£' . number_format( $badr_levels[0]['amount'] ) . '+' ); ?></em>
                 </div>
             </div>
-            <?php endforeach; ?>
-            <div class="badr-payment-card badr-pledge-card">
-                <h3><?php esc_html_e( 'Need Instalments?', 'emc-theme' ); ?></h3>
-                <p><?php esc_html_e( 'Speak to the team about a payment schedule or pledge before paying.', 'emc-theme' ); ?></p>
-                <a href="<?php echo esc_url( $whatsapp_url ); ?>" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+
+            <div class="badr-tier-picker" role="radiogroup" aria-label="<?php esc_attr_e( 'Choose Badr Wall level', 'emc-theme' ); ?>">
+                <?php foreach ( $badr_levels as $index => $level ) : ?>
+                <button
+                    type="button"
+                    class="badr-tier-option <?php echo esc_attr( $level['class'] ); ?><?php echo 0 === $index ? ' active' : ''; ?>"
+                    data-tier="<?php echo esc_attr( $level['id'] ); ?>"
+                    data-label="<?php echo esc_attr( $level['label'] ); ?>"
+                    data-amount="<?php echo esc_attr( $level['amount'] ); ?>"
+                    data-plus="<?php echo in_array( $level['id'], array( 'founder', 'co-founder' ), true ) ? '1' : '0'; ?>"
+                    role="radio"
+                    aria-checked="<?php echo 0 === $index ? 'true' : 'false'; ?>">
+                    <i class="<?php echo esc_attr( $level['icon'] ); ?>" aria-hidden="true"></i>
+                    <span><?php echo esc_html( $level['label'] ); ?></span>
+                    <strong>
+                        <?php
+                        echo esc_html( '£' . number_format( $level['amount'] ) );
+                        if ( in_array( $level['id'], array( 'founder', 'co-founder' ), true ) ) {
+                            echo '+';
+                        }
+                        ?>
+                    </strong>
+                </button>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="badr-donor-fields">
+                <div class="form-group">
+                    <label for="badr-donor-name"><?php esc_html_e( 'Full Name *', 'emc-theme' ); ?></label>
+                    <input type="text" id="badr-donor-name" class="form-control" autocomplete="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="badr-donor-email"><?php esc_html_e( 'Email Address *', 'emc-theme' ); ?></label>
+                    <input type="email" id="badr-donor-email" class="form-control" autocomplete="email" required>
+                </div>
+                <div class="form-group badr-address-field">
+                    <label for="badr-donor-address"><?php esc_html_e( 'Address *', 'emc-theme' ); ?></label>
+                    <textarea id="badr-donor-address" class="form-control" rows="2" autocomplete="street-address" required></textarea>
+                </div>
+            </div>
+
+            <div class="badr-payment-actions">
+                <button type="button" class="btn btn-primary" id="badr-card-pay">
+                    <i class="fas fa-credit-card" aria-hidden="true"></i>
+                    <?php esc_html_e( 'Pay by Card', 'emc-theme' ); ?>
+                </button>
+                <a href="<?php echo esc_url( $bank_pay_url ); ?>" class="btn btn-outline" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-university" aria-hidden="true"></i>
+                    <?php esc_html_e( 'Pay by Bank', 'emc-theme' ); ?>
+                </a>
+                <a href="<?php echo esc_url( $whatsapp_url ); ?>" class="btn btn-outline" target="_blank" rel="noopener noreferrer">
                     <i class="fab fa-whatsapp" aria-hidden="true"></i>
-                    <?php esc_html_e( 'WhatsApp to Pledge', 'emc-theme' ); ?>
+                    <?php esc_html_e( 'WhatsApp Pledge', 'emc-theme' ); ?>
                 </a>
             </div>
+            <p class="badr-payment-note">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <?php esc_html_e( 'For instalments, select WhatsApp Pledge so the team can agree a payment schedule with you.', 'emc-theme' ); ?>
+            </p>
         </div>
 
         <?php
         $tiers = array(
             array(
                 'id'       => 'founder',
-                'label'    => __( 'Founder of the Mosque', 'emc-theme' ),
-                'icon'     => 'fas fa-crown',
+                'label'    => __( 'Founder of the Centre', 'emc-theme' ),
+                'icon'     => 'fas fa-trophy',
                 'class'    => 'tier-founder',
                 'total'    => 10,
                 'filled'   => min( (int) emc_option( 'emc_campaign_tier1_filled', 2 ), 10 ),
-                'desc'     => __( '£1,000+ — 10 founding places', 'emc-theme' ),
+                'desc'     => __( '£10,000+ — founding places', 'emc-theme' ),
             ),
             array(
-                'id'       => 'cofunder',
-                'label'    => __( 'Co-Founder of the Mosque', 'emc-theme' ),
-                'icon'     => 'fas fa-award',
+                'id'       => 'co-founder',
+                'label'    => __( 'Co-Founder of the Centre', 'emc-theme' ),
+                'icon'     => 'fas fa-star',
                 'class'    => 'tier-cofunder',
                 'total'    => 30,
                 'filled'   => min( (int) emc_option( 'emc_campaign_tier2_filled', 8 ), 30 ),
-                'desc'     => __( '£313–£999 — 30 places', 'emc-theme' ),
+                'desc'     => __( '£5,000+ — co-founder places', 'emc-theme' ),
             ),
             array(
-                'id'       => 'supporter',
-                'label'    => __( 'Supporter', 'emc-theme' ),
+                'id'       => 'golden',
+                'label'    => __( 'Golden Donor of the Centre', 'emc-theme' ),
+                'icon'     => 'fas fa-gem',
+                'class'    => 'tier-golden',
+                'total'    => 50,
+                'filled'   => min( (int) emc_option( 'emc_campaign_tier3_filled', 12 ), 50 ),
+                'desc'     => __( '£3,000 — golden donor places', 'emc-theme' ),
+            ),
+            array(
+                'id'       => 'silver',
+                'label'    => __( 'Silver Donor of the Centre', 'emc-theme' ),
                 'icon'     => 'fas fa-medal',
-                'class'    => 'tier-supporter',
-                'total'    => 100,
-                'filled'   => min( (int) emc_option( 'emc_campaign_tier3_filled', 35 ), 100 ),
-                'desc'     => __( '£100–£312 — 100 places', 'emc-theme' ),
+                'class'    => 'tier-silver',
+                'total'    => 80,
+                'filled'   => min( (int) emc_option( 'emc_campaign_tier4_filled', 15 ), 80 ),
+                'desc'     => __( '£2,000 — silver donor places', 'emc-theme' ),
             ),
             array(
                 'id'       => 'friend',
-                'label'    => __( 'Friend of the Mosque', 'emc-theme' ),
-                'icon'     => 'fas fa-heart',
+                'label'    => __( 'Friends of the Centre', 'emc-theme' ),
+                'icon'     => 'fas fa-handshake',
                 'class'    => 'tier-friend',
-                'total'    => 173,
-                'filled'   => min( max( 0, $donors - 45 ), 173 ),
-                'desc'     => __( 'Any amount — 173 places', 'emc-theme' ),
+                'total'    => 143,
+                'filled'   => min( max( 0, $donors - 37 ), 143 ),
+                'desc'     => __( '£1,000 — friends places', 'emc-theme' ),
             ),
         );
         ?>
@@ -255,7 +362,7 @@ $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $p
                 </div>
                 <?php endfor; ?>
                 <?php for ( $i = 0; $i < $show_empty; $i++ ) : ?>
-                <a href="<?php echo esc_url( $cta_url ); ?>" class="donor-slot empty <?php echo esc_attr( $tier['class'] ); ?>-empty">
+                <a href="#badr-membership" class="donor-slot empty <?php echo esc_attr( $tier['class'] ); ?>-empty" data-badr-tier="<?php echo esc_attr( $tier['id'] ); ?>">
                     <i class="fas fa-plus-circle" aria-hidden="true"></i>
                     <span><?php esc_html_e( 'Claim your place', 'emc-theme' ); ?></span>
                 </a>
@@ -271,7 +378,7 @@ $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $p
         <?php endforeach; ?>
 
         <div class="text-center" style="margin-top:3rem;">
-            <a href="<?php echo esc_url( $cta_url ); ?>" class="btn btn-primary" style="font-size:var(--step-0);padding:1rem 2.5rem;">
+            <a href="#badr-membership" class="btn btn-primary" style="font-size:var(--step-0);padding:1rem 2.5rem;">
                 <i class="fas fa-heart" aria-hidden="true"></i>
                 <?php esc_html_e( 'Secure Your Place on the Badr Wall', 'emc-theme' ); ?>
             </a>
@@ -288,28 +395,28 @@ $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $p
             <!-- Left: Donate Card -->
             <div>
                 <div class="form-card glass-card">
-                    <h3><?php esc_html_e( 'Support the Building Campaign', 'emc-theme' ); ?></h3>
-                    <p class="form-desc"><?php esc_html_e( 'Choose an amount to contribute towards our new centre.', 'emc-theme' ); ?></p>
+                    <h3><?php esc_html_e( 'Join the Badr Wall', 'emc-theme' ); ?></h3>
+                    <p class="form-desc"><?php esc_html_e( 'Choose one of the recognised Badr Wall levels and complete your membership payment above.', 'emc-theme' ); ?></p>
                     <div class="amount-grid" style="grid-template-columns: repeat(4, 1fr);">
-                        <button class="amount-btn">£25</button>
-                        <button class="amount-btn">£50</button>
-                        <button class="amount-btn active">£100</button>
-                        <button class="amount-btn">£313</button>
+                        <button class="amount-btn">£1,000</button>
+                        <button class="amount-btn">£2,000</button>
+                        <button class="amount-btn active">£3,000</button>
+                        <button class="amount-btn">£5,000+</button>
                     </div>
 
                     <div class="monthly-313-badge">
                         <i class="fas fa-award" aria-hidden="true"></i>
                         <div>
-                            <strong><?php esc_html_e( 'Become a "313 Founding Donor"', 'emc-theme' ); ?></strong>
+                            <strong><?php esc_html_e( 'Badr Wall recognition starts from £1,000', 'emc-theme' ); ?></strong>
                             <p style="margin:0;color:var(--text-muted);font-size:var(--step--2);">
-                                <?php esc_html_e( 'Donate £313 or set up a monthly pledge to be honoured on our permanent donor wall.', 'emc-theme' ); ?>
+                                <?php esc_html_e( 'For instalments or a custom schedule, use the WhatsApp pledge option and the team will contact you.', 'emc-theme' ); ?>
                             </p>
                         </div>
                     </div>
 
-                    <a href="<?php echo esc_url( $cta_url ); ?>" class="btn btn-primary donate-submit">
+                    <a href="#badr-membership" class="btn btn-primary donate-submit">
                         <i class="fas fa-lock" aria-hidden="true"></i>
-                        <?php echo esc_html( $cta_label ); ?>
+                        <?php esc_html_e( 'Choose Badr Wall Level', 'emc-theme' ); ?>
                     </a>
                     <p class="secure-note" style="text-align:center;margin-top:1rem;font-size:var(--step--2);color:var(--text-muted);">
                         <i class="fas fa-lock" aria-hidden="true"></i>

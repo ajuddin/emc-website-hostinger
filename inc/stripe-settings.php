@@ -96,7 +96,7 @@ function emc_stripe_settings_page() {
                         <p class="description">Current webhook secret: <code><?php echo esc_html( $webhook_masked ); ?></code></p>
                         <?php endif; ?>
                         <p class="description">Stripe webhook URL: <code><?php echo esc_html( $webhook_url ); ?></code></p>
-                        <p class="description">In Stripe, send at least <code>invoice.payment_succeeded</code> to record recurring Ramadan donations in WordPress.</p>
+                        <p class="description">In Stripe, send <code>invoice.payment_succeeded</code> and <code>customer.subscription.updated</code> so recurring donations and subscription statuses stay in sync.</p>
                     </td>
                 </tr>
             </table>

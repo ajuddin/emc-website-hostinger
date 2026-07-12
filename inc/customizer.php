@@ -218,7 +218,7 @@ function emc_customize_register( $wp_customize ) {
     emc_add_text_setting( $wp_customize, 'emc_phone', '',
         'emc_identity', __( 'Phone Number (optional)', 'emc-theme' ) );
 
-    emc_add_text_setting( $wp_customize, 'emc_location', 'Cuton Hall Lane, Chelmsford',
+    emc_add_text_setting( $wp_customize, 'emc_location', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB',
         'emc_identity', __( 'Location (short, e.g. "Chelmsford, Essex")', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_address_line1', 'Cuton Hall Lane',
@@ -227,7 +227,7 @@ function emc_customize_register( $wp_customize ) {
     emc_add_text_setting( $wp_customize, 'emc_address_line2', '',
         'emc_identity', __( 'Street Address (Line 2)', 'emc-theme' ) );
 
-    emc_add_text_setting( $wp_customize, 'emc_address_city', 'Chelmsford',
+    emc_add_text_setting( $wp_customize, 'emc_address_city', '',
         'emc_identity', __( 'City', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_address_postcode', 'CM2 6PB',
@@ -302,7 +302,7 @@ function emc_customize_register( $wp_customize ) {
 
     // ── Logo Size ────────────────────────────────────────────────────────
     $wp_customize->add_setting( 'emc_logo_height', array(
-        'default'           => 52,
+        'default'           => 68,
         'sanitize_callback' => 'absint',
         'transport'         => 'postMessage',
     ) );
@@ -313,7 +313,7 @@ function emc_customize_register( $wp_customize ) {
         'type'        => 'range',
         'input_attrs' => array(
             'min'  => 30,
-            'max'  => 100,
+            'max'  => 120,
             'step' => 2,
         ),
     ) );
@@ -369,7 +369,7 @@ function emc_customize_register( $wp_customize ) {
     emc_add_textarea_setting(
         $wp_customize,
         'emc_footer_address',
-        __( "Essex Muslim Centre\nCuton Hall Lane\nChelmsford\nCM2 6PB", 'emc-theme' ),
+        __( "Essex Muslim Centre\nCuton Hall Lane\nCM2 6PB", 'emc-theme' ),
         'emc_footer_opts',
         __( 'Footer Address (each line is a new line)', 'emc-theme' )
     );
@@ -669,21 +669,24 @@ function emc_customize_register( $wp_customize ) {
         'emc_hp_campaign', __( 'Number of Donors', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_campaign_cta_label',
-        __( 'Donate to Campaign', 'emc-theme' ),
+        __( 'Choose Badr Wall Level', 'emc-theme' ),
         'emc_hp_campaign', __( 'Donate Button Label', 'emc-theme' ) );
 
     emc_add_url_setting( $wp_customize, 'emc_campaign_cta_url', '',
-        'emc_hp_campaign', __( 'Donate Button URL (blank = /donate/)', 'emc-theme' ) );
+        'emc_hp_campaign', __( 'Donate Button URL (blank = campaign Badr Wall selector)', 'emc-theme' ) );
 
     // ── Badr Wall Tier Fill Counts ─────────────────────────────────────────
     emc_add_text_setting( $wp_customize, 'emc_campaign_tier1_filled', '2',
-        'emc_hp_campaign', __( 'Badr Wall — Founders filled (max 10)', 'emc-theme' ) );
+        'emc_hp_campaign', __( 'Badr Wall — Founder of the Centre filled (max 10)', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_campaign_tier2_filled', '8',
-        'emc_hp_campaign', __( 'Badr Wall — Co-Founders filled (max 30)', 'emc-theme' ) );
+        'emc_hp_campaign', __( 'Badr Wall — Co-Founder of the Centre filled (max 30)', 'emc-theme' ) );
 
-    emc_add_text_setting( $wp_customize, 'emc_campaign_tier3_filled', '35',
-        'emc_hp_campaign', __( 'Badr Wall — Supporters filled (max 100)', 'emc-theme' ) );
+    emc_add_text_setting( $wp_customize, 'emc_campaign_tier3_filled', '12',
+        'emc_hp_campaign', __( 'Badr Wall — Golden Donors filled (max 50)', 'emc-theme' ) );
+
+    emc_add_text_setting( $wp_customize, 'emc_campaign_tier4_filled', '15',
+        'emc_hp_campaign', __( 'Badr Wall — Silver Donors filled (max 80)', 'emc-theme' ) );
 
 
     /* ── Counters / Stats Section ───────────────────────────────────────── */

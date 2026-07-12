@@ -160,11 +160,11 @@ if ( file_exists( $contact_js_path ) ) {
 
                 <div class="getting-there-card glass-card">
                     <h3><i class="fas fa-route" aria-hidden="true"></i> <?php esc_html_e( 'Getting There', 'emc-theme' ); ?></h3>
-                    <p><?php esc_html_e( 'Use the exact map pin for Essex Muslim Centre, Cuton Hall Lane, CM2 6PB. The postcode may not always land on the precise entrance.', 'emc-theme' ); ?></p>
+                    <p><?php esc_html_e( 'Use the exact map pin for Essex Muslim Centre, Cuton Hall Lane, CM2 6PB. The postcode may not always land on the precise entrance, so use coordinates 51.745083, 0.507917 where possible.', 'emc-theme' ); ?></p>
                     <ul>
-                        <li><strong><?php esc_html_e( 'By train:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'Travel from London Liverpool Street to Chelmsford, then take a local taxi or connecting bus towards Cuton Hall Lane.', 'emc-theme' ); ?></li>
-                        <li><strong><?php esc_html_e( 'By bus:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'Use local Chelmsford services towards Springfield/Cuton Hall Lane and check the latest route before travelling.', 'emc-theme' ); ?></li>
-                        <li><strong><?php esc_html_e( 'By taxi/car:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'Share the coordinates 51°44\'42.3"N 0°30\'28.5"E with your driver for the most accurate drop-off point.', 'emc-theme' ); ?></li>
+                        <li><strong><?php esc_html_e( 'By train from London:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'Take a Greater Anglia service from London Liverpool Street to Chelmsford station, then continue by local bus or taxi to the exact map pin.', 'emc-theme' ); ?></li>
+                        <li><strong><?php esc_html_e( 'By bus:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'From Chelmsford city centre, use local services towards Springfield/Cuton Hall Lane and check live bus options before travelling.', 'emc-theme' ); ?></li>
+                        <li><strong><?php esc_html_e( 'By taxi/car:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'For door-to-door travel from London or Chelmsford station, share the exact map link or coordinates 51.745083, 0.507917 with your driver.', 'emc-theme' ); ?></li>
                     </ul>
                     <a href="https://maps.app.goo.gl/ctL7XFdazy4xsHAA7" class="btn btn-outline" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-map-marked-alt" aria-hidden="true"></i>

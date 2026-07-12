@@ -11,7 +11,7 @@
     <div class="pwf-header">
         <div>
             <p class="pwf-title"><i class="fas fa-mosque"></i> <?php esc_html_e( "Today's Prayer Times", 'emc-theme' ); ?></p>
-            <p class="pwf-location"><i class="fas fa-map-marker-alt"></i> <?php echo esc_html( emc_option( 'emc_location', 'Cuton Hall Lane, Chelmsford' ) ); ?></p>
+            <p class="pwf-location"><i class="fas fa-map-marker-alt"></i> <?php echo esc_html( emc_option( 'emc_location', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ) ); ?></p>
         </div>
         <div class="pwf-countdown">
             <p class="pwf-next-label"><?php esc_html_e( 'Next:', 'emc-theme' ); ?> <strong id="pwf-next-name">—</strong></p>

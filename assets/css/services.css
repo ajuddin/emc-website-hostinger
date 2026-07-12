@@ -19,6 +19,66 @@
     border-radius: 50%;
 }
 
+.services-hero .page-hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.services-hero .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(42,172,160,0.18);
+    border: 1px solid rgba(42,172,160,0.34);
+    color: #bff7ef;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: var(--step--1);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.services-card-section {
+    background: var(--light-bg);
+}
+
+.services-card-section .section-header {
+    margin-bottom: 2.5rem;
+}
+
+.services-page-grid {
+    align-items: stretch;
+}
+
+.service-page-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.service-page-card h3 {
+    color: var(--deep-blue);
+    font-size: var(--step-0);
+    margin-bottom: 0.75rem;
+}
+
+.service-page-card p {
+    color: var(--text-muted);
+    font-size: var(--step--1);
+    line-height: 1.65;
+    margin-bottom: 1.5rem;
+    flex: 1;
+}
+
+.service-page-card .service-card-actions {
+    justify-content: center;
+    margin-top: auto;
+}
+
+.service-page-card .btn-sm {
+    min-height: 40px;
+}
+
 /* =====================
    Sticky Tab Nav
    ===================== */

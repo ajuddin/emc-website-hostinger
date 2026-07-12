@@ -1,6 +1,6 @@
 <?php
 /**
- * One-time setup: seed the 6 core EMC service posts.
+ * One-time setup: seed the 8 core EMC service posts.
  * Run once by visiting: http://emc.local/?emc_seed_services=1
  * Delete this file afterwards.
  */
@@ -17,17 +17,17 @@ if ( ! current_user_can('manage_options') ) {
 
 $services = array(
     array(
-        'title'   => 'Arabic Education',
-        'slug'    => 'arabic-education',
+        'title'   => 'Islamic Education',
+        'slug'    => 'islamic-education',
         'icon'    => 'fas fa-book-open',
-        'excerpt' => 'Weekend Madrasah, Arabic classes, and Quran lessons for children and adults of all levels.',
-        'content' => '<h2>About Our Arabic Education Programme</h2>
-<p>At Essex Muslim Centre, we believe that every Muslim should have the opportunity to connect with the Quran and Islamic teachings in their original language. Our Arabic Education programme serves children and adults across Chelmsford and Essex.</p>
+        'excerpt' => 'Weekend Madrasah, Quran lessons, and Islamic studies for children and adults of all levels.',
+        'content' => '<h2>About Our Islamic Education Programme</h2>
+<p>At Essex Muslim Centre, we believe that every Muslim should have the opportunity to connect with the Quran and Islamic teachings. Our Islamic Education programme serves children and adults across Chelmsford and Essex.</p>
 
 <h3>What We Offer</h3>
 <ul>
-<li><strong>Weekend Madrasah (Ages 5–16):</strong> Saturday and Sunday classes covering Quran recitation with Tajweed, Islamic Studies, Arabic language, and Seerah (Prophetic biography).</li>
-<li><strong>Adult Arabic Classes:</strong> Beginner to advanced conversational and classical Arabic, taught in small groups by qualified instructors.</li>
+<li><strong>Weekend Madrasah:</strong> Saturday and Sunday classes covering Quran recitation with Tajweed, Islamic Studies, Seerah, and core Islamic knowledge.</li>
+<li><strong>Adult Islamic Studies:</strong> Beginner-friendly classes covering worship, Quran, character, and everyday Islamic practice.</li>
 <li><strong>Quran Memorisation (Hifz):</strong> Structured programme for dedicated students with individual mentor support.</li>
 <li><strong>Quran Recitation & Tajweed:</strong> Perfecting pronunciation and application of Tajweed rules for all ages.</li>
 </ul>
@@ -145,6 +145,46 @@ $services = array(
 <h3>Stay Updated</h3>
 <p>Follow our Events page and social media channels to stay up to date with upcoming events. All are welcome unless otherwise stated. Many events are free to attend.</p>',
         'order'   => 6,
+    ),
+    array(
+        'title'   => 'School Visit',
+        'slug'    => 'school-visit',
+        'icon'    => 'fas fa-school',
+        'excerpt' => 'Welcoming local schools for mosque visits, faith learning, guided tours, and Q&A sessions.',
+        'content' => '<h2>School Visits to EMC</h2>
+<p>Essex Muslim Centre welcomes local schools and educational groups for guided visits that help pupils learn about Islam, mosque life, and the Muslim community in Essex.</p>
+
+<h3>Visits Can Include</h3>
+<ul>
+<li><strong>Mosque Tours:</strong> A guided walk through the centre and prayer spaces.</li>
+<li><strong>Faith Learning:</strong> Age-appropriate introductions to Islamic beliefs, worship, and community life.</li>
+<li><strong>Q&A Sessions:</strong> Opportunities for pupils and teachers to ask respectful questions.</li>
+<li><strong>Curriculum Support:</strong> Visits tailored around RE, citizenship, diversity, and interfaith learning.</li>
+</ul>
+
+<h3>Arrange a Visit</h3>
+<p>Please contact the centre with your preferred dates, year group, group size, and any curriculum topics you would like covered.</p>',
+        'order'   => 7,
+    ),
+    array(
+        'title'   => 'Bereavement Support',
+        'slug'    => 'bereavement-support',
+        'icon'    => 'fas fa-hands-helping',
+        'excerpt' => 'Compassionate spiritual and practical support for individuals and families after the loss of a loved one.',
+        'content' => '<h2>Bereavement Support</h2>
+<p>Bereavement can be overwhelming. Essex Muslim Centre offers compassionate support for individuals and families dealing with loss, with care rooted in Islamic guidance and community support.</p>
+
+<h3>How We Can Help</h3>
+<ul>
+<li><strong>Spiritual Support:</strong> Guidance, duas, and reminders for families navigating grief.</li>
+<li><strong>Family Support:</strong> A confidential space to talk through difficult moments after a loss.</li>
+<li><strong>Janaza Signposting:</strong> Help connecting families with the appropriate funeral and burial support.</li>
+<li><strong>Ongoing Care:</strong> Follow-up support and signposting to suitable local services where needed.</li>
+</ul>
+
+<h3>Speak to Us</h3>
+<p>Please contact the centre if you or your family would benefit from bereavement support. All enquiries are handled with sensitivity and confidentiality.</p>',
+        'order'   => 8,
     ),
 );
 

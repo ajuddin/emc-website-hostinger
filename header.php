@@ -18,7 +18,7 @@ $show_donate   = (bool) emc_option( 'emc_header_donate_btn', true );
 $donate_label  = emc_option( 'emc_header_donate_label', __( 'Donate Now', 'emc-theme' ) );
 $sticky_header = (bool) emc_option( 'emc_header_sticky', true );
 $cookie_on     = (bool) emc_option( 'emc_cookie_enabled', true );
-$logo_height   = (int) emc_option( 'emc_logo_height', 64 );
+$logo_height   = (int) emc_option( 'emc_logo_height', 68 );
 $cookie_msg    = emc_option( 'emc_cookie_message', __( 'We use cookies to improve your experience. By continuing you agree to our Privacy Policy.', 'emc-theme' ) );
 $cookie_accept = emc_option( 'emc_cookie_accept_label', __( 'Accept', 'emc-theme' ) );
 $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-theme' ) );
@@ -185,16 +185,7 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
             id="desktop-nav"
             aria-label="<?php esc_attr_e( 'Primary Navigation', 'emc-theme' ); ?>"
         >
-            <?php
-            wp_nav_menu( array(
-                'theme_location' => 'primary',
-                'container'      => false,
-                'menu_class'     => '',
-                'items_wrap'     => '<ul>%3$s</ul>',
-                'fallback_cb'    => 'emc_header_nav_fallback',
-                'depth'          => 2,
-            ) );
-            ?>
+            <?php emc_header_nav_fallback(); ?>
         </nav>
 
         <?php /* Header Actions */ ?>
@@ -255,16 +246,7 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
         </button>
     </div>
 
-    <?php
-    wp_nav_menu( array(
-        'theme_location' => 'mobile',
-        'container'      => false,
-        'menu_class'     => 'mobile-menu',
-        'items_wrap'     => '<ul class="%2$s">%3$s</ul>',
-        'fallback_cb'    => 'emc_mobile_nav_fallback',
-        'depth'          => 2,
-    ) );
-    ?>
+    <?php emc_mobile_nav_fallback(); ?>
 
     <div class="mobile-donate-wrap">
         <?php echo emc_donate_button( $donate_label, 'mobile-donate-btn' ); ?>

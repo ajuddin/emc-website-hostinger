@@ -319,6 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPiId = data.data.pi_id;
         currentConfirmMode = data.data.confirm_mode || 'payment';
         currentSubscriptionId = data.data.subscription_id || '';
+        if (data.data.start_date) {
+            currentStartDate = data.data.start_date;
+        }
 
         // Initialize Stripe Elements with the client secret
         stripeElements = stripe.elements({ clientSecret: data.data.client_secret,
@@ -397,6 +400,10 @@ document.addEventListener('DOMContentLoaded', () => {
             showInlineError(panel, 'Please enter a valid email address.');
             return false;
         }
+        if (!currentAddress) {
+            showInlineError(panel, 'Please enter your address.');
+            return false;
+        }
         return true;
     }
 
@@ -472,12 +479,16 @@ document.addEventListener('DOMContentLoaded', () => {
         errEl.hidden = true;
 
         try {
+            const returnUrl = new URL(window.location.href);
+            returnUrl.searchParams.set('donated', '1');
+
             const confirmParams = {
-                return_url: window.location.href + '?donated=1',
+                return_url: returnUrl.toString(),
                 payment_method_data: {
                     billing_details: {
                             name  : currentName  || undefined,
                             email : currentEmail || undefined,
+                            address: currentAddress ? { line1: currentAddress } : undefined,
                     },
                 },
             };

@@ -191,6 +191,13 @@ function emc_stripe_frequency_to_recurring( $frequency ) {
     }
 }
 
+function emc_stripe_should_start_subscription_now_for_testing( $frequency ) {
+    $secret_key = emc_stripe_secret_key();
+
+    return 0 === strpos( $secret_key, 'sk_test_' )
+        && in_array( $frequency, array( 'daily', 'monthly' ), true );
+}
+
 /* ==========================================================================
    Stripe - Create PaymentIntent
    ========================================================================== */
@@ -208,6 +215,10 @@ function emc_stripe_create_intent() {
     if ( $amount < 50 ) {
         wp_send_json_error( array( 'message' => 'Minimum donation is £0.50.' ) );
     }
+    if ( ! $name || ! is_email( $email ) || ! $address ) {
+        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
+    }
+
     $response = wp_remote_post( 'https://api.stripe.com/v1/payment_intents', array(
         'headers' => array(
             'Authorization' => 'Bearer ' . emc_stripe_secret_key(),
@@ -224,6 +235,7 @@ function emc_stripe_create_intent() {
             'metadata[donor_name]'               => $name,
             'metadata[donor_email]'              => $email,
             'metadata[donor_address]'            => $address,
+            'receipt_email'                       => $email,
         ),
         'timeout' => 20,
     ) );
@@ -263,7 +275,18 @@ function emc_stripe_create_subscription() {
         wp_send_json_error( array( 'message' => 'Minimum regular donation is £0.50.' ) );
     }
 
+    if ( ! $name || ! is_email( $email ) || ! $address ) {
+        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
+    }
+
     $recurring = emc_stripe_frequency_to_recurring( $frequency );
+    $now_timestamp        = current_time( 'timestamp' );
+    $requested_start_date = $start_date;
+    $starts_immediately   = emc_stripe_should_start_subscription_now_for_testing( $frequency );
+
+    if ( $starts_immediately ) {
+        $start_date = '';
+    }
 
     $customer_body = array(
         'name'             => $name ?: 'EMC donor',
@@ -271,6 +294,9 @@ function emc_stripe_create_subscription() {
     );
     if ( is_email( $email ) ) {
         $customer_body['email'] = $email;
+    }
+    if ( $address ) {
+        $customer_body['address[line1]'] = $address;
     }
 
     $customer = emc_stripe_request( 'POST', 'customers', $customer_body );
@@ -297,6 +323,8 @@ function emc_stripe_create_subscription() {
         'metadata[fund]'                               => $fund,
         'metadata[frequency]'                          => $frequency,
         'metadata[occurrences]'                        => $occurrences,
+        'metadata[requested_start_date]'                => $requested_start_date,
+        'metadata[test_start_now]'                      => $starts_immediately ? '1' : '0',
         'metadata[source]'                             => 'EMC Website',
         'metadata[donor_name]'                         => $name,
         'metadata[donor_email]'                        => $email,
@@ -306,7 +334,6 @@ function emc_stripe_create_subscription() {
         'expand[]'                                     => 'latest_invoice.payment_intent',
     );
 
-    $now_timestamp   = current_time( 'timestamp' );
     $start_timestamp = $start_date ? strtotime( $start_date . ' 00:00:00' ) : false;
     if ( $start_timestamp && $start_timestamp > current_time( 'timestamp' ) + DAY_IN_SECONDS ) {
         $subscription_body['trial_end'] = $start_timestamp;
@@ -346,6 +373,8 @@ function emc_stripe_create_subscription() {
         'subscription_id' => $subscription['id'],
         'customer_id'     => $customer['id'],
         'confirm_mode'    => $confirm_mode,
+        'start_date'      => $start_date ?: date_i18n( 'Y-m-d', $now_timestamp ),
+        'start_now'       => $starts_immediately,
     ) );
 }
 add_action( 'wp_ajax_emc_stripe_create_subscription',        'emc_stripe_create_subscription' );
@@ -366,6 +395,9 @@ function emc_stripe_record_donation() {
     $message  = sanitize_textarea_field( $_POST['message'] ?? '' );
     if ( empty( $pi_id ) ) {
         wp_send_json_error( array( 'message' => 'Invalid payment reference.' ) );
+    }
+    if ( ! $name || ! is_email( $email ) || ! $address ) {
+        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
     }
     // Verify with Stripe before recording
     $check   = wp_remote_get( 'https://api.stripe.com/v1/payment_intents/' . urlencode( $pi_id ),
@@ -452,6 +484,9 @@ function emc_stripe_record_subscription_setup() {
 
     if ( ! $subscription_id ) {
         wp_send_json_error( array( 'message' => 'Missing subscription reference.' ) );
+    }
+    if ( ! $name || ! is_email( $email ) || ! $address ) {
+        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
     }
 
     if ( emc_stripe_subscription_log_has_ref( $subscription_id ) ) {
@@ -543,8 +578,8 @@ function emc_stripe_verify_webhook_signature( $payload, $signature_header ) {
     return false;
 }
 
-function emc_stripe_donation_log_has_ref( $ref ) {
-    if ( ! $ref ) {
+function emc_stripe_donation_log_has_ref( $ref, $invoice_id = '' ) {
+    if ( ! $ref && ! $invoice_id ) {
         return false;
     }
 
@@ -554,7 +589,10 @@ function emc_stripe_donation_log_has_ref( $ref ) {
     }
 
     foreach ( $log as $entry ) {
-        if ( ! empty( $entry['pi_id'] ) && $entry['pi_id'] === $ref ) {
+        if ( $ref && ! empty( $entry['pi_id'] ) && $entry['pi_id'] === $ref ) {
+            return true;
+        }
+        if ( $invoice_id && ! empty( $entry['invoice_id'] ) && $entry['invoice_id'] === $invoice_id ) {
             return true;
         }
     }
@@ -562,7 +600,66 @@ function emc_stripe_donation_log_has_ref( $ref ) {
     return false;
 }
 
+function emc_stripe_find_subscription_log_entry( $subscription_id ) {
+    if ( ! $subscription_id ) {
+        return array();
+    }
+
+    $log = get_option( 'emc_subscriptions_log', array() );
+    if ( ! is_array( $log ) ) {
+        return array();
+    }
+
+    foreach ( $log as $entry ) {
+        if ( ! empty( $entry['subscription_id'] ) && $entry['subscription_id'] === $subscription_id ) {
+            return is_array( $entry ) ? $entry : array();
+        }
+    }
+
+    return array();
+}
+
+function emc_stripe_update_subscription_log_status( $subscription_id, $status = 'active' ) {
+    if ( ! $subscription_id ) {
+        return;
+    }
+
+    $log = get_option( 'emc_subscriptions_log', array() );
+    if ( ! is_array( $log ) ) {
+        return;
+    }
+
+    $changed = false;
+    foreach ( $log as &$entry ) {
+        if ( ! empty( $entry['subscription_id'] ) && $entry['subscription_id'] === $subscription_id ) {
+            $entry['status'] = sanitize_text_field( $status );
+            $changed = true;
+            break;
+        }
+    }
+    unset( $entry );
+
+    if ( $changed ) {
+        update_option( 'emc_subscriptions_log', $log );
+    }
+}
+
+function emc_stripe_record_subscription_status_update( $subscription ) {
+    if ( empty( $subscription['id'] ) || empty( $subscription['status'] ) ) {
+        return;
+    }
+
+    emc_stripe_update_subscription_log_status(
+        sanitize_text_field( $subscription['id'] ),
+        sanitize_text_field( $subscription['status'] )
+    );
+}
+
 function emc_stripe_record_invoice_payment( $invoice ) {
+    if ( empty( $invoice['paid'] ) && ( $invoice['status'] ?? '' ) !== 'paid' ) {
+        return;
+    }
+
     $subscription_id = '';
     if ( ! empty( $invoice['subscription'] ) ) {
         $subscription_id = is_array( $invoice['subscription'] ) ? ( $invoice['subscription']['id'] ?? '' ) : $invoice['subscription'];
@@ -577,18 +674,38 @@ function emc_stripe_record_invoice_payment( $invoice ) {
     $payment_ref = '';
     if ( ! empty( $invoice['payment_intent'] ) ) {
         $payment_ref = is_array( $invoice['payment_intent'] ) ? ( $invoice['payment_intent']['id'] ?? '' ) : $invoice['payment_intent'];
+    } elseif ( ! empty( $invoice['charge'] ) ) {
+        $payment_ref = is_array( $invoice['charge'] ) ? ( $invoice['charge']['id'] ?? '' ) : $invoice['charge'];
     }
+    $invoice_id = sanitize_text_field( $invoice['id'] ?? '' );
     if ( ! $payment_ref ) {
-        $payment_ref = $invoice['id'] ?? '';
+        $payment_ref = $invoice_id;
     }
-    if ( emc_stripe_donation_log_has_ref( $payment_ref ) ) {
+    emc_stripe_update_subscription_log_status( $subscription_id, 'active' );
+    if ( emc_stripe_donation_log_has_ref( $payment_ref, $invoice_id ) ) {
         return;
     }
 
+    $local_subscription = emc_stripe_find_subscription_log_entry( $subscription_id );
     $subscription = emc_stripe_request( 'GET', 'subscriptions/' . rawurlencode( $subscription_id ) );
     $metadata = array();
+    if ( ! empty( $local_subscription ) ) {
+        $metadata = array(
+            'fund'          => $local_subscription['fund'] ?? '',
+            'frequency'     => $local_subscription['frequency'] ?? '',
+            'occurrences'   => $local_subscription['occurrences'] ?? '',
+            'donor_name'    => $local_subscription['name'] ?? '',
+            'donor_email'   => $local_subscription['email'] ?? '',
+            'donor_address' => $local_subscription['address'] ?? '',
+            'gift_aid'      => ! empty( $local_subscription['gift_aid'] ) ? '1' : '0',
+            'message'       => $local_subscription['message'] ?? '',
+        );
+    }
     if ( is_array( $subscription ) && ! empty( $subscription['metadata'] ) && is_array( $subscription['metadata'] ) ) {
-        $metadata = $subscription['metadata'];
+        $metadata = array_merge( $metadata, $subscription['metadata'] );
+    }
+    if ( ! empty( $invoice['subscription_details']['metadata'] ) && is_array( $invoice['subscription_details']['metadata'] ) ) {
+        $metadata = array_merge( $metadata, $invoice['subscription_details']['metadata'] );
     }
     if ( ! empty( $invoice['parent']['subscription_details']['metadata'] ) && is_array( $invoice['parent']['subscription_details']['metadata'] ) ) {
         $metadata = array_merge( $metadata, $invoice['parent']['subscription_details']['metadata'] );
@@ -612,21 +729,25 @@ function emc_stripe_record_invoice_payment( $invoice ) {
     $fund       = sanitize_text_field( $metadata['fund'] ?? 'Recurring Donation' );
     $name       = sanitize_text_field( $metadata['donor_name'] ?? ( $customer['name'] ?? 'Anonymous' ) );
     $email      = sanitize_email( $metadata['donor_email'] ?? ( $invoice['customer_email'] ?? ( $customer['email'] ?? '' ) ) );
-    $address    = sanitize_textarea_field( $metadata['donor_address'] ?? '' );
+    $customer_address = ( ! empty( $customer['address'] ) && is_array( $customer['address'] ) ) ? ( $customer['address']['line1'] ?? '' ) : '';
+    $address    = sanitize_textarea_field( $metadata['donor_address'] ?? $customer_address );
     $gift_aid   = ! empty( $metadata['gift_aid'] ) && '1' === (string) $metadata['gift_aid'];
     $message    = sanitize_textarea_field( $metadata['message'] ?? 'Recurring subscription payment' );
+    $paid_at    = absint( $invoice['status_transitions']['paid_at'] ?? ( $invoice['created'] ?? 0 ) );
 
     $log   = get_option( 'emc_donations_log', array() );
     $log[] = array(
-        'pi_id'    => sanitize_text_field( $payment_ref ),
-        'amount'   => $amount_gbp,
-        'fund'     => $fund,
-        'name'     => $name ?: 'Anonymous',
-        'email'    => $email,
-        'address'  => $address,
-        'gift_aid' => $gift_aid,
-        'message'  => $message,
-        'date'     => current_time( 'Y-m-d H:i:s' ),
+        'pi_id'           => sanitize_text_field( $payment_ref ),
+        'invoice_id'      => $invoice_id,
+        'subscription_id' => sanitize_text_field( $subscription_id ),
+        'amount'          => $amount_gbp,
+        'fund'            => $fund,
+        'name'            => $name ?: 'Anonymous',
+        'email'           => $email,
+        'address'         => $address,
+        'gift_aid'        => $gift_aid,
+        'message'         => $message ?: 'Recurring subscription payment',
+        'date'            => $paid_at ? date_i18n( 'Y-m-d H:i:s', $paid_at ) : current_time( 'Y-m-d H:i:s' ),
     );
     update_option( 'emc_donations_log', array_slice( $log, -1000 ) );
 }
@@ -646,6 +767,8 @@ function emc_stripe_webhook( WP_REST_Request $request ) {
 
     if ( 'invoice.payment_succeeded' === $event['type'] && ! empty( $event['data']['object'] ) ) {
         emc_stripe_record_invoice_payment( $event['data']['object'] );
+    } elseif ( in_array( $event['type'], array( 'customer.subscription.updated', 'customer.subscription.deleted' ), true ) && ! empty( $event['data']['object'] ) ) {
+        emc_stripe_record_subscription_status_update( $event['data']['object'] );
     }
 
     return new WP_REST_Response( array( 'received' => true ), 200 );

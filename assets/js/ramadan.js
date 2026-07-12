@@ -152,8 +152,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const donorAddress = document.getElementById('ramadan-donor-address')?.value.trim() || '';
             const donorMessage = document.getElementById('ramadan-dedication')?.value.trim() || '';
 
-            if (!donorName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail)) {
-                alert('Please enter your name and a valid email address.');
+            if (!donorName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail) || !donorAddress) {
+                alert('Please enter your name, email address and postal address.');
                 return;
             }
 

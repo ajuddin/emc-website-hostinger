@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         header.style.top = topbarH + 'px';
         // Keep CSS custom property in sync for hero padding
         document.documentElement.style.setProperty('--topbar-h', topbarH + 'px');
+        document.documentElement.style.setProperty('--header-stack-h', Math.ceil(header.getBoundingClientRect().bottom) + 'px');
     }
 
     positionHeader();                                          // run on load
