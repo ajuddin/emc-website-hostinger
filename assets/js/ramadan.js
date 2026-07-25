@@ -132,6 +132,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${yyyy}-${mm}-${dd}`;
     }
 
+    function formatPostcode(value) {
+        const original = String(value).toUpperCase().trim().replace(/\s+/g, ' ');
+        const compact = original.replace(/[^A-Z0-9]/g, '');
+
+        // Preserve numeric international postcodes instead of applying UK
+        // postcode spacing to them.
+        if (!/[A-Z]/.test(compact)) return original;
+
+        return compact.length > 3
+            ? `${compact.slice(0, -3)} ${compact.slice(-3)}`
+            : compact;
+    }
+
+    function isValidPostcode(value) {
+        return /^[A-Z0-9]{2,4} [A-Z0-9]{3}$/.test(value);
+    }
+
+    const ramadanGiftAid = document.getElementById('ramadan-giftaid');
+    const syncRamadanAddressRequirement = () => {
+        const required = !!ramadanGiftAid?.checked;
+        ['ramadan-donor-address', 'ramadan-donor-postcode'].forEach(id => {
+            const field = document.getElementById(id);
+            if (!field) return;
+            field.required = required;
+            field.setAttribute('aria-required', required ? 'true' : 'false');
+        });
+    };
+    ramadanGiftAid?.addEventListener('change', syncRamadanAddressRequirement);
+    syncRamadanAddressRequirement();
+
 
     /* =====================
        Stripe — Schedule My Ramadan Giving
@@ -144,16 +174,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Please select a donation amount.');
                 return;
             }
-            const fund = document.querySelector('.ramadan-form-col .cat-btn.active')?.dataset.cat || 'General Fund';
-            const label = `Ramadan Daily Giving - ${fund} (${currentDays} days x £${currentAmount.toFixed(2)})`;
+            const label = `Ramadan Daily Giving (${currentDays} days x £${currentAmount.toFixed(2)})`;
 
             const donorName = document.getElementById('ramadan-donor-name')?.value.trim() || '';
             const donorEmail = document.getElementById('ramadan-donor-email')?.value.trim() || '';
             const donorAddress = document.getElementById('ramadan-donor-address')?.value.trim() || '';
+            const postcodeInput = document.getElementById('ramadan-donor-postcode');
+            const donorPostcode = formatPostcode(postcodeInput?.value || '');
             const donorMessage = document.getElementById('ramadan-dedication')?.value.trim() || '';
+            const giftAid = !!ramadanGiftAid?.checked;
+            if (postcodeInput) postcodeInput.value = donorPostcode;
 
-            if (!donorName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail) || !donorAddress) {
-                alert('Please enter your name, email address and postal address.');
+            if (!donorName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail)) {
+                alert('Please enter your name and a valid email address.');
+                return;
+            }
+            if (giftAid && !donorAddress) {
+                alert('Please enter address line 1.');
+                return;
+            }
+            if (giftAid && !isValidPostcode(donorPostcode)) {
+                alert('Please enter a valid UK postcode for Gift Aid.');
                 return;
             }
 
@@ -165,11 +206,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: donorName,
                     email: donorEmail,
                     address: donorAddress,
+                    postcode: donorPostcode,
                     message: donorMessage,
                     frequency: 'daily',
                     startDate: formatDateForStripe(ramadanStartDate),
                     occurrences: currentDays,
-                    giftAid: !!document.getElementById('ramadan-giftaid')?.checked,
+                    giftAid,
                 });
             }
         });
@@ -181,18 +223,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const fidyaBtn = document.getElementById('fidya-btn');
     if (fidyaBtn) {
         fidyaBtn.addEventListener('click', () => {
-            const rate = parseFloat(document.getElementById('fidya-rate')?.value) || 5;
-            const days = parseFloat(document.getElementById('fidya-days')?.value) || 1;
-            const totalPence = Math.round(rate * days * 100);
+            const rateInput = document.getElementById('fidya-rate');
+            const daysInput = document.getElementById('fidya-days');
+            const rate = parseFloat(rateInput?.value);
+            const days = Number(daysInput?.value);
 
-            if (totalPence < 50) {
+            if (!Number.isFinite(rate) || rate < 0.5) {
                 alert('Please enter a valid Fidya amount.');
+                rateInput?.focus();
                 return;
             }
+            if (!Number.isInteger(days) || days < 1 || days > 30) {
+                alert('Please enter the number of missed fasts (between 1 and 30).');
+                daysInput?.focus();
+                return;
+            }
+            const totalPence = Math.round(rate * days * 100);
+
+            const donorName = document.getElementById('fidya-donor-name')?.value.trim() || '';
+            const donorEmail = document.getElementById('fidya-donor-email')?.value.trim() || '';
+            const donorAddress = document.getElementById('fidya-donor-address')?.value.trim() || '';
+            const postcodeInput = document.getElementById('fidya-donor-postcode');
+            const donorPostcode = formatPostcode(postcodeInput?.value || '');
+            if (postcodeInput) postcodeInput.value = donorPostcode;
+            let invalidField = null;
+
+            if (!donorName) {
+                invalidField = document.getElementById('fidya-donor-name');
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail)) {
+                invalidField = document.getElementById('fidya-donor-email');
+            }
+
+            if (invalidField) {
+                alert('Please enter your name and a valid email address before paying.');
+                invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                invalidField.focus({ preventScroll: true });
+                return;
+            }
+
             const label = `Fidya — ${days} missed fast${days !== 1 ? 's' : ''} (£${rate}/day)`;
 
             if (typeof window.emcOpenStripeModal === 'function') {
-                window.emcOpenStripeModal({ amount: totalPence, fund: label, tab: 'fidya' });
+                window.emcOpenStripeModal({
+                    amount: totalPence,
+                    fund: label,
+                    tab: 'fidya',
+                    name: donorName,
+                    email: donorEmail,
+                    address: donorAddress,
+                    postcode: donorPostcode,
+                });
+            } else {
+                alert('The secure payment form could not be loaded. Please refresh the page and try again.');
             }
         });
     }

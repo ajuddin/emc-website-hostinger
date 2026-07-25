@@ -19,6 +19,70 @@ function emc_option( $option, $default = '' ) {
     return get_theme_mod( $option, $default );
 }
 
+/**
+ * Return the shared Badr Wall levels and their current availability.
+ *
+ * The totals are fixed by the campaign structure, while the number taken is
+ * managed in the Customizer. Keeping this calculation here ensures every
+ * template displays the same figures.
+ *
+ * @return array[]
+ */
+function emc_get_badr_levels() {
+    $levels = array(
+        array(
+            'id'     => 'founder',
+            'label'  => __( 'Founder of the Centre', 'emc-theme' ),
+            'amount' => 10000,
+            'icon'   => 'fas fa-trophy',
+            'class'  => 'tier-founder',
+            'total'  => 100,
+            'filled' => min( max( 0, (int) emc_option( 'emc_campaign_tier1_filled', 19 ) ), 100 ),
+            'desc'   => __( '£10,000+ — founding places', 'emc-theme' ),
+        ),
+        array(
+            'id'     => 'co-founder',
+            'label'  => __( 'Co-Founder of the Centre', 'emc-theme' ),
+            'amount' => 5000,
+            'icon'   => 'fas fa-star',
+            'class'  => 'tier-cofunder',
+            'total'  => 213,
+            'filled' => min( max( 0, (int) emc_option( 'emc_campaign_tier2_filled', 11 ) ), 213 ),
+            'desc'   => __( '£5,000+ — co-founder places', 'emc-theme' ),
+        ),
+    );
+
+    foreach ( $levels as &$level ) {
+        $level['remaining'] = max( 0, $level['total'] - $level['filled'] );
+    }
+    unset( $level );
+
+    return $levels;
+}
+
+/**
+ * Return the public campaign page URL, including installations where the
+ * campaign page is nested below the Donate page.
+ *
+ * @return string
+ */
+function emc_get_campaign_url() {
+    $campaign_page = get_page_by_path( 'donate/campaign', OBJECT, 'page' );
+
+    if ( ! $campaign_page ) {
+        $campaign_pages = get_posts( array(
+            'post_type'      => 'page',
+            'post_status'    => 'publish',
+            'name'           => 'campaign',
+            'posts_per_page' => 1,
+            'no_found_rows'  => true,
+        ) );
+        $campaign_page = $campaign_pages ? reset( $campaign_pages ) : null;
+    }
+
+    return $campaign_page ? get_permalink( $campaign_page ) : home_url( '/donate/campaign/' );
+}
+
 
 /* ==========================================================================
    Address & Contact Helpers
@@ -146,7 +210,7 @@ function emc_social_icons( $class = '' ) {
  * @return array[]
  */
 function emc_get_header_nav_items() {
-    $campaign_url   = get_permalink( get_page_by_path( 'campaign' ) ) ?: home_url( '/campaign/' );
+    $campaign_url   = emc_get_campaign_url();
     $membership_url = get_permalink( get_page_by_path( 'membership' ) ) ?: $campaign_url . '#badr-membership';
     $service_items  = array(
         array( 'slug' => 'islamic-education',   'label' => __( 'Islamic Education', 'emc-theme' ) ),
@@ -269,14 +333,13 @@ function emc_footer_quick_links_fallback() {
 }
 
 /**
- * Output the footer Community column links.
- * These are hardcoded but reference live page URLs.
+ * Fallback for the footer Community column when no WP menu is assigned.
  */
 function emc_footer_community_links() {
     $links = array(
         'events'    => __( 'Upcoming Events', 'emc-theme' ),
         'media'     => __( 'Media Gallery',   'emc-theme' ),
-        'vacancies' => __( 'Volunteering',    'emc-theme' ),
+        'volunteer' => __( 'Volunteering',    'emc-theme' ),
         'contact'   => __( 'Contact Us',      'emc-theme' ),
     );
     echo '<ul class="footer-menu">';

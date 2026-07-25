@@ -52,30 +52,18 @@ function emc_register_page_content_sections( $wp_customize ) {
         'about_trustees_subtitle'=> 'Leadership',
         'about_trustees_heading' => 'Trustees & Team',
         'about_trustees_desc'    => 'Our board of trustees are volunteers committed to the charity\'s mission.',
-        'about_trustee_1_name'   => 'Ahmed Khan',
-        'about_trustee_1_role'   => 'Chair of Trustees',
-        'about_trustee_1_bio'    => 'Over 20 years of experience in community leadership.',
-        'about_trustee_2_name'   => 'Fatima Ali',
-        'about_trustee_2_role'   => 'Treasurer',
-        'about_trustee_2_bio'    => 'Qualified accountant with charity finance experience.',
-        'about_trustee_3_name'   => 'Ibrahim Hassan',
-        'about_trustee_3_role'   => 'Secretary',
-        'about_trustee_3_bio'    => 'Legal professional and youth development advocate.',
-        'about_trustee_4_name'   => 'Zainab Malik',
-        'about_trustee_4_role'   => 'Trustee — Education',
-        'about_trustee_4_bio'    => 'Teacher overseeing youth and learning programmes.',
-        'about_trustee_5_name'   => 'Yusuf Rahman',
-        'about_trustee_5_role'   => 'Trustee — Welfare',
-        'about_trustee_5_bio'    => 'Social worker focused on community health initiatives.',
-        'about_trustee_6_name'   => 'Mariam Hussain',
-        'about_trustee_6_role'   => 'Trustee — Outreach',
-        'about_trustee_6_bio'    => 'Communications professional driving engagement.',
-        'about_report_1_year'    => '2024–25',
-        'about_report_1_desc'    => 'Trustees\' report, financial statements, and impact summary.',
-        'about_report_2_year'    => '2023–24',
-        'about_report_2_desc'    => 'Trustees\' report, financial statements, and impact summary.',
-        'about_report_3_year'    => '2022–23',
-        'about_report_3_desc'    => 'Trustees\' report, financial statements, and impact summary.',
+        'about_trustee_1_name'   => 'Dr Hossain Hadi',
+        'about_trustee_1_role'   => 'Trustee and Chairman',
+        'about_trustee_1_bio'    => '',
+        'about_trustee_2_name'   => 'Dr Nurul Kabir',
+        'about_trustee_2_role'   => 'Secretary',
+        'about_trustee_2_bio'    => '',
+        'about_trustee_3_name'   => 'Shafiqul Islam',
+        'about_trustee_3_role'   => 'Vice-Chairman',
+        'about_trustee_3_bio'    => '',
+        'about_trustee_4_name'   => 'Abu Reaz Alam',
+        'about_trustee_4_role'   => 'Treasurer',
+        'about_trustee_4_bio'    => '',
         'about_cta_badge'        => 'Join Our Team',
         'about_cta_heading'      => 'Vacancies & Volunteering',
         'about_cta_desc'         => 'Whether you want a paid role or to give your time voluntarily, we always welcome passionate individuals.',
@@ -218,11 +206,7 @@ function emc_register_page_content_sections( $wp_customize ) {
         'media_tab_videos'      => 'Videos & Audio',
         'media_tab_photos'      => 'Photo Gallery',
         'media_tab_news'        => 'News & Blog',
-        'media_video_url'       => '',
-        'media_video_duration'  => '45:20',
-        'media_video_date'      => '10 May 2026',
-        'media_video_title'     => 'The Importance of Community Ties in Islam',
-        'media_video_desc'      => 'Sheikh Ahmed discusses the prophetic examples of building a strong, unified community.',
+        'media_videos_heading'  => 'Latest Khutbahs & Lectures',
         'media_podcast_heading' => 'Listen on the Go',
         'media_podcast_desc'    => 'All our Friday Khutbahs are available on our weekly podcast.',
         'media_podcast_spotify' => '#',
@@ -349,6 +333,41 @@ function emc_register_page_content_sections( $wp_customize ) {
     emc_bulk_text_settings( $wp_customize, $donate, 'emc_pg_donate' );
 }
 add_action( 'customize_register', 'emc_register_page_content_sections' );
+
+/**
+ * Apply the confirmed trustee roster once on existing installations.
+ *
+ * The About template reads saved Customizer values before its PHP defaults,
+ * so updating defaults alone would leave old placeholder names visible.
+ */
+function emc_update_confirmed_trustee_roster() {
+    $version = '2026-07-25';
+    if ( $version === get_option( 'emc_trustee_roster_version' ) ) {
+        return;
+    }
+
+    $trustees = array(
+        1 => array( 'name' => 'Dr Hossain Hadi', 'role' => 'Trustee and Chairman' ),
+        2 => array( 'name' => 'Dr Nurul Kabir', 'role' => 'Secretary' ),
+        3 => array( 'name' => 'Shafiqul Islam', 'role' => 'Vice-Chairman' ),
+        4 => array( 'name' => 'Abu Reaz Alam', 'role' => 'Treasurer' ),
+    );
+
+    foreach ( $trustees as $number => $trustee ) {
+        set_theme_mod( 'about_trustee_' . $number . '_name', $trustee['name'] );
+        set_theme_mod( 'about_trustee_' . $number . '_role', $trustee['role'] );
+        remove_theme_mod( 'about_trustee_' . $number . '_bio' );
+    }
+
+    for ( $number = 5; $number <= 6; $number++ ) {
+        remove_theme_mod( 'about_trustee_' . $number . '_name' );
+        remove_theme_mod( 'about_trustee_' . $number . '_role' );
+        remove_theme_mod( 'about_trustee_' . $number . '_bio' );
+    }
+
+    update_option( 'emc_trustee_roster_version', $version, false );
+}
+add_action( 'after_setup_theme', 'emc_update_confirmed_trustee_roster', 20 );
 
 /**
  * Bulk-register text settings from an associative array.

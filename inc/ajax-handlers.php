@@ -9,80 +9,6 @@
 defined( 'ABSPATH' ) || exit;
 
 /* ==========================================================================
-   Contact Form Handler
-   ========================================================================== */
-function emc_handle_contact_form() {
-    check_ajax_referer( 'emc_nonce', 'nonce' );
-
-    $name    = sanitize_text_field( $_POST['name']    ?? '' );
-    $email   = sanitize_email(      $_POST['email']   ?? '' );
-    $subject = sanitize_text_field( $_POST['subject'] ?? '' );
-    $message = sanitize_textarea_field( $_POST['message'] ?? '' );
-
-    if ( ! $name || ! is_email( $email ) || ! $message ) {
-        wp_send_json_error( array( 'message' => __( 'Please fill in all required fields.', 'emc-theme' ) ) );
-    }
-
-    $to      = get_theme_mod( 'emc_admin_email', get_option( 'admin_email' ) );
-    $headers = array(
-        'Content-Type: text/html; charset=UTF-8',
-        'From: ' . esc_html( $name ) . ' <' . $email . '>',
-        'Reply-To: ' . $email,
-    );
-
-    $body  = '<h2>' . esc_html( $subject ) . '</h2>';
-    $body .= '<p><strong>Name:</strong> ' . esc_html( $name ) . '</p>';
-    $body .= '<p><strong>Email:</strong> ' . esc_html( $email ) . '</p>';
-    $body .= '<p><strong>Message:</strong><br>' . nl2br( esc_html( $message ) ) . '</p>';
-
-    $sent = wp_mail( $to, 'EMC Website Enquiry: ' . $subject, $body, $headers );
-
-    if ( $sent ) {
-        wp_send_json_success( array( 'message' => __( 'Message sent successfully. We will be in touch shortly.', 'emc-theme' ) ) );
-    } else {
-        wp_send_json_error( array( 'message' => __( 'Sorry, your message could not be sent. Please email us directly.', 'emc-theme' ) ) );
-    }
-}
-add_action( 'wp_ajax_emc_contact',             'emc_handle_contact_form' );
-add_action( 'wp_ajax_nopriv_emc_contact',      'emc_handle_contact_form' );
-// Phase 10 JS uses 'emc_contact_form' — alias to same handler
-add_action( 'wp_ajax_emc_contact_form',        'emc_handle_contact_form' );
-add_action( 'wp_ajax_nopriv_emc_contact_form', 'emc_handle_contact_form' );
-
-
-/* ==========================================================================
-   Newsletter Subscribe Handler
-   ========================================================================== */
-function emc_handle_newsletter() {
-    check_ajax_referer( 'emc_nonce', 'nonce' );
-
-    $email = sanitize_email( $_POST['email'] ?? '' );
-
-    if ( ! is_email( $email ) ) {
-        wp_send_json_error( array( 'message' => __( 'Please enter a valid email address.', 'emc-theme' ) ) );
-    }
-
-    /**
-     * TODO (Phase 2+): integrate with Mailchimp or equivalent.
-     * For now, email the admin and log the subscriber.
-     */
-    $to      = get_option( 'admin_email' );
-    $subject = 'New Newsletter Subscriber — EMC Website';
-    $body    = '<p>A new visitor has subscribed to the newsletter: <strong>' . esc_html( $email ) . '</strong></p>';
-    $headers = array( 'Content-Type: text/html; charset=UTF-8' );
-
-    wp_mail( $to, $subject, $body, $headers );
-
-    wp_send_json_success( array( 'message' => __( "You're subscribed! Jazakallahu Khayran.", 'emc-theme' ) ) );
-}
-add_action( 'wp_ajax_emc_newsletter',             'emc_handle_newsletter' );
-add_action( 'wp_ajax_nopriv_emc_newsletter',      'emc_handle_newsletter' );
-// Phase 10 JS uses 'emc_newsletter_subscribe' — alias to same handler
-add_action( 'wp_ajax_emc_newsletter_subscribe',        'emc_handle_newsletter' );
-add_action( 'wp_ajax_nopriv_emc_newsletter_subscribe', 'emc_handle_newsletter' );
-
-
-/* ==========================================================================
    Gift Aid Declaration Handler
    ========================================================================== */
 function emc_handle_gift_aid() {
@@ -144,6 +70,39 @@ function emc_stripe_webhook_secret() {
     return trim( get_option( 'emc_stripe_webhook_secret', '' ) );
 }
 
+function emc_normalize_postcode( $postcode ) {
+    $original = strtoupper( trim( preg_replace( '/\s+/', ' ', (string) $postcode ) ) );
+    $compact  = preg_replace( '/[^A-Z0-9]/', '', $original );
+
+    // Numeric international postcodes should not be reformatted as UK
+    // postcodes. Gift Aid validation remains UK-specific below.
+    if ( ! preg_match( '/[A-Z]/', $compact ) ) {
+        return $original;
+    }
+
+    if ( strlen( $compact ) > 3 ) {
+        return substr( $compact, 0, -3 ) . ' ' . substr( $compact, -3 );
+    }
+
+    return $compact;
+}
+
+function emc_is_valid_postcode( $postcode ) {
+    return 1 === preg_match( '/^[A-Z0-9]{2,4} [A-Z0-9]{3}$/', $postcode );
+}
+
+function emc_validate_donation_contact( $name, $email, $address, $postcode, $gift_aid ) {
+    if ( ! $name || ! is_email( $email ) ) {
+        return 'Please provide your name and a valid email address.';
+    }
+
+    if ( $gift_aid && ( ! $address || ! emc_is_valid_postcode( $postcode ) ) ) {
+        return 'Address line 1 and a valid UK postcode are required when claiming Gift Aid.';
+    }
+
+    return '';
+}
+
 function emc_stripe_request( $method, $endpoint, $body = array() ) {
     $args = array(
         'headers' => array(
@@ -203,6 +162,7 @@ function emc_stripe_should_start_subscription_now_for_testing( $frequency ) {
    ========================================================================== */
 function emc_stripe_create_intent() {
     check_ajax_referer( 'emc_donate_nonce', 'nonce' );
+    emc_payment_license_guard_ajax();
     if ( ! emc_stripe_secret_key() || ! emc_stripe_pub_key() ) {
         wp_send_json_error( array( 'message' => 'Stripe API keys are not configured. Please add them in WP Admin > Settings > EMC Stripe.' ) );
     }
@@ -211,12 +171,15 @@ function emc_stripe_create_intent() {
     $tab    = sanitize_text_field( $_POST['tab']  ?? 'one-off' );
     $name   = sanitize_text_field( $_POST['name'] ?? '' );
     $email  = sanitize_email( $_POST['email'] ?? '' );
-    $address = sanitize_textarea_field( $_POST['address'] ?? '' );
+    $address  = sanitize_text_field( $_POST['address'] ?? '' );
+    $postcode = emc_normalize_postcode( $_POST['postcode'] ?? '' );
+    $gift_aid = filter_var( $_POST['gift_aid'] ?? false, FILTER_VALIDATE_BOOLEAN );
     if ( $amount < 50 ) {
         wp_send_json_error( array( 'message' => 'Minimum donation is £0.50.' ) );
     }
-    if ( ! $name || ! is_email( $email ) || ! $address ) {
-        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
+    $validation_error = emc_validate_donation_contact( $name, $email, $address, $postcode, $gift_aid );
+    if ( $validation_error ) {
+        wp_send_json_error( array( 'message' => $validation_error ) );
     }
 
     $response = wp_remote_post( 'https://api.stripe.com/v1/payment_intents', array(
@@ -235,6 +198,8 @@ function emc_stripe_create_intent() {
             'metadata[donor_name]'               => $name,
             'metadata[donor_email]'              => $email,
             'metadata[donor_address]'            => $address,
+            'metadata[donor_postcode]'           => $postcode,
+            'metadata[gift_aid]'                 => $gift_aid ? '1' : '0',
             'receipt_email'                       => $email,
         ),
         'timeout' => 20,
@@ -256,6 +221,7 @@ add_action( 'wp_ajax_nopriv_emc_stripe_create_intent', 'emc_stripe_create_intent
    ========================================================================== */
 function emc_stripe_create_subscription() {
     check_ajax_referer( 'emc_donate_nonce', 'nonce' );
+    emc_payment_license_guard_ajax();
     if ( ! emc_stripe_secret_key() || ! emc_stripe_pub_key() ) {
         wp_send_json_error( array( 'message' => 'Stripe API keys are not configured. Please add them in WP Admin > Settings > EMC Stripe.' ) );
     }
@@ -267,7 +233,8 @@ function emc_stripe_create_subscription() {
     $occurrences = absint( $_POST['occurrences'] ?? 0 );
     $name       = sanitize_text_field( $_POST['name'] ?? '' );
     $email      = sanitize_email( $_POST['email'] ?? '' );
-    $address    = sanitize_textarea_field( $_POST['address'] ?? '' );
+    $address    = sanitize_text_field( $_POST['address'] ?? '' );
+    $postcode   = emc_normalize_postcode( $_POST['postcode'] ?? '' );
     $gift_aid   = filter_var( $_POST['gift_aid'] ?? false, FILTER_VALIDATE_BOOLEAN );
     $message    = sanitize_textarea_field( $_POST['message'] ?? '' );
 
@@ -275,8 +242,9 @@ function emc_stripe_create_subscription() {
         wp_send_json_error( array( 'message' => 'Minimum regular donation is £0.50.' ) );
     }
 
-    if ( ! $name || ! is_email( $email ) || ! $address ) {
-        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
+    $validation_error = emc_validate_donation_contact( $name, $email, $address, $postcode, $gift_aid );
+    if ( $validation_error ) {
+        wp_send_json_error( array( 'message' => $validation_error ) );
     }
 
     $recurring = emc_stripe_frequency_to_recurring( $frequency );
@@ -297,6 +265,9 @@ function emc_stripe_create_subscription() {
     }
     if ( $address ) {
         $customer_body['address[line1]'] = $address;
+    }
+    if ( $postcode ) {
+        $customer_body['address[postal_code]'] = $postcode;
     }
 
     $customer = emc_stripe_request( 'POST', 'customers', $customer_body );
@@ -329,6 +300,7 @@ function emc_stripe_create_subscription() {
         'metadata[donor_name]'                         => $name,
         'metadata[donor_email]'                        => $email,
         'metadata[donor_address]'                      => $address,
+        'metadata[donor_postcode]'                     => $postcode,
         'metadata[gift_aid]'                           => $gift_aid ? '1' : '0',
         'metadata[message]'                            => $message,
         'expand[]'                                     => 'latest_invoice.payment_intent',
@@ -385,19 +357,22 @@ add_action( 'wp_ajax_nopriv_emc_stripe_create_subscription', 'emc_stripe_create_
    ========================================================================== */
 function emc_stripe_record_donation() {
     check_ajax_referer( 'emc_donate_nonce', 'nonce' );
+    emc_payment_license_guard_ajax();
     $pi_id    = sanitize_text_field( $_POST['pi_id']   ?? '' );
     $amount   = absint( $_POST['amount']               ?? 0 );
     $fund     = sanitize_text_field( $_POST['fund']    ?? 'General Fund' );
     $name     = sanitize_text_field( $_POST['name']    ?? '' );
     $email    = sanitize_email(      $_POST['email']   ?? '' );
-    $address  = sanitize_textarea_field( $_POST['address'] ?? '' );
+    $address  = sanitize_text_field( $_POST['address'] ?? '' );
+    $postcode = emc_normalize_postcode( $_POST['postcode'] ?? '' );
     $gift_aid = filter_var( $_POST['gift_aid'] ?? false, FILTER_VALIDATE_BOOLEAN );
     $message  = sanitize_textarea_field( $_POST['message'] ?? '' );
     if ( empty( $pi_id ) ) {
         wp_send_json_error( array( 'message' => 'Invalid payment reference.' ) );
     }
-    if ( ! $name || ! is_email( $email ) || ! $address ) {
-        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
+    $validation_error = emc_validate_donation_contact( $name, $email, $address, $postcode, $gift_aid );
+    if ( $validation_error ) {
+        wp_send_json_error( array( 'message' => $validation_error ) );
     }
     // Verify with Stripe before recording
     $check   = wp_remote_get( 'https://api.stripe.com/v1/payment_intents/' . urlencode( $pi_id ),
@@ -410,7 +385,7 @@ function emc_stripe_record_donation() {
     // Log
     $log   = get_option( 'emc_donations_log', array() );
     $log[] = array( 'pi_id' => $pi_id, 'amount' => $amount_gbp, 'fund' => $fund,
-                    'name' => $name ?: 'Anonymous', 'email' => $email, 'address' => $address, 'gift_aid' => $gift_aid,
+                    'name' => $name ?: 'Anonymous', 'email' => $email, 'address' => $address, 'postcode' => $postcode, 'gift_aid' => $gift_aid,
                     'message' => $message, 'date' => current_time( 'Y-m-d H:i:s' ) );
     update_option( 'emc_donations_log', array_slice( $log, -1000 ) );
     // Admin email
@@ -419,7 +394,8 @@ function emc_stripe_record_donation() {
            . '<tr><td><strong>Fund</strong></td><td>'   . esc_html($fund)        . '</td></tr>'
            . '<tr><td><strong>Donor</strong></td><td>'  . esc_html($name ?: 'Anonymous') . '</td></tr>'
            . '<tr><td><strong>Email</strong></td><td>'  . esc_html($email ?: 'N/A') . '</td></tr>'
-           . '<tr><td><strong>Address</strong></td><td>' . nl2br( esc_html($address ?: 'N/A') ) . '</td></tr>'
+           . '<tr><td><strong>Address line 1</strong></td><td>' . esc_html($address ?: 'N/A') . '</td></tr>'
+           . '<tr><td><strong>Postcode</strong></td><td>' . esc_html($postcode ?: 'N/A') . '</td></tr>'
            . '<tr><td><strong>Gift Aid</strong></td><td>' . ($gift_aid ? 'Yes' : 'No') . '</td></tr>'
            . '<tr><td><strong>Message</strong></td><td>' . esc_html($message ?: '—') . '</td></tr>'
            . '<tr><td><strong>Stripe PI</strong></td><td><code>' . esc_html($pi_id) . '</code></td></tr>'
@@ -468,6 +444,7 @@ function emc_stripe_subscription_log_has_ref( $subscription_id ) {
 
 function emc_stripe_record_subscription_setup() {
     check_ajax_referer( 'emc_donate_nonce', 'nonce' );
+    emc_payment_license_guard_ajax();
 
     $subscription_id = sanitize_text_field( $_POST['subscription_id'] ?? '' );
     $setup_ref       = sanitize_text_field( $_POST['setup_ref'] ?? '' );
@@ -478,15 +455,17 @@ function emc_stripe_record_subscription_setup() {
     $occurrences     = absint( $_POST['occurrences'] ?? 0 );
     $name            = sanitize_text_field( $_POST['name'] ?? '' );
     $email           = sanitize_email( $_POST['email'] ?? '' );
-    $address         = sanitize_textarea_field( $_POST['address'] ?? '' );
+    $address         = sanitize_text_field( $_POST['address'] ?? '' );
+    $postcode        = emc_normalize_postcode( $_POST['postcode'] ?? '' );
     $gift_aid        = filter_var( $_POST['gift_aid'] ?? false, FILTER_VALIDATE_BOOLEAN );
     $message         = sanitize_textarea_field( $_POST['message'] ?? '' );
 
     if ( ! $subscription_id ) {
         wp_send_json_error( array( 'message' => 'Missing subscription reference.' ) );
     }
-    if ( ! $name || ! is_email( $email ) || ! $address ) {
-        wp_send_json_error( array( 'message' => 'Please provide your name, email address and postal address.' ) );
+    $validation_error = emc_validate_donation_contact( $name, $email, $address, $postcode, $gift_aid );
+    if ( $validation_error ) {
+        wp_send_json_error( array( 'message' => $validation_error ) );
     }
 
     if ( emc_stripe_subscription_log_has_ref( $subscription_id ) ) {
@@ -528,7 +507,8 @@ function emc_stripe_record_subscription_setup() {
         'occurrences'     => absint( $metadata['occurrences'] ?? $occurrences ),
         'name'            => sanitize_text_field( $metadata['donor_name'] ?? ( $name ?: 'Anonymous' ) ),
         'email'           => sanitize_email( $metadata['donor_email'] ?? $email ),
-        'address'         => sanitize_textarea_field( $metadata['donor_address'] ?? $address ),
+        'address'         => sanitize_text_field( $metadata['donor_address'] ?? $address ),
+        'postcode'        => emc_normalize_postcode( $metadata['donor_postcode'] ?? $postcode ),
         'gift_aid'        => ! empty( $metadata['gift_aid'] ) ? '1' === (string) $metadata['gift_aid'] : $gift_aid,
         'message'         => sanitize_textarea_field( $metadata['message'] ?? $message ),
         'status'          => $status,
@@ -697,6 +677,7 @@ function emc_stripe_record_invoice_payment( $invoice ) {
             'donor_name'    => $local_subscription['name'] ?? '',
             'donor_email'   => $local_subscription['email'] ?? '',
             'donor_address' => $local_subscription['address'] ?? '',
+            'donor_postcode' => $local_subscription['postcode'] ?? '',
             'gift_aid'      => ! empty( $local_subscription['gift_aid'] ) ? '1' : '0',
             'message'       => $local_subscription['message'] ?? '',
         );
@@ -729,8 +710,10 @@ function emc_stripe_record_invoice_payment( $invoice ) {
     $fund       = sanitize_text_field( $metadata['fund'] ?? 'Recurring Donation' );
     $name       = sanitize_text_field( $metadata['donor_name'] ?? ( $customer['name'] ?? 'Anonymous' ) );
     $email      = sanitize_email( $metadata['donor_email'] ?? ( $invoice['customer_email'] ?? ( $customer['email'] ?? '' ) ) );
-    $customer_address = ( ! empty( $customer['address'] ) && is_array( $customer['address'] ) ) ? ( $customer['address']['line1'] ?? '' ) : '';
-    $address    = sanitize_textarea_field( $metadata['donor_address'] ?? $customer_address );
+    $customer_address  = ( ! empty( $customer['address'] ) && is_array( $customer['address'] ) ) ? ( $customer['address']['line1'] ?? '' ) : '';
+    $customer_postcode = ( ! empty( $customer['address'] ) && is_array( $customer['address'] ) ) ? ( $customer['address']['postal_code'] ?? '' ) : '';
+    $address    = sanitize_text_field( $metadata['donor_address'] ?? $customer_address );
+    $postcode   = emc_normalize_postcode( $metadata['donor_postcode'] ?? $customer_postcode );
     $gift_aid   = ! empty( $metadata['gift_aid'] ) && '1' === (string) $metadata['gift_aid'];
     $message    = sanitize_textarea_field( $metadata['message'] ?? 'Recurring subscription payment' );
     $paid_at    = absint( $invoice['status_transitions']['paid_at'] ?? ( $invoice['created'] ?? 0 ) );
@@ -745,6 +728,7 @@ function emc_stripe_record_invoice_payment( $invoice ) {
         'name'            => $name ?: 'Anonymous',
         'email'           => $email,
         'address'         => $address,
+        'postcode'        => $postcode,
         'gift_aid'        => $gift_aid,
         'message'         => $message ?: 'Recurring subscription payment',
         'date'            => $paid_at ? date_i18n( 'Y-m-d H:i:s', $paid_at ) : current_time( 'Y-m-d H:i:s' ),

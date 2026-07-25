@@ -68,6 +68,14 @@ $events_query = new WP_Query( $query_args );
                     $thumb       = get_the_post_thumbnail_url( get_the_ID(), 'emc-card' );
                     $day         = $event_date ? date( 'd', strtotime( $event_date ) ) : '';
                     $mon         = $event_date ? strtoupper( date( 'M', strtotime( $event_date ) ) ) : '';
+                    $formatted_date = $event_date
+                        ? date_i18n( 'l, j F Y', strtotime( $event_date ) )
+                        : __( 'To be confirmed', 'emc-theme' );
+                    $formatted_time = $event_time ?: __( 'To be confirmed', 'emc-theme' );
+                    $formatted_venue = $event_venue ?: __( 'Essex Muslim Centre', 'emc-theme' );
+                    $event_url        = get_permalink();
+                    $registration_open = function_exists( 'emc_event_registration_is_open' )
+                        && emc_event_registration_is_open( get_the_ID() );
                 ?>
                 <div class="event-card scroll-reveal" style="transition-delay:<?php echo esc_attr( $delay . 's' ); ?>">
                     <div class="event-img"<?php if ( $thumb ) : ?> style="background-image:url('<?php echo esc_url( $thumb ); ?>')"<?php endif; ?>>
@@ -78,20 +86,35 @@ $events_query = new WP_Query( $query_args );
                         </div>
                         <?php endif; ?>
                     </div>
-                    <div style="padding:2rem;">
-                        <h3 style="margin-bottom:1rem;"><?php the_title(); ?></h3>
-                        <div style="display:flex;gap:1rem;margin-bottom:1rem;font-size:var(--step--2);color:var(--text-muted);">
-                            <?php if ( $event_time ) : ?>
-                            <span><i class="far fa-clock" style="color:var(--accent-gold);" aria-hidden="true"></i> <?php echo esc_html( $event_time ); ?></span>
-                            <?php endif; ?>
-                            <?php if ( $event_venue ) : ?>
-                            <span><i class="fas fa-map-marker-alt" style="color:var(--accent-gold);" aria-hidden="true"></i> <?php echo esc_html( $event_venue ); ?></span>
+                    <div class="featured-event-body">
+                        <h3><?php the_title(); ?></h3>
+
+                        <dl class="featured-event-facts">
+                            <div>
+                                <dt><i class="far fa-calendar-alt" aria-hidden="true"></i> <?php esc_html_e( 'Date', 'emc-theme' ); ?></dt>
+                                <dd><?php echo esc_html( $formatted_date ); ?></dd>
+                            </div>
+                            <div>
+                                <dt><i class="far fa-clock" aria-hidden="true"></i> <?php esc_html_e( 'Time', 'emc-theme' ); ?></dt>
+                                <dd><?php echo esc_html( $formatted_time ); ?></dd>
+                            </div>
+                            <div class="featured-event-location">
+                                <dt><i class="fas fa-map-marker-alt" aria-hidden="true"></i> <?php esc_html_e( 'Location', 'emc-theme' ); ?></dt>
+                                <dd><?php echo esc_html( $formatted_venue ); ?></dd>
+                            </div>
+                        </dl>
+
+                        <div class="featured-event-actions">
+                            <a href="<?php echo esc_url( $event_url ); ?>" class="btn btn-outline">
+                            <?php esc_html_e( 'Learn More', 'emc-theme' ); ?>
+                            </a>
+                            <?php if ( $registration_open ) : ?>
+                            <a href="<?php echo esc_url( $event_url . '#event-registration' ); ?>" class="btn btn-primary">
+                                <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+                                <?php esc_html_e( 'Register', 'emc-theme' ); ?>
+                            </a>
                             <?php endif; ?>
                         </div>
-                        <p style="color:var(--text-muted);font-size:var(--step--1);margin-bottom:1.5rem;"><?php the_excerpt(); ?></p>
-                        <a href="<?php the_permalink(); ?>" class="btn btn-outline" style="padding:0.5rem 1rem;font-size:var(--step--2);">
-                            <?php esc_html_e( 'Learn More', 'emc-theme' ); ?>
-                        </a>
                     </div>
                 </div>
                 <?php

@@ -13,12 +13,20 @@ get_header();
 
 wp_enqueue_style( 'emc-page-prayer', EMC_ASSETS . '/css/prayer-times.css', array( 'emc-style' ), EMC_VERSION );
 
-$prayer_js_path  = EMC_DIR . '/assets/js/prayer-times.js';
-$prayer_data_url = EMC_ASSETS . '/js/prayer-data.json';
+$prayer_js_path     = EMC_DIR . '/assets/js/prayer-times.js';
+$prayer_pdf_js_path = EMC_DIR . '/assets/js/prayer-pdf.js';
+$prayer_data_url    = EMC_ASSETS . '/js/prayer-data.json';
+$prayer_js_deps     = array( 'emc-script' );
+if ( file_exists( $prayer_pdf_js_path ) ) {
+    wp_enqueue_script( 'emc-prayer-pdf', EMC_ASSETS . '/js/prayer-pdf.js', array(), filemtime( $prayer_pdf_js_path ), true );
+    $prayer_js_deps[] = 'emc-prayer-pdf';
+}
 if ( file_exists( $prayer_js_path ) ) {
-    wp_enqueue_script( 'emc-page-prayer', EMC_ASSETS . '/js/prayer-times.js', array( 'emc-script' ), filemtime( $prayer_js_path ), true );
+    wp_enqueue_script( 'emc-page-prayer', EMC_ASSETS . '/js/prayer-times.js', $prayer_js_deps, filemtime( $prayer_js_path ), true );
     wp_localize_script( 'emc-page-prayer', 'emcPrayer', array(
-        'dataUrl' => $prayer_data_url,
+        'dataUrl'  => $prayer_data_url,
+        'siteName' => get_bloginfo( 'name' ),
+        'location' => emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ),
     ) );
 }
 ?>
@@ -140,13 +148,19 @@ if ( file_exists( $prayer_js_path ) ) {
     <div class="container">
         <div class="section-header">
             <span class="subtitle"><?php echo esc_html( emc_acf( 'prayer_timetable_subtitle', 'Monthly View' ) ); ?></span>
-            <h2><?php echo esc_html( date( 'F Y' ) ); ?> <?php esc_html_e( 'Timetable', 'emc-theme' ); ?></h2>
+            <h2 id="timetable-heading"><?php echo esc_html( date( 'F Y' ) ); ?> <?php esc_html_e( 'Timetable', 'emc-theme' ); ?></h2>
         </div>
 
-        <div class="month-nav">
-            <button class="month-nav-btn" id="prev-month"><i class="fas fa-chevron-left"></i> <?php echo esc_html( date( 'F', strtotime( '-1 month' ) ) ); ?></button>
-            <span class="month-current"><?php echo esc_html( date( 'F Y' ) ); ?></span>
-            <button class="month-nav-btn" id="next-month"><?php echo esc_html( date( 'F', strtotime( '+1 month' ) ) ); ?> <i class="fas fa-chevron-right"></i></button>
+        <div class="timetable-toolbar">
+            <div class="month-nav">
+                <button class="month-nav-btn" id="prev-month" type="button"><i class="fas fa-chevron-left"></i> <?php echo esc_html( date( 'F', strtotime( '-1 month' ) ) ); ?></button>
+                <span class="month-current"><?php echo esc_html( date( 'F Y' ) ); ?></span>
+                <button class="month-nav-btn" id="next-month" type="button"><?php echo esc_html( date( 'F', strtotime( '+1 month' ) ) ); ?> <i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button class="timetable-download-btn" id="download-timetable-pdf" type="button" disabled>
+                <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                <span><?php esc_html_e( 'Download PDF', 'emc-theme' ); ?></span>
+            </button>
         </div>
 
         <div class="timetable-scroll-wrapper">

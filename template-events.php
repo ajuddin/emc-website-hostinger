@@ -12,6 +12,7 @@
 get_header();
 
 wp_enqueue_style( 'emc-page-events', EMC_ASSETS . '/css/events.css', array( 'emc-style' ), EMC_VERSION );
+wp_enqueue_style( 'emc-event-registration', EMC_ASSETS . '/css/event-registration.css', array( 'emc-page-events' ), EMC_VERSION );
 
 $events_js_path = EMC_DIR . '/assets/js/events.js';
 if ( file_exists( $events_js_path ) ) {
@@ -72,33 +73,53 @@ if ( file_exists( $events_js_path ) ) {
                     $events_query->the_post();
                     $event_date     = get_post_meta( get_the_ID(), '_emc_event_date', true );
                     $event_time     = get_post_meta( get_the_ID(), '_emc_event_time', true );
-                    $event_end_time = get_post_meta( get_the_ID(), '_emc_event_end_time', true );
-                    $event_location = get_post_meta( get_the_ID(), '_emc_event_location', true );
-                    $event_category = get_post_meta( get_the_ID(), '_emc_event_category', true ) ?: 'community';
+                    $event_location = get_post_meta( get_the_ID(), '_emc_event_venue', true );
+                    $event_terms    = get_the_terms( get_the_ID(), 'event_category' );
+                    $event_category = ( $event_terms && ! is_wp_error( $event_terms ) )
+                        ? $event_terms[0]->slug
+                        : ( get_post_meta( get_the_ID(), '_emc_event_category', true ) ?: 'community' );
                     $event_spots    = get_post_meta( get_the_ID(), '_emc_event_capacity', true );
                     $flyer_url      = has_post_thumbnail() ? get_the_post_thumbnail_url( get_the_ID(), 'full' ) : EMC_ASSETS . '/gallery/Community Support Services/New-Muslim-600x338.jpeg';
                     $day   = $event_date ? date( 'd', strtotime( $event_date ) ) : '—';
                     $month = $event_date ? strtoupper( date( 'M', strtotime( $event_date ) ) ) : '';
+                    $weekday = $event_date ? date_i18n( 'l', strtotime( $event_date ) ) : __( 'Date TBC', 'emc-theme' );
+                    $registration_open = emc_event_registration_is_open( get_the_ID() );
+                    $details_url       = get_permalink();
+                    $registration_url  = $details_url . '#event-registration';
             ?>
             <article class="event-hub-card scroll-reveal" data-category="<?php echo esc_attr( $event_category ); ?>"<?php echo $delay ? ' style="transition-delay:' . esc_attr( $delay ) . 's"' : ''; ?>>
-                <a href="<?php the_permalink(); ?>" class="event-card-link">
+                <div class="event-card-link">
                     <div class="event-hub-img" data-flyer-url="<?php echo esc_url( $flyer_url ); ?>" title="<?php esc_attr_e( 'View full flyer', 'emc-theme' ); ?>" <?php if ( has_post_thumbnail() ) : ?>style="background-image:url('<?php echo esc_url( get_the_post_thumbnail_url( get_the_ID(), 'emc-card' ) ); ?>');"<?php else : ?>style="background-image:url('<?php echo esc_url( EMC_ASSETS . '/gallery/Community Support Services/New-Muslim-600x338.jpeg' ); ?>');background-size:cover;background-position:center;"<?php endif; ?>>
                         <div class="event-hub-date"><span class="day"><?php echo esc_html( $day ); ?></span><span class="month"><?php echo esc_html( $month ); ?></span></div>
                         <span class="event-category-tag <?php echo esc_attr( $event_category ); ?>"><?php echo esc_html( ucfirst( $event_category ) ); ?></span>
+                        <div class="event-schedule-banner">
+                            <strong><?php echo esc_html( $weekday ); ?></strong>
+                            <?php if ( $event_time ) : ?><span><i class="far fa-clock" aria-hidden="true"></i> <?php echo esc_html( $event_time ); ?></span><?php endif; ?>
+                        </div>
                     </div>
                     <div class="event-hub-body">
-                        <h3><?php the_title(); ?></h3>
+                        <h3><a href="<?php echo esc_url( $details_url ); ?>"><?php the_title(); ?></a></h3>
                         <div class="event-meta-row">
-                            <?php if ( $event_time ) : ?><span><i class="far fa-clock"></i> <?php echo esc_html( $event_time ); ?><?php echo $event_end_time ? ' – ' . esc_html( $event_end_time ) : ''; ?></span><?php endif; ?>
+                            <?php if ( $event_time ) : ?><span><i class="far fa-clock"></i> <?php echo esc_html( $event_time ); ?></span><?php endif; ?>
                             <?php if ( $event_location ) : ?><span><i class="fas fa-map-marker-alt"></i> <?php echo esc_html( $event_location ); ?></span><?php endif; ?>
                         </div>
                         <?php if ( has_excerpt() ) : ?><p><?php echo esc_html( get_the_excerpt() ); ?></p><?php endif; ?>
                         <div class="event-hub-footer">
                             <span class="event-spots"><i class="fas fa-users"></i> <?php echo $event_spots ? esc_html( $event_spots ) : esc_html__( 'Free entry', 'emc-theme' ); ?></span>
-                            <span class="event-cta"><?php esc_html_e( 'Learn More', 'emc-theme' ); ?> <i class="fas fa-arrow-right"></i></span>
+                            <div class="event-hub-actions">
+                                <a href="<?php echo esc_url( $details_url ); ?>" class="event-hub-action event-hub-learn">
+                                    <?php esc_html_e( 'Learn More', 'emc-theme' ); ?>
+                                </a>
+                                <?php if ( $registration_open ) : ?>
+                                <a href="<?php echo esc_url( $registration_url ); ?>" class="event-hub-action event-hub-register">
+                                    <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+                                    <?php esc_html_e( 'Register', 'emc-theme' ); ?>
+                                </a>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
-                </a>
+                </div>
             </article>
             <?php
                     $delay = round( fmod( $delay + 0.1, 0.4 ), 1 );

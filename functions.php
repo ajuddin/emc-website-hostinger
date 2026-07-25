@@ -46,9 +46,10 @@ if ( ! function_exists( 'emc_theme_setup' ) ) :
 
         // Register navigation menus
         register_nav_menus( array(
-            'primary'  => __( 'Primary Navigation', 'emc-theme' ),
-            'footer'   => __( 'Footer Quick Links',  'emc-theme' ),
-            'mobile'   => __( 'Mobile Navigation',   'emc-theme' ),
+            'primary'          => __( 'Primary Navigation', 'emc-theme' ),
+            'footer'           => __( 'Footer Quick Links', 'emc-theme' ),
+            'footer-community' => __( 'Footer Community Links', 'emc-theme' ),
+            'mobile'           => __( 'Mobile Navigation', 'emc-theme' ),
         ) );
 
         // Switch default core markup to output valid HTML5
@@ -171,6 +172,17 @@ if ( ! function_exists( 'emc_enqueue_assets' ) ) :
                     filemtime( $blog_css_path )
                 );
             }
+
+            $blog_js_path = EMC_DIR . '/assets/js/blog.js';
+            if ( file_exists( $blog_js_path ) ) {
+                wp_enqueue_script(
+                    'emc-blog',
+                    EMC_ASSETS . '/js/blog.js',
+                    array(),
+                    filemtime( $blog_js_path ),
+                    true
+                );
+            }
         }
 
         // ── Core JS ───────────────────────────────────────────────────────
@@ -240,7 +252,9 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             return;
         }
 
-        $slug = get_post_field( 'post_name', get_queried_object_id() );
+        $slug = is_page_template( 'template-events.php' )
+            ? 'events'
+            : get_post_field( 'post_name', get_queried_object_id() );
 
         // Donate and Ramadan templates enqueue their own Stripe dependencies/config.
         if ( in_array( $slug, array( 'donate', 'ramadan' ), true ) ) {
@@ -255,6 +269,8 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             'services'      => array( 'css' => 'services.css',     'js' => 'services.js' ),
             'about'         => array( 'css' => 'about.css',        'js' => 'about.js' ),
             'campaign'      => array( 'css' => 'campaign.css',     'js' => 'campaign.js' ),
+            'gift-aid'      => array( 'css' => 'gift-aid.css',     'js' => 'gift-aid.js' ),
+            'volunteer'     => array( 'css' => 'volunteer.css',    'js' => 'volunteer.js' ),
         );
 
         if ( ! isset( $map[ $slug ] ) ) {
@@ -272,16 +288,34 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
                 array( 'emc-style' ),
                 filemtime( $css_path )
             );
+
+            if ( 'events' === $slug ) {
+                $registration_css = EMC_DIR . '/assets/css/event-registration.css';
+                wp_enqueue_style(
+                    'emc-event-registration',
+                    EMC_ASSETS . '/css/event-registration.css',
+                    array( 'emc-page-events' ),
+                    file_exists( $registration_css ) ? filemtime( $registration_css ) : EMC_VERSION
+                );
+            }
         }
 
         if ( file_exists( $js_path ) ) {
+            $handle = 'emc-page-' . $slug;
             wp_enqueue_script(
-                'emc-page-' . $slug,
+                $handle,
                 EMC_ASSETS . '/js/' . $assets['js'],
                 array( 'emc-script' ),
                 filemtime( $js_path ),
                 true
             );
+
+            if ( 'events' === $slug ) {
+                wp_localize_script( $handle, 'emcEventsConfig', array(
+                    'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                    'nonce'   => wp_create_nonce( 'emc_event_registration' ),
+                ) );
+            }
         }
     }
 endif;
@@ -318,6 +352,7 @@ if ( ! function_exists( 'emc_enqueue_cpt_assets' ) ) :
 
         $assets   = $cpt_map[ $post_type ];
         $css_path = EMC_DIR . '/assets/css/' . $assets['css'];
+        $js_path  = EMC_DIR . '/assets/js/' . $assets['js'];
 
         if ( file_exists( $css_path ) ) {
             wp_enqueue_style(
@@ -326,6 +361,34 @@ if ( ! function_exists( 'emc_enqueue_cpt_assets' ) ) :
                 array( 'emc-style' ),
                 filemtime( $css_path )
             );
+
+            if ( 'emc_event' === $post_type ) {
+                $registration_css = EMC_DIR . '/assets/css/event-registration.css';
+                wp_enqueue_style(
+                    'emc-event-registration',
+                    EMC_ASSETS . '/css/event-registration.css',
+                    array( 'emc-cpt-emc_event' ),
+                    file_exists( $registration_css ) ? filemtime( $registration_css ) : EMC_VERSION
+                );
+            }
+        }
+
+        if ( file_exists( $js_path ) ) {
+            $handle = 'emc-cpt-' . $post_type;
+            wp_enqueue_script(
+                $handle,
+                EMC_ASSETS . '/js/' . $assets['js'],
+                array( 'emc-script' ),
+                filemtime( $js_path ),
+                true
+            );
+
+            if ( 'emc_event' === $post_type ) {
+                wp_localize_script( $handle, 'emcEventsConfig', array(
+                    'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                    'nonce'   => wp_create_nonce( 'emc_event_registration' ),
+                ) );
+            }
         }
     }
 endif;
@@ -377,6 +440,23 @@ if ( ! function_exists( 'emc_register_sidebars' ) ) :
 endif;
 add_action( 'widgets_init', 'emc_register_sidebars' );
 
+/**
+ * Apply the administrator-configured post count to all standard blog lists.
+ */
+function emc_apply_blog_posts_per_page( $query ) {
+    if ( is_admin() || ! $query->is_main_query() ) {
+        return;
+    }
+
+    if ( $query->is_home() || $query->is_category() || $query->is_tag() || $query->is_author() || $query->is_date() ) {
+        $posts_per_page = absint( emc_option( 'emc_blog_posts_per_page', 9 ) );
+        if ( $posts_per_page ) {
+            $query->set( 'posts_per_page', $posts_per_page );
+        }
+    }
+}
+add_action( 'pre_get_posts', 'emc_apply_blog_posts_per_page' );
+
 
 /* ==========================================================================
    5. Include Modular Files
@@ -388,10 +468,18 @@ $emc_includes = array(
     '/inc/customizer.php',          // Theme Customizer options
     '/inc/customizer-pages.php',    // Page Content Customizer sections (migrated from ACF)
     '/inc/helper-functions.php',    // Utility functions
+    '/inc/annual-reports.php',      // Dynamic About page annual reports manager
+    '/inc/media-videos.php',        // Admin-managed, inline-playable media videos
     '/inc/acf-helpers.php',         // ACF wrapper (emc_acf, emc_acf_image) with fallback
     '/inc/acf-fields.php',          // ACF field group definitions for page templates
     '/inc/shortcodes.php',          // Shortcodes (prayer times, campaign bar, etc.)
+    '/inc/payment-license.php',     // Expiring license gate for donation and Stripe features
     '/inc/ajax-handlers.php',       // AJAX handlers (newsletter, contact form, Stripe donations)
+    '/inc/contact-submissions.php', // Contact form records and administrator inbox
+    '/inc/newsletter.php',          // Mailchimp newsletter sync, submissions, and settings
+    '/inc/gift-aid.php',            // Gift Aid declaration storage and admin records
+    '/inc/volunteers.php',          // Volunteer applications, notifications, and admin records
+    '/inc/event-registrations.php', // Event forms, email notifications, submissions, and settings
     '/inc/stripe-settings.php',     // WP Admin settings page for Stripe API keys
     '/inc/elementor-compat.php',    // Elementor compatibility (locations, style fixes)
     '/inc/elementor-widgets.php',   // Custom Elementor widgets (donate, prayer, counter)
@@ -999,7 +1087,10 @@ function emc_admin_bar_offset() {
     if ( is_admin_bar_showing() ) {
         echo '<style>
             .prayer-top-bar { top: 32px !important; }
-            .main-header    { top: calc(32px + 90px) !important; }
+            .main-header    { top: calc(32px + 83px) !important; }
+            @media screen and (min-width:1101px) {
+                .main-header { top: calc(32px + 63px) !important; }
+            }
             @media screen and (max-width:782px) {
                 .prayer-top-bar { display: none; }
                 .main-header    { top: 46px !important; }

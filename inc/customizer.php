@@ -342,26 +342,10 @@ function emc_customize_register( $wp_customize ) {
         'emc_footer_opts', __( 'Column 2 Heading', 'emc-theme' ) );
 
     // — Column 2: Quick Links (one per line: Label|slug)
-    emc_add_textarea_setting(
-        $wp_customize,
-        'emc_footer_col2_links',
-        "About Us|about\nOur Services|services\nPrayer Times|prayer-times\nDonate|donate\nEvents|events\nMedia|media\nVacancies|vacancies\nContact|contact\nPrivacy Policy|privacy-policy",
-        'emc_footer_opts',
-        __( 'Column 2 Links (one per line: Label|page-slug)', 'emc-theme' )
-    );
-
     emc_add_text_setting( $wp_customize, 'emc_footer_col3_heading', __( 'Community', 'emc-theme' ),
         'emc_footer_opts', __( 'Column 3 Heading', 'emc-theme' ) );
 
     // — Column 3: Community Links (one per line: Label|slug)
-    emc_add_textarea_setting(
-        $wp_customize,
-        'emc_footer_col3_links',
-        "Upcoming Events|events\nMedia Gallery|media\nVolunteering|vacancies\nContact Us|contact",
-        'emc_footer_opts',
-        __( 'Column 3 Links (one per line: Label|page-slug)', 'emc-theme' )
-    );
-
     emc_add_text_setting( $wp_customize, 'emc_footer_col4_heading', __( 'Contact', 'emc-theme' ),
         'emc_footer_opts', __( 'Column 4 Heading', 'emc-theme' ) );
 
@@ -659,15 +643,6 @@ function emc_customize_register( $wp_customize ) {
         __( 'Help us build a lasting place of worship for future generations. Our building campaign needs your generous support. Every pound brings us closer to our goal.', 'emc-theme' ),
         'emc_hp_campaign', __( 'Campaign Description', 'emc-theme' ) );
 
-    emc_add_text_setting( $wp_customize, 'emc_campaign_raised', '68400',
-        'emc_hp_campaign', __( 'Amount Raised (number only)', 'emc-theme' ) );
-
-    emc_add_text_setting( $wp_customize, 'emc_campaign_target', '100000',
-        'emc_hp_campaign', __( 'Target Amount (number only)', 'emc-theme' ) );
-
-    emc_add_text_setting( $wp_customize, 'emc_campaign_donors', '247',
-        'emc_hp_campaign', __( 'Number of Donors', 'emc-theme' ) );
-
     emc_add_text_setting( $wp_customize, 'emc_campaign_cta_label',
         __( 'Choose Badr Wall Level', 'emc-theme' ),
         'emc_hp_campaign', __( 'Donate Button Label', 'emc-theme' ) );
@@ -676,18 +651,11 @@ function emc_customize_register( $wp_customize ) {
         'emc_hp_campaign', __( 'Donate Button URL (blank = campaign Badr Wall selector)', 'emc-theme' ) );
 
     // ── Badr Wall Tier Fill Counts ─────────────────────────────────────────
-    emc_add_text_setting( $wp_customize, 'emc_campaign_tier1_filled', '2',
-        'emc_hp_campaign', __( 'Badr Wall — Founder of the Centre filled (max 10)', 'emc-theme' ) );
+    emc_add_text_setting( $wp_customize, 'emc_campaign_tier1_filled', '19',
+        'emc_hp_campaign', __( 'Badr Wall — Founder tiles taken (max 100)', 'emc-theme' ) );
 
-    emc_add_text_setting( $wp_customize, 'emc_campaign_tier2_filled', '8',
-        'emc_hp_campaign', __( 'Badr Wall — Co-Founder of the Centre filled (max 30)', 'emc-theme' ) );
-
-    emc_add_text_setting( $wp_customize, 'emc_campaign_tier3_filled', '12',
-        'emc_hp_campaign', __( 'Badr Wall — Golden Donors filled (max 50)', 'emc-theme' ) );
-
-    emc_add_text_setting( $wp_customize, 'emc_campaign_tier4_filled', '15',
-        'emc_hp_campaign', __( 'Badr Wall — Silver Donors filled (max 80)', 'emc-theme' ) );
-
+    emc_add_text_setting( $wp_customize, 'emc_campaign_tier2_filled', '11',
+        'emc_hp_campaign', __( 'Badr Wall — Co-Founder tiles taken (max 213)', 'emc-theme' ) );
 
     /* ── Counters / Stats Section ───────────────────────────────────────── */
     $wp_customize->add_section( 'emc_hp_counters', array(
@@ -1043,6 +1011,10 @@ function emc_customize_register( $wp_customize ) {
 
     emc_add_checkbox_setting( $wp_customize, 'emc_blog_show_related', 1,
         'emc_blog', __( 'Show Related Posts on Single Posts', 'emc-theme' ) );
+
+    emc_add_text_setting( $wp_customize, 'emc_blog_related_heading',
+        __( 'You Might Also Like', 'emc-theme' ),
+        'emc_blog', __( 'Related Posts Heading', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_blog_related_count', '3',
         'emc_blog', __( 'Number of Related Posts to Show', 'emc-theme' ) );

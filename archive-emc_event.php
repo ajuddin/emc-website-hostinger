@@ -87,6 +87,7 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                 $ev_time  = get_post_meta( $pid, '_emc_event_time',  true );
                 $ev_venue = get_post_meta( $pid, '_emc_event_venue', true );
                 $ev_cats  = get_the_terms( $pid, 'event_category' );
+                $ev_weekday = $ev_date ? date_i18n( 'l', strtotime( $ev_date ) ) : __( 'Date TBC', 'emc-theme' );
             ?>
             <article class="event-card glass-card" id="post-<?php echo esc_attr( $pid ); ?>">
                 <?php if ( has_post_thumbnail( $pid ) ) : ?>
@@ -95,6 +96,10 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                 </a>
                 <?php endif; ?>
                 <div class="event-card-body">
+                    <div class="event-weekday-strip">
+                        <strong><?php echo esc_html( $ev_weekday ); ?></strong>
+                        <?php if ( $ev_time ) : ?><span><i class="far fa-clock" aria-hidden="true"></i> <?php echo esc_html( $ev_time ); ?></span><?php endif; ?>
+                    </div>
                     <?php if ( $ev_cats && ! is_wp_error( $ev_cats ) ) : ?>
                     <span class="event-cat-label"><?php echo esc_html( $ev_cats[0]->name ); ?></span>
                     <?php endif; ?>
@@ -116,10 +121,17 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                         <?php echo esc_html( $ev_venue ); ?>
                     </p>
                     <?php endif; ?>
-                    <a href="<?php echo esc_url( get_permalink( $pid ) ); ?>" class="btn btn-primary btn-sm">
-                        <?php esc_html_e( 'Learn More', 'emc-theme' ); ?>
-                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                    </a>
+                    <div class="event-card-actions">
+                        <a href="<?php echo esc_url( get_permalink( $pid ) ); ?>" class="btn btn-outline btn-sm">
+                            <?php esc_html_e( 'Learn More', 'emc-theme' ); ?>
+                        </a>
+                        <?php if ( emc_event_registration_is_open( $pid ) ) : ?>
+                        <a href="<?php echo esc_url( get_permalink( $pid ) . '#event-registration' ); ?>" class="btn btn-primary btn-sm">
+                            <?php esc_html_e( 'Register', 'emc-theme' ); ?>
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </article>
             <?php endforeach; ?>

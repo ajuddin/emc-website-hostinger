@@ -92,9 +92,9 @@ if ( $vacancy_types && ! is_wp_error( $vacancy_types ) ) :
                         <?php esc_html_e( 'View Details', 'emc-theme' ); ?>
                         <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </a>
-                    <a href="mailto:<?php echo esc_attr( emc_option( 'emc_email', 'info@essexmuslimcentre.org.uk' ) ); ?>"
+                    <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>"
                        class="btn btn-outline">
-                        <i class="fas fa-envelope" aria-hidden="true"></i>
+                        <i class="fas fa-file-alt" aria-hidden="true"></i>
                         <?php esc_html_e( 'Apply Now', 'emc-theme' ); ?>
                     </a>
                 </div>
@@ -132,7 +132,7 @@ if ( $vacancy_types && ! is_wp_error( $vacancy_types ) ) :
                 <h2><?php esc_html_e( 'Interested in Volunteering?', 'emc-theme' ); ?></h2>
                 <p><?php esc_html_e( 'Even if you don\'t see a suitable paid role, we always welcome dedicated volunteers. Get in touch to find out how you can contribute.', 'emc-theme' ); ?></p>
             </div>
-            <a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="btn btn-primary">
+            <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-primary">
                 <?php esc_html_e( 'Volunteer With Us', 'emc-theme' ); ?>
             </a>
         </div>

@@ -44,50 +44,61 @@ if ( file_exists( $media_js_path ) ) {
         <!-- Tab 1: Videos -->
         <div class="media-tab-panel active" id="tab-videos">
             <div class="section-header left">
-                <h2><?php esc_html_e( 'Latest Khutbahs & Lectures', 'emc-theme' ); ?></h2>
+                <h2><?php echo esc_html( emc_acf( 'media_videos_heading', __( 'Latest Khutbahs & Lectures', 'emc-theme' ) ) ); ?></h2>
             </div>
 
             <div class="video-grid">
-                <!-- Featured Video -->
-                <div class="video-card featured scroll-reveal">
-                    <div class="video-thumbnail">
-                        <?php $vid_thumb = emc_acf_image( 'media_video_thumbnail', EMC_ASSETS . '/gallery/Friday Prayer/FPS-600x600.jpeg' ); ?>
-                        <img src="<?php echo esc_url( $vid_thumb ); ?>" alt="<?php esc_attr_e( 'Khutbah Thumbnail', 'emc-theme' ); ?>">
-                        <?php $vid_url = emc_acf( 'media_video_url', '' ); ?>
-                        <a href="<?php echo $vid_url ? esc_url( $vid_url ) : '#'; ?>" class="play-btn"<?php echo $vid_url ? ' target="_blank"' : ''; ?>><i class="fas fa-play"></i></a>
-                        <span class="video-duration"><?php echo esc_html( emc_acf( 'media_video_duration', '45:20' ) ); ?></span>
-                    </div>
-                    <div class="video-info">
-                        <span class="video-date"><?php echo esc_html( emc_acf( 'media_video_date', '10 May 2026' ) ); ?></span>
-                        <h3><?php echo esc_html( emc_acf( 'media_video_title', __( 'The Importance of Community Ties in Islam', 'emc-theme' ) ) ); ?></h3>
-                        <p><?php echo esc_html( emc_acf( 'media_video_desc', __( 'Sheikh Ahmed discusses the prophetic examples of building a strong, unified community and the responsibilities we hold towards our neighbours.', 'emc-theme' ) ) ); ?></p>
-                    </div>
-                </div>
+                <?php
+                $media_videos = emc_get_media_videos();
+                if ( $media_videos ) :
+                    foreach ( $media_videos as $video_index => $video ) :
+                        $is_featured = 0 === $video_index;
+                        $delay       = round( min( $video_index * 0.08, 0.4 ), 2 );
+                ?>
+                <article class="video-card<?php echo $is_featured ? ' featured' : ''; ?> scroll-reveal"<?php echo $delay ? ' style="transition-delay:' . esc_attr( $delay ) . 's"' : ''; ?>>
+                    <div
+                        class="video-thumbnail<?php echo ! empty( $video['play_url'] ) ? ' js-video-player' : ''; ?>"
+                        <?php if ( ! empty( $video['play_url'] ) ) : ?>
+                        data-video-type="<?php echo esc_attr( $video['type'] ); ?>"
+                        data-video-src="<?php echo esc_url( $video['play_url'] ); ?>"
+                        data-video-title="<?php echo esc_attr( $video['title'] ); ?>"
+                        <?php endif; ?>
+                    >
+                        <?php if ( ! empty( $video['thumbnail'] ) ) : ?>
+                        <img src="<?php echo esc_url( $video['thumbnail'] ); ?>" alt="<?php echo esc_attr( $video['title'] ); ?>" loading="lazy">
+                        <?php else : ?>
+                        <div class="video-placeholder" aria-hidden="true"><i class="fas fa-video"></i></div>
+                        <?php endif; ?>
 
-                <!-- Standard Videos (placeholder) -->
-                <div class="video-card scroll-reveal" style="transition-delay:0.1s">
-                    <div class="video-thumbnail">
-                        <img src="<?php echo esc_url( EMC_ASSETS . '/gallery/Activity During Ramadan/r3-300x300.jpeg' ); ?>" alt="<?php esc_attr_e( 'Khutbah', 'emc-theme' ); ?>" style="width:100%;height:100%;object-fit:cover;">
-                        <div class="play-btn small"><i class="fas fa-play"></i></div>
-                        <span class="video-duration">38:15</span>
-                    </div>
-                    <div class="video-info">
-                        <span class="video-date">03 May 2026</span>
-                        <h4><?php esc_html_e( 'Patience During Difficult Times', 'emc-theme' ); ?></h4>
-                    </div>
-                </div>
+                        <?php if ( ! empty( $video['play_url'] ) ) : ?>
+                        <button class="play-btn<?php echo $is_featured ? '' : ' small'; ?>" type="button" aria-label="<?php echo esc_attr( sprintf( __( 'Play %s', 'emc-theme' ), $video['title'] ) ); ?>">
+                            <i class="fas fa-play" aria-hidden="true"></i>
+                        </button>
+                        <?php endif; ?>
 
-                <div class="video-card scroll-reveal" style="transition-delay:0.2s">
-                    <div class="video-thumbnail">
-                        <img src="<?php echo esc_url( EMC_ASSETS . '/gallery/Friday Prayer/Friday-1-600x450.jpeg' ); ?>" alt="<?php esc_attr_e( 'Khutbah', 'emc-theme' ); ?>" style="width:100%;height:100%;object-fit:cover;">
-                        <div class="play-btn small"><i class="fas fa-play"></i></div>
-                        <span class="video-duration">42:10</span>
+                        <?php if ( ! empty( $video['duration'] ) ) : ?>
+                        <span class="video-duration"><?php echo esc_html( $video['duration'] ); ?></span>
+                        <?php endif; ?>
                     </div>
                     <div class="video-info">
-                        <span class="video-date">26 Apr 2026</span>
-                        <h4><?php esc_html_e( 'Preparing Your Heart for Ramadan', 'emc-theme' ); ?></h4>
+                        <?php if ( ! empty( $video['date'] ) ) : ?>
+                        <span class="video-date"><?php echo esc_html( $video['date'] ); ?></span>
+                        <?php endif; ?>
+                        <h3><?php echo esc_html( $video['title'] ); ?></h3>
+                        <?php if ( ! empty( $video['description'] ) ) : ?>
+                        <p><?php echo esc_html( $video['description'] ); ?></p>
+                        <?php endif; ?>
                     </div>
+                </article>
+                <?php
+                    endforeach;
+                else :
+                ?>
+                <div class="media-video-empty">
+                    <i class="fas fa-video" aria-hidden="true"></i>
+                    <p><?php esc_html_e( 'New videos will be added here soon.', 'emc-theme' ); ?></p>
                 </div>
+                <?php endif; ?>
             </div>
 
             <!-- Podcast Box -->

@@ -91,8 +91,28 @@ function emc_demo_import_pages() {
  * @return array  [ 'id', 'status', 'detail' ]
  */
 function emc_demo_create_page( $page, $id_map ) {
-    // Check if the slug already exists
-    $existing = get_page_by_path( $page['slug'], OBJECT, 'page' );
+    // Child pages must be checked by their full hierarchical path. Looking
+    // up only the leaf slug makes WordPress miss an existing nested page and
+    // create a numbered duplicate on every repeated import.
+    $lookup_path = ! empty( $page['parent'] )
+        ? trailingslashit( $page['parent'] ) . $page['slug']
+        : $page['slug'];
+    $existing = get_page_by_path( $lookup_path, OBJECT, 'page' );
+
+    // Also recognise a matching page if its parent has been renamed.
+    if ( ! $existing ) {
+        $matching_pages = get_posts( array(
+            'post_type'      => 'page',
+            'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+            'name'           => $page['slug'],
+            'posts_per_page' => 1,
+            'orderby'        => 'ID',
+            'order'          => 'ASC',
+            'no_found_rows'  => true,
+        ) );
+        $existing = $matching_pages ? reset( $matching_pages ) : null;
+    }
+
     if ( $existing ) {
         // Retroactively assign template if missing on existing page
         if ( ! empty( $page['template'] ) ) {
@@ -172,6 +192,12 @@ function emc_demo_import_menus() {
         __( 'Footer Quick Links', 'emc-theme' ),
         'footer',
         emc_demo_get_footer_menu()
+    ) );
+
+    $log = array_merge( $log, emc_demo_build_menu(
+        __( 'Footer Community Links', 'emc-theme' ),
+        'footer-community',
+        emc_demo_get_footer_community_menu()
     ) );
 
     $log = array_merge( $log, emc_demo_build_menu(

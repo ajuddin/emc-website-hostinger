@@ -22,36 +22,6 @@ $show_gift_aid   = (bool) emc_option( 'emc_footer_show_gift_aid', true );
 $footer_address  = emc_option( 'emc_footer_address', "Essex Muslim Centre\nCuton Hall Lane\nCM2 6PB" );
 $show_prayer_lnk = (bool) emc_option( 'emc_footer_show_prayer_link', true );
 
-// Column 2 & 3 links from Customizer (format: "Label|slug" per line)
-$col2_links_raw = emc_option( 'emc_footer_col2_links', "About Us|about\nOur Services|services\nPrayer Times|prayer-times\nDonate|donate\nEvents|events\nMedia|media\nVacancies|vacancies\nContact|contact\nPrivacy Policy|privacy-policy" );
-$col3_links_raw = emc_option( 'emc_footer_col3_links', "Upcoming Events|events\nMedia Gallery|media\nVolunteering|vacancies\nContact Us|contact" );
-
-/**
- * Parse "Label|slug" text into array of [label, url].
- */
-function emc_parse_footer_links( $raw ) {
-    $links = array();
-    $lines = array_filter( array_map( 'trim', explode( "\n", $raw ) ) );
-    foreach ( $lines as $line ) {
-        $parts = array_map( 'trim', explode( '|', $line, 2 ) );
-        if ( count( $parts ) < 2 ) continue;
-        $label = $parts[0];
-        $slug  = $parts[1];
-
-        // If it looks like a full URL, use directly
-        if ( preg_match( '#^https?://#', $slug ) ) {
-            $url = $slug;
-        } else {
-            $page = get_page_by_path( $slug );
-            $url  = $page ? get_permalink( $page ) : home_url( '/' . ltrim( $slug, '/' ) . '/' );
-        }
-        $links[] = array( 'label' => $label, 'url' => $url );
-    }
-    return $links;
-}
-
-$col2_links = emc_parse_footer_links( $col2_links_raw );
-$col3_links = emc_parse_footer_links( $col3_links_raw );
 ?>
 
 <?php /* Skip native footer when Elementor Pro theme builder provides one. */ ?>
@@ -133,28 +103,32 @@ if ( $show_app ) :
                 </p>
             </div>
 
-            <?php /* Column 2 — Quick Links (Customizer-driven) */ ?>
+            <?php /* Column 2 — Quick Links (Appearance > Menus) */ ?>
             <div class="footer-col">
                 <h4 class="footer-col-heading"><?php echo esc_html( $col2_heading ); ?></h4>
-                <?php if ( $col2_links ) : ?>
-                <ul class="footer-menu">
-                    <?php foreach ( $col2_links as $link ) : ?>
-                    <li><a href="<?php echo esc_url( $link['url'] ); ?>"><?php echo esc_html( $link['label'] ); ?></a></li>
-                    <?php endforeach; ?>
-                </ul>
-                <?php endif; ?>
+                <?php
+                wp_nav_menu( array(
+                    'theme_location' => 'footer',
+                    'container'      => false,
+                    'menu_class'     => 'footer-menu',
+                    'fallback_cb'    => 'emc_footer_quick_links_fallback',
+                    'depth'          => 1,
+                ) );
+                ?>
             </div>
 
-            <?php /* Column 3 — Community (Customizer-driven) */ ?>
+            <?php /* Column 3 — Community (Appearance > Menus) */ ?>
             <div class="footer-col">
                 <h4 class="footer-col-heading"><?php echo esc_html( $col3_heading ); ?></h4>
-                <?php if ( $col3_links ) : ?>
-                <ul class="footer-menu">
-                    <?php foreach ( $col3_links as $link ) : ?>
-                    <li><a href="<?php echo esc_url( $link['url'] ); ?>"><?php echo esc_html( $link['label'] ); ?></a></li>
-                    <?php endforeach; ?>
-                </ul>
-                <?php endif; ?>
+                <?php
+                wp_nav_menu( array(
+                    'theme_location' => 'footer-community',
+                    'container'      => false,
+                    'menu_class'     => 'footer-menu',
+                    'fallback_cb'    => 'emc_footer_community_links',
+                    'depth'          => 1,
+                ) );
+                ?>
             </div>
 
             <?php /* Column 4 — Contact Info (Customizer-driven) */ ?>
@@ -220,7 +194,7 @@ if ( $show_app ) :
                       </a>
                 <?php endif; ?>
                 <?php if ( $show_gift_aid ) : ?>
-                    | <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'gift-aid' ) ) ?: home_url( '/gift-aid/' ) ); ?>">
+                    | <a href="<?php echo esc_url( emc_get_gift_aid_url() ); ?>">
                         <?php esc_html_e( 'Gift Aid', 'emc-theme' ); ?>
                       </a>
                 <?php endif; ?>

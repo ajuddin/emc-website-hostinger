@@ -276,18 +276,6 @@
         value.bind( function( to ) { $( '.campaign-description' ).text( to ); } );
     } );
 
-    api( 'emc_campaign_raised', function( value ) {
-        value.bind( function( to ) { $( '.campaign-raised-amount' ).text( '£' + parseInt( to ).toLocaleString() ); } );
-    } );
-
-    api( 'emc_campaign_target', function( value ) {
-        value.bind( function( to ) { $( '.campaign-target-amount' ).text( '£' + parseInt( to ).toLocaleString() ); } );
-    } );
-
-    api( 'emc_campaign_donors', function( value ) {
-        value.bind( function( to ) { $( '.campaign-donors-count' ).text( to ); } );
-    } );
-
     api( 'emc_campaign_cta_label', function( value ) {
         value.bind( function( to ) { $( '.campaign-cta .btn-primary' ).text( to ); } );
     } );

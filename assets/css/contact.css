@@ -144,6 +144,14 @@
     background: var(--white);
 }
 
+.contact-form-honeypot {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+}
+
 .getting-there-card {
     padding: 1.5rem;
     border: 1px solid var(--border-color);

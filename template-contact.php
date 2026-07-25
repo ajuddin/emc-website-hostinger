@@ -39,8 +39,12 @@ if ( file_exists( $contact_js_path ) ) {
                 <h2><?php echo esc_html( emc_acf( 'contact_form_heading', __( 'Send a Message', 'emc-theme' ) ) ); ?></h2>
                 <p style="color:var(--text-muted); font-size:var(--step--1); margin-bottom:2rem;"><?php echo esc_html( emc_acf( 'contact_form_desc', __( 'Fill out the form below and a member of our team will get back to you within 48 hours.', 'emc-theme' ) ) ); ?></p>
 
-                <form id="contact-form" novalidate>
-                    <?php wp_nonce_field( 'emc_contact_form', 'emc_contact_nonce' ); ?>
+                <form id="contact-form" method="post" data-ajax-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" novalidate>
+                    <input type="hidden" name="action" value="emc_contact_form">
+                    <input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'emc_contact_submission' ) ); ?>">
+                    <div class="contact-form-honeypot" aria-hidden="true">
+                        <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="firstName"><?php echo esc_html( emc_acf( 'contact_label_firstname', 'First Name *' ) ); ?></label>

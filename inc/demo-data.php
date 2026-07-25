@@ -93,7 +93,7 @@ function emc_demo_get_pages() {
         array(
             'slug'     => 'gift-aid',
             'title'    => 'Gift Aid Declaration',
-            'template' => '',
+            'template' => 'page-gift-aid.php',
             'content'  => '<!-- Managed via page template -->',
             'parent'   => 'donate',
         ),
@@ -111,6 +111,13 @@ function emc_demo_get_pages() {
             'title'    => 'Vacancies & Volunteering',
             'template' => '',
             'content'  => '<!-- Managed via archive-emc_vacancy.php -->',
+            'parent'   => '',
+        ),
+        array(
+            'slug'     => 'volunteer',
+            'title'    => 'Volunteer With Us',
+            'template' => 'page-volunteer.php',
+            'content'  => '<!-- Managed via page template -->',
             'parent'   => '',
         ),
 
@@ -178,6 +185,20 @@ function emc_demo_get_footer_menu() {
         array( 'label' => 'Vacancies',    'slug' => 'vacancies' ),
         array( 'label' => 'Contact',      'slug' => 'contact' ),
         array( 'label' => 'Privacy Policy', 'slug' => 'privacy-policy' ),
+    );
+}
+
+/**
+ * Returns footer community menu items.
+ *
+ * @return array[]
+ */
+function emc_demo_get_footer_community_menu() {
+    return array(
+        array( 'label' => 'Upcoming Events', 'slug' => 'events' ),
+        array( 'label' => 'Media Gallery', 'slug' => 'media' ),
+        array( 'label' => 'Volunteering', 'slug' => 'volunteer' ),
+        array( 'label' => 'Contact Us', 'slug' => 'contact' ),
     );
 }
 

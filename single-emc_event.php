@@ -46,8 +46,9 @@ while ( have_posts() ) :
     $day          = $date ? date( 'd', strtotime( $date ) ) : '';
     $month        = $date ? strtoupper( date( 'M', strtotime( $date ) ) ) : '';
     $year         = $date ? date( 'Y', strtotime( $date ) ) : '';
-    $fmt_date     = $date ? date_i18n( 'j F Y', strtotime( $date ) ) : '';
-    $fmt_end      = $end_date ? date_i18n( 'j F Y', strtotime( $end_date ) ) : '';
+    $weekday      = $date ? date_i18n( 'l', strtotime( $date ) ) : '';
+    $fmt_date     = $date ? date_i18n( 'l, j F Y', strtotime( $date ) ) : '';
+    $fmt_end      = $end_date ? date_i18n( 'l, j F Y', strtotime( $end_date ) ) : '';
 
     // ── ACF fields ──────────────────────────────────────────────────────────
     $intro        = $has_acf ? get_field( 'evt_single_intro' )              : '';
@@ -95,6 +96,7 @@ while ( have_posts() ) :
 
         <?php if ( $day ) : ?>
         <div class="evt-single-date-badge" aria-label="<?php echo esc_attr( $fmt_date ); ?>">
+            <span class="evt-badge-weekday"><?php echo esc_html( $weekday ); ?></span>
             <span class="evt-badge-day"><?php echo esc_html( $day ); ?></span>
             <span class="evt-badge-month"><?php echo esc_html( $month ); ?></span>
             <span class="evt-badge-year"><?php echo esc_html( $year ); ?></span>
@@ -174,6 +176,8 @@ while ( have_posts() ) :
                 </div>
                 <?php endif; ?>
 
+                <?php emc_render_event_registration_form( $post_id ); ?>
+
                 <div class="svc-back-link">
                     <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'events' ) ) ?: home_url( '/events/' ) ); ?>" class="btn btn-outline">
                         <i class="fas fa-arrow-left" aria-hidden="true"></i>
@@ -238,10 +242,17 @@ while ( have_posts() ) :
                         <?php endif; ?>
                     </ul>
 
-                    <?php if ( $reg_link ) : ?>
-                    <a href="<?php echo esc_url( $reg_link ); ?>" class="btn btn-primary btn-block" target="_blank" rel="noopener noreferrer">
+                    <?php if ( emc_event_registration_is_open( $post_id ) ) : ?>
+                    <a href="#event-registration" class="btn btn-primary btn-block">
                         <i class="fas fa-ticket-alt" aria-hidden="true"></i>
                         <?php esc_html_e( 'Register for This Event', 'emc-theme' ); ?>
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if ( $reg_link ) : ?>
+                    <a href="<?php echo esc_url( $reg_link ); ?>" class="evt-external-registration" target="_blank" rel="noopener noreferrer">
+                        <?php esc_html_e( 'Use external registration page', 'emc-theme' ); ?>
+                        <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                     </a>
                     <?php endif; ?>
                 </div>
@@ -303,9 +314,11 @@ if ( $related->have_posts() ) : ?>
                 $r_cat   = get_post_meta( get_the_ID(), '_emc_event_category', true );
                 $r_day   = $r_date ? date( 'd', strtotime( $r_date ) ) : '—';
                 $r_month = $r_date ? strtoupper( date( 'M', strtotime( $r_date ) ) ) : '';
+                $r_weekday = $r_date ? date_i18n( 'l', strtotime( $r_date ) ) : __( 'Date TBC', 'emc-theme' );
+                $r_registration_url = get_permalink() . ( emc_event_registration_is_open( get_the_ID() ) ? '#event-registration' : '' );
             ?>
             <article class="evt-related-card scroll-reveal">
-                <a href="<?php the_permalink(); ?>" class="evt-related-link">
+                <a href="<?php echo esc_url( $r_registration_url ); ?>" class="evt-related-link">
                     <div class="evt-related-img"
                          <?php if ( has_post_thumbnail() ) : ?>
                          style="background-image:url(<?php echo esc_url( get_the_post_thumbnail_url( get_the_ID(), 'emc-card' ) ); ?>)"
@@ -319,6 +332,10 @@ if ( $related->have_posts() ) : ?>
                         <?php if ( $r_cat ) : ?>
                         <span class="event-category-tag <?php echo esc_attr( $r_cat ); ?>"><?php echo esc_html( ucfirst( $r_cat ) ); ?></span>
                         <?php endif; ?>
+                        <div class="event-schedule-banner">
+                            <strong><?php echo esc_html( $r_weekday ); ?></strong>
+                            <?php if ( $r_time ) : ?><span><i class="far fa-clock" aria-hidden="true"></i> <?php echo esc_html( $r_time ); ?></span><?php endif; ?>
+                        </div>
                     </div>
                     <div class="evt-related-body">
                         <h3><?php the_title(); ?></h3>

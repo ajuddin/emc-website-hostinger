@@ -12,6 +12,12 @@
 
 get_header();
 
+if ( ! emc_payment_license_is_active() ) {
+    emc_payment_license_render_required();
+    get_footer();
+    return;
+}
+
 wp_enqueue_style( 'emc-page-ramadan', EMC_ASSETS . '/css/ramadan.css', array( 'emc-style' ), EMC_VERSION );
 wp_enqueue_style( 'emc-page-donate',  EMC_ASSETS . '/css/donate.css',  array( 'emc-style' ), EMC_VERSION );
 
@@ -153,19 +159,6 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                         </div>
                     </div>
 
-                    <!-- Fund -->
-                    <div class="form-group">
-                        <label><?php esc_html_e( 'Donation Fund', 'emc-theme' ); ?></label>
-                        <div class="category-grid">
-                            <button class="cat-btn active" data-cat="General Fund"><i class="fas fa-mosque"></i> <?php esc_html_e( 'General Fund', 'emc-theme' ); ?></button>
-                            <button class="cat-btn" data-cat="Sadaqah"><i class="fas fa-heart"></i> <?php esc_html_e( 'Sadaqah', 'emc-theme' ); ?></button>
-                            <button class="cat-btn" data-cat="Building Fund"><i class="fas fa-building"></i> <?php esc_html_e( 'Building Fund', 'emc-theme' ); ?></button>
-                            <button class="cat-btn" data-cat="Education"><i class="fas fa-book-open"></i> <?php esc_html_e( 'Education', 'emc-theme' ); ?></button>
-                            <button class="cat-btn" data-cat="Zakat"><i class="fas fa-hand-holding-usd"></i> <?php esc_html_e( 'Zakat', 'emc-theme' ); ?></button>
-                            <button class="cat-btn" data-cat="Lillah"><i class="fas fa-star-and-crescent"></i> <?php esc_html_e( 'Lillah', 'emc-theme' ); ?></button>
-                        </div>
-                    </div>
-
                     <!-- Sadaqah Jariyah Dedication -->
                     <div class="form-group">
                         <label for="ramadan-dedication">
@@ -180,9 +173,18 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
 
                     <div class="form-group">
                         <label for="ramadan-donor-name"><?php esc_html_e( 'Your Details', 'emc-theme' ); ?></label>
-                        <input type="text" id="ramadan-donor-name" class="form-control" placeholder="<?php esc_attr_e( 'Full name', 'emc-theme' ); ?>" required>
-                        <input type="email" id="ramadan-donor-email" class="form-control" placeholder="<?php esc_attr_e( 'Email address', 'emc-theme' ); ?>" required style="margin-top:0.75rem;">
-                        <textarea id="ramadan-donor-address" class="form-control" rows="2" placeholder="<?php esc_attr_e( 'Address', 'emc-theme' ); ?>" required style="margin-top:0.75rem;"></textarea>
+                        <input type="text" id="ramadan-donor-name" class="form-control" placeholder="<?php esc_attr_e( 'Full name *', 'emc-theme' ); ?>" required>
+                        <input type="email" id="ramadan-donor-email" class="form-control" placeholder="<?php esc_attr_e( 'Email address *', 'emc-theme' ); ?>" required style="margin-top:0.75rem;">
+                        <div class="form-row address-fields-row" style="margin-top:0.75rem;">
+                            <div>
+                                <label for="ramadan-donor-address" class="screen-reader-text"><?php esc_html_e( 'Address line 1', 'emc-theme' ); ?></label>
+                                <input type="text" id="ramadan-donor-address" class="form-control" autocomplete="address-line1" placeholder="<?php esc_attr_e( 'Address line 1 (required for Gift Aid)', 'emc-theme' ); ?>">
+                            </div>
+                            <div>
+                                <label for="ramadan-donor-postcode" class="screen-reader-text"><?php esc_html_e( 'Postcode', 'emc-theme' ); ?></label>
+                                <input type="text" id="ramadan-donor-postcode" class="form-control" autocomplete="postal-code" maxlength="8" placeholder="<?php esc_attr_e( 'Postcode (required for Gift Aid)', 'emc-theme' ); ?>">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Schedule Summary -->
@@ -197,7 +199,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                             <input type="checkbox" class="gift-aid-check" id="ramadan-giftaid">
                             <div class="gift-aid-content">
                                 <strong><?php esc_html_e( 'Claim Gift Aid', 'emc-theme' ); ?></strong>
-                                <p><?php esc_html_e( 'I am a UK taxpayer. EMC can reclaim 25p of tax on every £1 I give at no extra cost to me.', 'emc-theme' ); ?></p>
+                                <p><?php esc_html_e( 'I am a UK taxpayer. EMC can reclaim 25p of tax on every £1 I give at no extra cost to me. Address line 1 and postcode are required to claim Gift Aid.', 'emc-theme' ); ?></p>
                             </div>
                         </label>
                     </div>
@@ -247,14 +249,33 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                         <label><?php esc_html_e( 'Number of Missed Fasts', 'emc-theme' ); ?></label>
                         <input type="number" id="fidya-days" class="form-control" value="1" min="1" max="30">
                     </div>
+                    <div class="form-group">
+                        <label for="fidya-donor-name"><?php esc_html_e( 'Your Details', 'emc-theme' ); ?></label>
+                        <input type="text" id="fidya-donor-name" class="form-control" autocomplete="name" placeholder="<?php esc_attr_e( 'Full name *', 'emc-theme' ); ?>" required>
+                        <label for="fidya-donor-email" class="screen-reader-text"><?php esc_html_e( 'Email address', 'emc-theme' ); ?></label>
+                        <input type="email" id="fidya-donor-email" class="form-control" autocomplete="email" placeholder="<?php esc_attr_e( 'Email address *', 'emc-theme' ); ?>" required style="margin-top:0.75rem;">
+                        <div class="form-row address-fields-row" style="margin-top:0.75rem;">
+                            <div>
+                                <label for="fidya-donor-address" class="screen-reader-text"><?php esc_html_e( 'Address line 1', 'emc-theme' ); ?></label>
+                                <input type="text" id="fidya-donor-address" class="form-control" autocomplete="address-line1" placeholder="<?php esc_attr_e( 'Address line 1 (optional)', 'emc-theme' ); ?>">
+                            </div>
+                            <div>
+                                <label for="fidya-donor-postcode" class="screen-reader-text"><?php esc_html_e( 'Postcode', 'emc-theme' ); ?></label>
+                                <input type="text" id="fidya-donor-postcode" class="form-control" autocomplete="postal-code" maxlength="8" placeholder="<?php esc_attr_e( 'Postcode (optional)', 'emc-theme' ); ?>">
+                            </div>
+                        </div>
+                    </div>
                     <div class="fitrana-result">
                         <p><?php esc_html_e( 'Total Fidya Due:', 'emc-theme' ); ?></p>
                         <div class="fitrana-amount" id="fidya-total">£5.00</div>
                     </div>
-                    <button id="fidya-btn" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:1rem;">
+                    <button type="button" id="fidya-btn" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:1rem;">
                         <i class="fas fa-lock" aria-hidden="true"></i>
                         <?php esc_html_e( 'Pay Fidya Now', 'emc-theme' ); ?>
                     </button>
+                    <p class="form-desc" style="margin-top:0.75rem;margin-bottom:0;">
+                        <?php esc_html_e( 'Your details are used to process the payment and email your receipt.', 'emc-theme' ); ?>
+                    </p>
                 </div>
 
                 <!-- Ramadan Impact -->

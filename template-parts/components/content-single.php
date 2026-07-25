@@ -7,19 +7,13 @@
 
 $cats         = get_the_category();
 $reading_time = emc_reading_time();
-$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 );
+$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 ) && is_active_sidebar( 'sidebar-blog' );
 $show_author  = (bool) emc_option( 'emc_blog_show_author_bio', 1 );
 ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class( 'single-post' ); ?>>
 
     <!-- Post Hero -->
     <section class="page-hero page-hero--blog" aria-label="<?php the_title_attribute(); ?>">
-        <?php if ( has_post_thumbnail() ) : ?>
-        <div class="page-hero-bg"
-             style="background-image:url(<?php echo esc_url( get_the_post_thumbnail_url( null, 'emc-hero' ) ); ?>)"
-             aria-hidden="true"></div>
-        <div class="page-hero-overlay" aria-hidden="true"></div>
-        <?php endif; ?>
         <div class="container">
             <div class="page-hero-content">
                 <?php if ( $cats ) : ?>
@@ -67,6 +61,19 @@ $show_author  = (bool) emc_option( 'emc_blog_show_author_bio', 1 );
             <div class="single-layout<?php echo $show_sidebar ? ' single-layout--with-sidebar' : ''; ?>">
 
                 <div class="single-content">
+
+                    <?php if ( has_post_thumbnail() ) : ?>
+                    <figure class="single-featured-media">
+                        <?php the_post_thumbnail( 'large', array(
+                            'class'         => 'single-featured-image',
+                            'loading'       => 'eager',
+                            'fetchpriority' => 'high',
+                        ) ); ?>
+                        <?php if ( get_the_post_thumbnail_caption() ) : ?>
+                        <figcaption><?php echo wp_kses_post( get_the_post_thumbnail_caption() ); ?></figcaption>
+                        <?php endif; ?>
+                    </figure>
+                    <?php endif; ?>
 
                     <div class="entry-content prose">
                         <?php

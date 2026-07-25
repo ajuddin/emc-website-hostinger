@@ -195,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         let currentYear  = today.getFullYear();
         let currentMonth = today.getMonth(); // 0-indexed
+        const downloadBtn = document.getElementById('download-timetable-pdf');
 
         // Update table headers to include Iqamah columns
         const thead = document.querySelector('#timetable thead tr');
@@ -219,12 +220,14 @@ document.addEventListener('DOMContentLoaded', () => {
         function renderTimetable(year, month) {
             const body      = document.getElementById('timetable-body');
             const titleEl   = document.querySelector('.month-current');
+            const headingEl = document.getElementById('timetable-heading');
             const prevBtn   = document.getElementById('prev-month');
             const nextBtn   = document.getElementById('next-month');
             if (!body) return;
 
             // Nav labels
             if (titleEl)  titleEl.textContent = `${MONTHS[month]} ${year}`;
+            if (headingEl) headingEl.textContent = `${MONTHS[month]} ${year} Timetable`;
             if (prevBtn)  prevBtn.innerHTML = `<i class="fas fa-chevron-left"></i> ${MONTHS[(month - 1 + 12) % 12]}`;
             if (nextBtn)  nextBtn.innerHTML = `${MONTHS[(month + 1) % 12]} <i class="fas fa-chevron-right"></i>`;
 
@@ -233,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === month;
 
             let html = '';
+            let hasData = false;
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateObj  = new Date(year, month, d);
                 const dayName  = DAYS[dateObj.getDay()];
@@ -243,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mm  = String(month + 1).padStart(2, '0');
                 const key = `${dd}/${mm}/${year}`;
                 const entry = dataMap[key];
+                if (entry) hasData = true;
 
                 const a = entry ? entry.adhan  : {};
                 const q = entry ? entry.iqamah : {};
@@ -276,6 +281,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             body.innerHTML = html || '<tr><td colspan="13" style="text-align:center;padding:2rem;color:#999;">No data available for this month.</td></tr>';
+
+            if (downloadBtn) {
+                downloadBtn.disabled = !hasData;
+                downloadBtn.title = hasData
+                    ? `Download ${MONTHS[month]} ${year} timetable as PDF`
+                    : 'No timetable data is available for this month';
+            }
         }
 
         renderTimetable(currentYear, currentMonth);
@@ -290,6 +302,19 @@ document.addEventListener('DOMContentLoaded', () => {
             currentMonth++;
             if (currentMonth > 11) { currentMonth = 0; currentYear++; }
             renderTimetable(currentYear, currentMonth);
+        });
+
+        downloadBtn?.addEventListener('click', () => {
+            if (!window.EMCPrayerPDF || downloadBtn.disabled) return;
+
+            window.EMCPrayerPDF.downloadMonth(dataMap, currentYear, currentMonth, {
+                siteName: (typeof emcPrayer !== 'undefined' && emcPrayer.siteName)
+                    ? emcPrayer.siteName
+                    : 'Essex Muslim Centre',
+                location: (typeof emcPrayer !== 'undefined' && emcPrayer.location)
+                    ? emcPrayer.location
+                    : 'Chelmsford, Essex'
+            });
         });
     }
 

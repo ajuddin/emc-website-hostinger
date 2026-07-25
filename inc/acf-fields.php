@@ -66,18 +66,13 @@ function emc_register_acf_fields() {
                     emc_acf_text( 'about_trustees_heading', 'Section Heading', 'Trustees & Team' ),
                     emc_acf_textarea( 'about_trustees_desc', 'Section Description', '' ),
                 ),
-                emc_acf_numbered_items( 'about_trustee', 6, array(
+                emc_acf_numbered_items( 'about_trustee', 4, array(
                     'name' => array( 'Name', '' ),
                     'role' => array( 'Role / Title', '' ),
                     'bio'  => array( 'Short Bio', '' ),
                     'image' => array( 'Photo', '', 'image' ),
                 ) )
             ) ),
-            emc_acf_section( 'Annual Reports', 'about_reports', emc_acf_numbered_items( 'about_report', 3, array(
-                'year'  => array( 'Year Range', '' ),
-                'desc'  => array( 'Description', 'Trustees\' report, financial statements, and impact summary.' ),
-                'file'  => array( 'PDF File', '', 'file' ),
-            ) ) ),
             emc_acf_section( 'Vacancies CTA', 'about_cta', array(
                 emc_acf_text( 'about_cta_badge', 'Badge Text', 'Join Our Team' ),
                 emc_acf_text( 'about_cta_heading', 'Heading', 'Vacancies & Volunteering' ),
@@ -214,14 +209,7 @@ function emc_register_acf_fields() {
                 emc_acf_text( 'media_tab_videos', 'Tab: Videos & Audio', 'Videos & Audio' ),
                 emc_acf_text( 'media_tab_photos', 'Tab: Photo Gallery', 'Photo Gallery' ),
                 emc_acf_text( 'media_tab_news',   'Tab: News & Blog',   'News & Blog' ),
-            ) ),
-            emc_acf_section( 'Featured Video', 'media_video', array(
-                emc_acf_image_field( 'media_video_thumbnail', 'Video Thumbnail' ),
-                emc_acf_text( 'media_video_duration', 'Duration', '45:20' ),
-                emc_acf_text( 'media_video_date', 'Date', '10 May 2026' ),
-                emc_acf_text( 'media_video_title', 'Video Title', 'The Importance of Community Ties in Islam' ),
-                emc_acf_textarea( 'media_video_desc', 'Video Description', '' ),
-                emc_acf_text( 'media_video_url', 'Video URL (YouTube/Vimeo)', '' ),
+                emc_acf_text( 'media_videos_heading', 'Videos Section Heading', 'Latest Khutbahs & Lectures' ),
             ) ),
             emc_acf_section( 'Podcast', 'media_podcast', array(
                 emc_acf_text( 'media_podcast_heading', 'Heading', 'Listen on the Go' ),

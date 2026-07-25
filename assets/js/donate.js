@@ -97,12 +97,57 @@ document.addEventListener('DOMContentLoaded', () => {
     /* =====================================================================
        Category Buttons
     ===================================================================== */
+    function syncGiftAidForFund(panel, fund) {
+        if (!panel) return;
+
+        const isZakat  = String(fund || '').trim().toLowerCase() === 'zakat';
+        const giftBox  = panel.querySelector('.gift-aid-box');
+        const giftCheck = panel.querySelector('.gift-aid-check');
+
+        if (!giftBox) return;
+
+        giftBox.hidden = isZakat;
+        giftBox.style.display = isZakat ? 'none' : '';
+        giftBox.setAttribute('aria-hidden', isZakat ? 'true' : 'false');
+
+        if (isZakat && giftCheck) {
+            giftCheck.checked = false;
+            panel.querySelectorAll('.donor-address, .donor-postcode').forEach(field => {
+                field.required = false;
+                field.setAttribute('aria-required', 'false');
+            });
+            giftCheck.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
     document.querySelectorAll('.cat-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const parent = btn.closest('.category-grid');
             parent?.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            syncGiftAidForFund(btn.closest('.tab-panel'), btn.dataset.cat);
         });
+    });
+
+    const oneOffPanel = document.getElementById('tab-one-off');
+    if (presetFund && oneOffPanel) {
+        const presetButton = Array.from(oneOffPanel.querySelectorAll('.cat-btn')).find(
+            button => String(button.dataset.cat || '').toLowerCase() === presetFund.toLowerCase()
+        );
+        if (presetButton) {
+            oneOffPanel.querySelectorAll('.cat-btn').forEach(button => button.classList.remove('active'));
+            presetButton.classList.add('active');
+        }
+    }
+    syncGiftAidForFund(
+        oneOffPanel,
+        oneOffPanel?.querySelector('.cat-btn.active')?.dataset.cat || presetFund
+    );
+
+    document.querySelectorAll('.regular-fund').forEach(select => {
+        const panel = select.closest('.tab-panel');
+        select.addEventListener('change', () => syncGiftAidForFund(panel, select.value));
+        syncGiftAidForFund(panel, select.value);
     });
 
     /* =====================================================================
@@ -173,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentName     = '';
     let currentEmail    = '';
     let currentAddress  = '';
+    let currentPostcode = '';
     let currentTab      = 'one-off';
     let currentFrequency = 'monthly';
     let currentStartDate = '';
@@ -296,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     name       : currentName,
                     email      : currentEmail,
                     address    : currentAddress,
+                    postcode   : currentPostcode,
                     gift_aid   : currentGiftAid ? '1' : '0',
                     message    : currentMessage,
                 }
@@ -308,6 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     name   : currentName,
                     email  : currentEmail,
                     address: currentAddress,
+                    postcode: currentPostcode,
+                    gift_aid: currentGiftAid ? '1' : '0',
                 }
         );
 
@@ -377,6 +426,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentName     = panel.querySelector('.donor-name, #donor-name')?.value?.trim() || '';
         currentEmail    = panel.querySelector('.donor-email, #donor-email')?.value?.trim() || '';
         currentAddress  = panel.querySelector('.donor-address, #donor-address')?.value?.trim() || '';
+        const postcodeInput = panel.querySelector('.donor-postcode, #donor-postcode');
+        currentPostcode = formatPostcode(postcodeInput?.value || '');
+        if (postcodeInput) postcodeInput.value = currentPostcode;
         currentGiftAid  = !!(panel.querySelector('.gift-aid-check')?.checked);
         currentMessage  = panel.querySelector('#donor-message')?.value?.trim() || '';
         currentFund     = panel.querySelector('.cat-btn.active')?.dataset.cat
@@ -390,6 +442,23 @@ document.addEventListener('DOMContentLoaded', () => {
         currentOccurrences = 0;
     }
 
+    function formatPostcode(value) {
+        const original = String(value).toUpperCase().trim().replace(/\s+/g, ' ');
+        const compact = original.replace(/[^A-Z0-9]/g, '');
+
+        // Preserve numeric international postcodes instead of applying UK
+        // postcode spacing to them.
+        if (!/[A-Z]/.test(compact)) return original;
+
+        return compact.length > 3
+            ? `${compact.slice(0, -3)} ${compact.slice(-3)}`
+            : compact;
+    }
+
+    function isValidPostcode(value) {
+        return /^[A-Z0-9]{2,4} [A-Z0-9]{3}$/.test(value);
+    }
+
     function validateDonorDetails(panel) {
         collectDonorDetails(panel);
         if (!currentName) {
@@ -400,12 +469,28 @@ document.addEventListener('DOMContentLoaded', () => {
             showInlineError(panel, 'Please enter a valid email address.');
             return false;
         }
-        if (!currentAddress) {
-            showInlineError(panel, 'Please enter your address.');
+        if (currentGiftAid && !currentAddress) {
+            showInlineError(panel, 'Please enter the first line of your address.');
+            return false;
+        }
+        if (currentGiftAid && !isValidPostcode(currentPostcode)) {
+            showInlineError(panel, 'Please enter a valid UK postcode for Gift Aid.');
             return false;
         }
         return true;
     }
+
+    document.querySelectorAll('.gift-aid-check').forEach(checkbox => {
+        const syncAddressRequirement = () => {
+            const panel = checkbox.closest('.tab-panel');
+            panel?.querySelectorAll('.donor-address, .donor-postcode').forEach(field => {
+                field.required = checkbox.checked;
+                field.setAttribute('aria-required', checkbox.checked ? 'true' : 'false');
+            });
+        };
+        checkbox.addEventListener('change', syncAddressRequirement);
+        syncAddressRequirement();
+    });
 
     // ── Handle "Donate Securely" button clicks (one-off & regular) ────────
     document.querySelectorAll('.tab-panel .donate-submit').forEach(btn => {
@@ -488,7 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     billing_details: {
                             name  : currentName  || undefined,
                             email : currentEmail || undefined,
-                            address: currentAddress ? { line1: currentAddress } : undefined,
+                            address: currentAddress ? {
+                                line1: currentAddress,
+                                postal_code: currentPostcode || undefined,
+                            } : undefined,
                     },
                 },
             };
@@ -545,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name     : currentName,
             email    : currentEmail,
             address  : currentAddress,
+            postcode : currentPostcode,
             gift_aid : currentGiftAid ? '1' : '0',
             message  : currentMessage,
         });
@@ -566,6 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name            : currentName,
             email           : currentEmail,
             address         : currentAddress,
+            postcode        : currentPostcode,
             gift_aid        : currentGiftAid ? '1' : '0',
             message         : currentMessage,
         });
@@ -597,13 +687,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // ── Global bridge — lets other scripts (ramadan.js) open the modal ────
     /**
-     * window.emcOpenStripeModal({ amount, fund, tab, name, email, address, message, giftAid })
+     * window.emcOpenStripeModal({ amount, fund, tab, name, email, address, postcode, message, giftAid })
      * amount  : integer pence (e.g. 3000 = £30)
      * fund    : string label shown in modal  (e.g. 'Ramadan Giving')
      * tab     : string context key          (e.g. 'ramadan', 'fidya')
      */
     window.emcOpenStripeModal = function({ amount, fund = 'General Fund', tab = 'one-off',
-                                           name = '', email = '', address = '', message = '', giftAid = false,
+                                           name = '', email = '', address = '', postcode = '', message = '', giftAid = false,
                                            frequency = 'monthly', startDate = '', occurrences = 0 }) {
         if (amount < 50) return;
         currentAmount  = amount;
@@ -612,6 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentName    = name;
         currentEmail   = email;
         currentAddress = address;
+        currentPostcode = formatPostcode(postcode);
         currentGiftAid = giftAid;
         currentMessage = message;
         currentFrequency = frequency;

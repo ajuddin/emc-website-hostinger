@@ -59,16 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled  = true;
 
         try {
-            if (typeof emcData !== 'undefined') {
-                // WordPress AJAX
+            if (contactForm.dataset.ajaxUrl) {
                 const formData = new FormData(contactForm);
-                formData.append('action', 'emc_contact_form');
-                formData.append('nonce',  emcData.nonce);
-
-                const res  = await fetch(emcData.ajaxUrl, { method: 'POST', body: formData });
+                const res  = await fetch(contactForm.dataset.ajaxUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData,
+                });
                 const data = await res.json();
 
-                if (!data.success) {
+                if (!res.ok || !data.success) {
                     throw new Error(data.data?.message || 'Something went wrong. Please try again.');
                 }
             } else {

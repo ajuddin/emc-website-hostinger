@@ -7,7 +7,7 @@
 
 get_header();
 
-$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 );
+$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 ) && is_active_sidebar( 'sidebar-blog' );
 $search_query = get_search_query();
 $result_count = $GLOBALS['wp_query']->found_posts;
 ?>

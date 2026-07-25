@@ -11,6 +11,12 @@
 
 get_header();
 
+if ( ! emc_payment_license_is_active() ) {
+    emc_payment_license_render_required();
+    get_footer();
+    return;
+}
+
 wp_enqueue_style( 'emc-page-donate',   EMC_ASSETS . '/css/donate.css',   array( 'emc-style' ), EMC_VERSION );
 wp_enqueue_style( 'emc-page-campaign', EMC_ASSETS . '/css/campaign.css', array( 'emc-style', 'emc-page-donate' ), EMC_VERSION );
 
@@ -43,53 +49,12 @@ if ( file_exists( $campaign_js_path ) ) {
 $badge      = emc_option( 'emc_campaign_badge',   __( 'Building Fund', 'emc-theme' ) );
 $heading    = emc_option( 'emc_campaign_heading',  __( 'Be One of the 313', 'emc-theme' ) );
 $desc       = emc_option( 'emc_campaign_desc',     __( 'Help us build a lasting place of worship for future generations. Our building campaign needs your generous support. Every pound brings us closer to our goal.', 'emc-theme' ) );
-$raised     = (int) emc_option( 'emc_campaign_raised', 68400 );
-$target     = (int) emc_option( 'emc_campaign_target', 100000 );
-$donors     = (int) emc_option( 'emc_campaign_donors', 247 );
-$cta_label  = emc_option( 'emc_campaign_cta_label', __( 'Choose Badr Wall Level', 'emc-theme' ) );
-$cta_url    = emc_option( 'emc_campaign_cta_url', '' ) ?: '#badr-membership';
-$percent    = $target > 0 ? min( 100, round( ( $raised / $target ) * 100 ) ) : 0;
 $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-8fe1-41fe-aa6b-9109dc847445';
 $phone_digits = preg_replace( '/\D+/', '', emc_option( 'emc_phone', '' ) );
 $pledge_text  = rawurlencode( 'Assalamu alaikum, I would like to pledge towards the Badr Wall building fund.' );
 $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $pledge_text : ( get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) );
-$badr_levels  = array(
-    array(
-        'id'     => 'founder',
-        'label'  => __( 'Founder of the Centre', 'emc-theme' ),
-        'amount' => 10000,
-        'icon'   => 'fas fa-trophy',
-        'class'  => 'tier-founder',
-    ),
-    array(
-        'id'     => 'co-founder',
-        'label'  => __( 'Co-Founder of the Centre', 'emc-theme' ),
-        'amount' => 5000,
-        'icon'   => 'fas fa-star',
-        'class'  => 'tier-cofunder',
-    ),
-    array(
-        'id'     => 'golden',
-        'label'  => __( 'Golden Donor of the Centre', 'emc-theme' ),
-        'amount' => 3000,
-        'icon'   => 'fas fa-gem',
-        'class'  => 'tier-golden',
-    ),
-    array(
-        'id'     => 'silver',
-        'label'  => __( 'Silver Donor of the Centre', 'emc-theme' ),
-        'amount' => 2000,
-        'icon'   => 'fas fa-medal',
-        'class'  => 'tier-silver',
-    ),
-    array(
-        'id'     => 'friend',
-        'label'  => __( 'Friends of the Centre', 'emc-theme' ),
-        'amount' => 1000,
-        'icon'   => 'fas fa-handshake',
-        'class'  => 'tier-friend',
-    ),
-);
+$badr_levels          = emc_get_badr_levels();
+$badr_total_remaining = array_sum( array_column( $badr_levels, 'remaining' ) );
 ?>
 
 <!-- Campaign Hero -->
@@ -108,33 +73,41 @@ $badr_levels  = array(
                 </h1>
                 <p><?php echo esc_html( $desc ); ?></p>
 
-                <!-- Progress Box -->
-                <div class="campaign-progress-box">
-                    <div class="progress-stat-row">
-                        <div class="progress-stat">
-                            <span class="stat-value">£<?php echo esc_html( number_format( $raised ) ); ?></span>
-                            <span class="stat-label"><?php esc_html_e( 'Raised', 'emc-theme' ); ?></span>
-                        </div>
-                        <div class="progress-stat center">
-                            <span class="stat-value"><?php echo esc_html( $percent ); ?>%</span>
-                            <span class="stat-label"><?php esc_html_e( 'Funded', 'emc-theme' ); ?></span>
-                        </div>
-                        <div class="progress-stat right">
-                            <span class="stat-value">£<?php echo esc_html( number_format( $target ) ); ?></span>
-                            <span class="stat-label"><?php esc_html_e( 'Target', 'emc-theme' ); ?></span>
-                        </div>
+                <!-- Badr Wall tile dashboard -->
+                <div class="campaign-progress-box badr-dashboard">
+                    <div class="badr-dashboard-heading">
+                        <span><?php esc_html_e( 'Badr Wall Tile Status', 'emc-theme' ); ?></span>
+                        <strong>
+                            <?php
+                            printf(
+                                esc_html__( '%s tiles remaining', 'emc-theme' ),
+                                esc_html( number_format_i18n( $badr_total_remaining ) )
+                            );
+                            ?>
+                        </strong>
                     </div>
-                    <div class="campaign-track">
-                        <div class="campaign-fill" style="width: <?php echo esc_attr( $percent ); ?>%">
-                            <span class="campaign-pulse"></span>
-                        </div>
-                    </div>
-                    <div class="donor-count-row">
-                        <i class="fas fa-users" aria-hidden="true"></i>
-                        <?php printf(
-                            esc_html__( '%s donors have contributed', 'emc-theme' ),
-                            '<strong>' . esc_html( number_format( $donors ) ) . '</strong>'
-                        ); ?>
+                    <div class="badr-dashboard-grid">
+                        <?php foreach ( $badr_levels as $level ) :
+                            $taken_percent = $level['total'] > 0 ? round( ( $level['filled'] / $level['total'] ) * 100 ) : 0;
+                        ?>
+                        <article class="badr-dashboard-tier <?php echo esc_attr( $level['class'] ); ?>">
+                            <header>
+                                <i class="<?php echo esc_attr( $level['icon'] ); ?>" aria-hidden="true"></i>
+                                <div>
+                                    <strong><?php echo esc_html( $level['label'] ); ?></strong>
+                                    <span><?php echo esc_html( '£' . number_format( $level['amount'] ) . '+' ); ?></span>
+                                </div>
+                            </header>
+                            <div class="badr-dashboard-stats">
+                                <span><strong><?php echo esc_html( $level['total'] ); ?></strong><?php esc_html_e( 'Total', 'emc-theme' ); ?></span>
+                                <span><strong><?php echo esc_html( $level['filled'] ); ?></strong><?php esc_html_e( 'Taken', 'emc-theme' ); ?></span>
+                                <span class="is-remaining"><strong><?php echo esc_html( $level['remaining'] ); ?></strong><?php esc_html_e( 'Remaining', 'emc-theme' ); ?></span>
+                            </div>
+                            <div class="badr-dashboard-track" aria-label="<?php echo esc_attr( sprintf( __( '%1$d of %2$d tiles taken', 'emc-theme' ), $level['filled'], $level['total'] ) ); ?>">
+                                <span style="width:<?php echo esc_attr( $taken_percent ); ?>%"></span>
+                            </div>
+                        </article>
+                        <?php endforeach; ?>
                     </div>
                 </div>
 
@@ -188,27 +161,6 @@ $badr_levels  = array(
                     <span><?php esc_html_e( '£5,000+', 'emc-theme' ); ?></span>
                 </div>
             </div>
-            <div class="tier-legend-item tier-golden">
-                <i class="fas fa-gem"></i>
-                <div>
-                    <strong><?php esc_html_e( 'Golden Donor of the Centre', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( '£3,000', 'emc-theme' ); ?></span>
-                </div>
-            </div>
-            <div class="tier-legend-item tier-silver">
-                <i class="fas fa-medal"></i>
-                <div>
-                    <strong><?php esc_html_e( 'Silver Donor of the Centre', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( '£2,000', 'emc-theme' ); ?></span>
-                </div>
-            </div>
-            <div class="tier-legend-item tier-friend">
-                <i class="fas fa-handshake"></i>
-                <div>
-                    <strong><?php esc_html_e( 'Friends of the Centre', 'emc-theme' ); ?></strong>
-                    <span><?php esc_html_e( '£1,000', 'emc-theme' ); ?></span>
-                </div>
-            </div>
         </div>
 
         <div class="badr-membership-card glass-card" id="badr-membership">
@@ -259,9 +211,13 @@ $badr_levels  = array(
                     <label for="badr-donor-email"><?php esc_html_e( 'Email Address *', 'emc-theme' ); ?></label>
                     <input type="email" id="badr-donor-email" class="form-control" autocomplete="email" required>
                 </div>
-                <div class="form-group badr-address-field">
-                    <label for="badr-donor-address"><?php esc_html_e( 'Address *', 'emc-theme' ); ?></label>
-                    <textarea id="badr-donor-address" class="form-control" rows="2" autocomplete="street-address" required></textarea>
+                <div class="form-group">
+                    <label for="badr-donor-address"><?php esc_html_e( 'Address Line 1 (optional)', 'emc-theme' ); ?></label>
+                    <input type="text" id="badr-donor-address" class="form-control" autocomplete="address-line1">
+                </div>
+                <div class="form-group">
+                    <label for="badr-donor-postcode"><?php esc_html_e( 'Postcode (optional)', 'emc-theme' ); ?></label>
+                    <input type="text" id="badr-donor-postcode" class="form-control" autocomplete="postal-code" maxlength="8">
                 </div>
             </div>
 
@@ -286,60 +242,10 @@ $badr_levels  = array(
         </div>
 
         <?php
-        $tiers = array(
-            array(
-                'id'       => 'founder',
-                'label'    => __( 'Founder of the Centre', 'emc-theme' ),
-                'icon'     => 'fas fa-trophy',
-                'class'    => 'tier-founder',
-                'total'    => 10,
-                'filled'   => min( (int) emc_option( 'emc_campaign_tier1_filled', 2 ), 10 ),
-                'desc'     => __( '£10,000+ — founding places', 'emc-theme' ),
-            ),
-            array(
-                'id'       => 'co-founder',
-                'label'    => __( 'Co-Founder of the Centre', 'emc-theme' ),
-                'icon'     => 'fas fa-star',
-                'class'    => 'tier-cofunder',
-                'total'    => 30,
-                'filled'   => min( (int) emc_option( 'emc_campaign_tier2_filled', 8 ), 30 ),
-                'desc'     => __( '£5,000+ — co-founder places', 'emc-theme' ),
-            ),
-            array(
-                'id'       => 'golden',
-                'label'    => __( 'Golden Donor of the Centre', 'emc-theme' ),
-                'icon'     => 'fas fa-gem',
-                'class'    => 'tier-golden',
-                'total'    => 50,
-                'filled'   => min( (int) emc_option( 'emc_campaign_tier3_filled', 12 ), 50 ),
-                'desc'     => __( '£3,000 — golden donor places', 'emc-theme' ),
-            ),
-            array(
-                'id'       => 'silver',
-                'label'    => __( 'Silver Donor of the Centre', 'emc-theme' ),
-                'icon'     => 'fas fa-medal',
-                'class'    => 'tier-silver',
-                'total'    => 80,
-                'filled'   => min( (int) emc_option( 'emc_campaign_tier4_filled', 15 ), 80 ),
-                'desc'     => __( '£2,000 — silver donor places', 'emc-theme' ),
-            ),
-            array(
-                'id'       => 'friend',
-                'label'    => __( 'Friends of the Centre', 'emc-theme' ),
-                'icon'     => 'fas fa-handshake',
-                'class'    => 'tier-friend',
-                'total'    => 143,
-                'filled'   => min( max( 0, $donors - 37 ), 143 ),
-                'desc'     => __( '£1,000 — friends places', 'emc-theme' ),
-            ),
-        );
+        $tiers = $badr_levels;
         ?>
 
-        <?php foreach ( $tiers as $tier ) :
-            $empty = $tier['total'] - $tier['filled'];
-            $show_filled = min( $tier['filled'], 12 );
-            $show_empty  = min( $empty, 6 );
-        ?>
+        <?php foreach ( $tiers as $tier ) : ?>
         <div class="badr-tier-section" id="badr-<?php echo esc_attr( $tier['id'] ); ?>">
             <div class="badr-tier-header">
                 <div class="badr-tier-title <?php echo esc_attr( $tier['class'] ); ?>">
@@ -349,30 +255,21 @@ $badr_levels  = array(
                         <p><?php echo esc_html( $tier['desc'] ); ?></p>
                     </div>
                 </div>
-                <div class="badr-tier-count">
-                    <span class="filled-count"><?php echo esc_html( $tier['filled'] ); ?></span>
-                    <span class="total-count">/ <?php echo esc_html( $tier['total'] ); ?> <?php esc_html_e( 'filled', 'emc-theme' ); ?></span>
+                <div class="badr-tier-metrics" aria-label="<?php esc_attr_e( 'Tile status', 'emc-theme' ); ?>">
+                    <span><strong><?php echo esc_html( $tier['total'] ); ?></strong><?php esc_html_e( 'Total', 'emc-theme' ); ?></span>
+                    <span><strong><?php echo esc_html( $tier['filled'] ); ?></strong><?php esc_html_e( 'Taken', 'emc-theme' ); ?></span>
+                    <span class="is-remaining"><strong><?php echo esc_html( $tier['remaining'] ); ?></strong><?php esc_html_e( 'Remaining', 'emc-theme' ); ?></span>
                 </div>
             </div>
-            <div class="donor-slots-grid badr-slots">
-                <?php for ( $i = 0; $i < $show_filled; $i++ ) : ?>
-                <div class="donor-slot filled <?php echo esc_attr( $tier['class'] ); ?>">
-                    <i class="<?php echo esc_attr( $tier['icon'] ); ?>" aria-hidden="true"></i>
-                    <span><?php printf( esc_html__( 'Donor #%d', 'emc-theme' ), $i + 1 ); ?></span>
+            <div class="badr-remaining-panel">
+                <div>
+                    <strong><?php echo esc_html( $tier['remaining'] ); ?></strong>
+                    <span><?php esc_html_e( 'tiles remaining', 'emc-theme' ); ?></span>
                 </div>
-                <?php endfor; ?>
-                <?php for ( $i = 0; $i < $show_empty; $i++ ) : ?>
-                <a href="#badr-membership" class="donor-slot empty <?php echo esc_attr( $tier['class'] ); ?>-empty" data-badr-tier="<?php echo esc_attr( $tier['id'] ); ?>">
+                <a href="#badr-membership" class="btn btn-outline" data-badr-tier="<?php echo esc_attr( $tier['id'] ); ?>">
                     <i class="fas fa-plus-circle" aria-hidden="true"></i>
-                    <span><?php esc_html_e( 'Claim your place', 'emc-theme' ); ?></span>
+                    <?php esc_html_e( 'Claim a Tile', 'emc-theme' ); ?>
                 </a>
-                <?php endfor; ?>
-                <?php if ( $tier['filled'] > $show_filled || $empty > $show_empty ) : ?>
-                <div class="badr-more-slots">
-                    <i class="fas fa-ellipsis-h"></i>
-                    <span><?php printf( esc_html__( '%d more places available', 'emc-theme' ), max( 0, $empty ) ); ?></span>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>
@@ -397,17 +294,15 @@ $badr_levels  = array(
                 <div class="form-card glass-card">
                     <h3><?php esc_html_e( 'Join the Badr Wall', 'emc-theme' ); ?></h3>
                     <p class="form-desc"><?php esc_html_e( 'Choose one of the recognised Badr Wall levels and complete your membership payment above.', 'emc-theme' ); ?></p>
-                    <div class="amount-grid" style="grid-template-columns: repeat(4, 1fr);">
-                        <button class="amount-btn">£1,000</button>
-                        <button class="amount-btn">£2,000</button>
-                        <button class="amount-btn active">£3,000</button>
-                        <button class="amount-btn">£5,000+</button>
+                    <div class="amount-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <button class="amount-btn active">£5,000+</button>
+                        <button class="amount-btn">£10,000+</button>
                     </div>
 
                     <div class="monthly-313-badge">
                         <i class="fas fa-award" aria-hidden="true"></i>
                         <div>
-                            <strong><?php esc_html_e( 'Badr Wall recognition starts from £1,000', 'emc-theme' ); ?></strong>
+                            <strong><?php esc_html_e( 'Badr Wall recognition starts from £5,000', 'emc-theme' ); ?></strong>
                             <p style="margin:0;color:var(--text-muted);font-size:var(--step--2);">
                                 <?php esc_html_e( 'For instalments or a custom schedule, use the WhatsApp pledge option and the team will contact you.', 'emc-theme' ); ?>
                             </p>

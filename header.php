@@ -185,7 +185,16 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
             id="desktop-nav"
             aria-label="<?php esc_attr_e( 'Primary Navigation', 'emc-theme' ); ?>"
         >
-            <?php emc_header_nav_fallback(); ?>
+            <?php
+            wp_nav_menu( array(
+                'theme_location' => 'primary',
+                'container'      => false,
+                'menu_id'        => 'primary-menu',
+                'menu_class'     => 'header-menu',
+                'depth'          => 2,
+                'fallback_cb'    => 'emc_header_nav_fallback',
+            ) );
+            ?>
         </nav>
 
         <?php /* Header Actions */ ?>
@@ -246,7 +255,17 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
         </button>
     </div>
 
-    <?php emc_mobile_nav_fallback(); ?>
+    <?php
+    $mobile_menu_location = has_nav_menu( 'mobile' ) ? 'mobile' : 'primary';
+    wp_nav_menu( array(
+        'theme_location' => $mobile_menu_location,
+        'container'      => false,
+        'menu_id'        => 'mobile-menu-list',
+        'menu_class'     => 'mobile-menu',
+        'depth'          => 2,
+        'fallback_cb'    => 'emc_mobile_nav_fallback',
+    ) );
+    ?>
 
     <div class="mobile-donate-wrap">
         <?php echo emc_donate_button( $donate_label, 'mobile-donate-btn' ); ?>

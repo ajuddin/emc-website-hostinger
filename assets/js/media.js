@@ -13,6 +13,76 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     /* =====================
+       Inline Video Players
+       ===================== */
+    const videoPlayers = [...document.querySelectorAll('.js-video-player')];
+    let activeVideoPlayer = null;
+
+    videoPlayers.forEach(player => {
+        player._emcOriginalMarkup = player.innerHTML;
+
+        const stopPlayer = () => {
+            player.innerHTML = player._emcOriginalMarkup;
+            player.classList.remove('is-playing');
+            if (activeVideoPlayer === player) activeVideoPlayer = null;
+        };
+
+        const playVideo = () => {
+            const type = player.dataset.videoType;
+            const source = player.dataset.videoSrc;
+            const title = player.dataset.videoTitle || 'Media video';
+            if (!source) return;
+
+            if (type === 'external') {
+                window.open(source, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            if (activeVideoPlayer && activeVideoPlayer !== player) {
+                activeVideoPlayer.innerHTML = activeVideoPlayer._emcOriginalMarkup;
+                activeVideoPlayer.classList.remove('is-playing');
+            }
+
+            let media;
+            if (type === 'youtube' || type === 'vimeo') {
+                media = document.createElement('iframe');
+                media.src = source;
+                media.title = title;
+                media.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+                media.allowFullscreen = true;
+                media.referrerPolicy = 'strict-origin-when-cross-origin';
+            } else {
+                media = document.createElement('video');
+                media.src = source;
+                media.controls = true;
+                media.autoplay = true;
+                media.playsInline = true;
+                media.setAttribute('preload', 'metadata');
+            }
+
+            media.className = 'video-inline-player';
+            player.replaceChildren(media);
+            player.classList.add('is-playing');
+            activeVideoPlayer = player;
+        };
+
+        player.addEventListener('click', event => {
+            if (player.classList.contains('is-playing')) return;
+            event.preventDefault();
+            playVideo();
+        });
+
+        player.addEventListener('keydown', event => {
+            if ((event.key === 'Enter' || event.key === ' ') && !player.classList.contains('is-playing')) {
+                event.preventDefault();
+                playVideo();
+            }
+        });
+
+        player._emcStopPlayer = stopPlayer;
+    });
+
+    /* =====================
        Custom Tabs
        ===================== */
     const tabBtns   = document.querySelectorAll('.media-tab-btn');
@@ -21,6 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.dataset.tab;
+
+            if (target !== 'videos' && activeVideoPlayer?._emcStopPlayer) {
+                activeVideoPlayer._emcStopPlayer();
+            }
 
             tabBtns.forEach(b => {
                 b.classList.remove('active');

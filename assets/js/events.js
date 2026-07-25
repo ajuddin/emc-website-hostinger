@@ -167,4 +167,71 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && flyerModal.classList.contains('is-visible')) closeFlyer();
     });
+
+    /* =====================
+       Event Registration
+       ===================== */
+    document.querySelectorAll('.emc-event-registration-form').forEach(form => {
+        const submitButton = form.querySelector('.event-register-submit');
+        const buttonLabel  = submitButton?.querySelector('span');
+        const status       = form.querySelector('.event-form-status');
+        const defaultLabel = buttonLabel?.textContent || 'Complete Registration';
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            if (!window.emcEventsConfig?.ajaxUrl || !window.emcEventsConfig?.nonce) {
+                if (status) {
+                    status.className = 'event-form-status is-error';
+                    status.textContent = 'Registration is temporarily unavailable. Please try again later.';
+                }
+                return;
+            }
+
+            const formData = new FormData(form);
+            formData.set('nonce', window.emcEventsConfig.nonce);
+
+            if (submitButton) submitButton.disabled = true;
+            if (buttonLabel) buttonLabel.textContent = 'Submitting…';
+            if (status) {
+                status.className = 'event-form-status';
+                status.textContent = '';
+            }
+
+            try {
+                const response = await fetch(window.emcEventsConfig.ajaxUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData,
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result?.data?.message || 'Your registration could not be submitted.');
+                }
+
+                form.reset();
+                if (status) {
+                    status.className = 'event-form-status is-success';
+                    status.textContent = result.data.message;
+                    status.focus();
+                }
+                if (submitButton) submitButton.hidden = true;
+            } catch (error) {
+                if (status) {
+                    status.className = 'event-form-status is-error';
+                    status.textContent = error.message || 'Your registration could not be submitted. Please try again.';
+                    status.focus();
+                }
+            } finally {
+                if (submitButton && !submitButton.hidden) submitButton.disabled = false;
+                if (buttonLabel) buttonLabel.textContent = defaultLabel;
+            }
+        });
+    });
 });

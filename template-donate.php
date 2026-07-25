@@ -11,6 +11,12 @@
 
 get_header();
 
+if ( ! emc_payment_license_is_active() ) {
+    emc_payment_license_render_required();
+    get_footer();
+    return;
+}
+
 wp_enqueue_style( 'emc-page-donate',  EMC_ASSETS . '/css/donate.css',  array( 'emc-style' ), EMC_VERSION );
 wp_enqueue_style( 'emc-page-ramadan', EMC_ASSETS . '/css/ramadan.css', array( 'emc-style' ), EMC_VERSION );
 
@@ -35,6 +41,12 @@ if ( file_exists( $donate_js_path ) ) {
 }
 
 $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-8fe1-41fe-aa6b-9109dc847445';
+$bank_account_name = 'Essex Muslim Centre';
+$bank_account_no   = '31512852';
+$bank_sort_code    = '56-00-18';
+$bank_bic          = 'NWBKGB2L';
+$bank_iban         = 'GB38NWBK56001831512852';
+$bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\nChelmsford, CM2 6PB\nUnited Kingdom";
 ?>
 
 <!-- Page Hero -->
@@ -94,9 +106,15 @@ $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-
                                 <input type="email" id="donor-email-one" class="form-control donor-email" autocomplete="email" required>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="donor-address-one"><?php esc_html_e( 'Address *', 'emc-theme' ); ?></label>
-                            <textarea id="donor-address-one" class="form-control donor-address" rows="2" autocomplete="street-address" required placeholder="<?php esc_attr_e( 'House number, street, town and postcode.', 'emc-theme' ); ?>"></textarea>
+                        <div class="form-row address-fields-row">
+                            <div class="form-group">
+                                <label for="donor-address-one"><?php esc_html_e( 'Address Line 1 (required for Gift Aid)', 'emc-theme' ); ?></label>
+                                <input type="text" id="donor-address-one" class="form-control donor-address" autocomplete="address-line1" placeholder="<?php esc_attr_e( 'House number and street', 'emc-theme' ); ?>">
+                            </div>
+                            <div class="form-group">
+                                <label for="donor-postcode-one"><?php esc_html_e( 'Postcode *', 'emc-theme' ); ?></label>
+                                <input type="text" id="donor-postcode-one" class="form-control donor-postcode" autocomplete="postal-code" maxlength="8">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label><?php echo esc_html( emc_acf( 'donate_fund_label', 'Donation Fund' ) ); ?></label>
@@ -161,9 +179,15 @@ $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-
                                 <input type="email" id="donor-email-regular" class="form-control donor-email" autocomplete="email" required>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="donor-address-regular"><?php esc_html_e( 'Address *', 'emc-theme' ); ?></label>
-                            <textarea id="donor-address-regular" class="form-control donor-address" rows="2" autocomplete="street-address" required></textarea>
+                        <div class="form-row address-fields-row">
+                            <div class="form-group">
+                                <label for="donor-address-regular"><?php esc_html_e( 'Address Line 1 (required for Gift Aid)', 'emc-theme' ); ?></label>
+                                <input type="text" id="donor-address-regular" class="form-control donor-address" autocomplete="address-line1">
+                            </div>
+                            <div class="form-group">
+                                <label for="donor-postcode-regular"><?php esc_html_e( 'Postcode *', 'emc-theme' ); ?></label>
+                                <input type="text" id="donor-postcode-regular" class="form-control donor-postcode" autocomplete="postal-code" maxlength="8">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label><?php esc_html_e( 'Payment Method', 'emc-theme' ); ?></label>
@@ -232,9 +256,15 @@ $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-
                                     <input type="email" id="donor-email-zakat" class="form-control donor-email" autocomplete="email" required>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label for="donor-address-zakat"><?php esc_html_e( 'Address *', 'emc-theme' ); ?></label>
-                                <textarea id="donor-address-zakat" class="form-control donor-address" rows="2" autocomplete="street-address" required></textarea>
+                            <div class="form-row address-fields-row">
+                                <div class="form-group">
+                                    <label for="donor-address-zakat"><?php esc_html_e( 'Address Line 1 (optional)', 'emc-theme' ); ?></label>
+                                    <input type="text" id="donor-address-zakat" class="form-control donor-address" autocomplete="address-line1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="donor-postcode-zakat"><?php esc_html_e( 'Postcode (optional)', 'emc-theme' ); ?></label>
+                                    <input type="text" id="donor-postcode-zakat" class="form-control donor-postcode" autocomplete="postal-code" maxlength="8">
+                                </div>
                             </div>
                             <?php
                             $zakat_fields = array(
@@ -331,11 +361,16 @@ $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-
             <div class="other-way-card">
                 <h3><?php esc_html_e( 'Bank Transfer', 'emc-theme' ); ?></h3>
                 <p class="other-way-desc"><?php esc_html_e( 'Use our NatWest Payit link or your banking app. Please include your name as the payment reference.', 'emc-theme' ); ?></p>
+                <h4 class="bank-details-heading"><?php esc_html_e( 'UK Bank Payment', 'emc-theme' ); ?></h4>
                 <div class="bank-details">
-                    <div class="bank-row"><span><?php esc_html_e( 'Account Name', 'emc-theme' ); ?></span><strong><?php echo esc_html( emc_acf( 'donate_bank_name', 'Essex Muslim Centre' ) ); ?></strong></div>
-                    <div class="bank-row"><span><?php esc_html_e( 'Bank', 'emc-theme' ); ?></span><strong><?php echo esc_html( emc_acf( 'donate_bank_bank', '[Bank Name]' ) ); ?></strong></div>
-                    <div class="bank-row"><span><?php esc_html_e( 'Sort Code', 'emc-theme' ); ?></span><strong class="mono"><?php echo esc_html( emc_acf( 'donate_bank_sort', 'XX-XX-XX' ) ); ?></strong></div>
-                    <div class="bank-row"><span><?php esc_html_e( 'Account No.', 'emc-theme' ); ?></span><strong class="mono"><?php echo esc_html( emc_acf( 'donate_bank_account', 'XXXXXXXX' ) ); ?></strong></div>
+                    <div class="bank-row"><span><?php esc_html_e( 'Account Name', 'emc-theme' ); ?></span><strong><?php echo esc_html( $bank_account_name ); ?></strong></div>
+                    <div class="bank-row"><span><?php esc_html_e( 'Account Number', 'emc-theme' ); ?></span><strong class="mono"><?php echo esc_html( $bank_account_no ); ?></strong></div>
+                    <div class="bank-row"><span><?php esc_html_e( 'Sort Code', 'emc-theme' ); ?></span><strong class="mono"><?php echo esc_html( $bank_sort_code ); ?></strong></div>
+                </div>
+                <h4 class="bank-details-heading"><?php esc_html_e( 'International Bank Payment', 'emc-theme' ); ?></h4>
+                <div class="bank-details">
+                    <div class="bank-row"><span><?php esc_html_e( 'BIC / SWIFT', 'emc-theme' ); ?></span><strong class="mono"><?php echo esc_html( $bank_bic ); ?></strong></div>
+                    <div class="bank-row"><span><?php esc_html_e( 'IBAN', 'emc-theme' ); ?></span><strong class="mono bank-value-long"><?php echo esc_html( $bank_iban ); ?></strong></div>
                 </div>
                 <a href="<?php echo esc_url( $bank_pay_url ); ?>" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                     <i class="fas fa-university" aria-hidden="true"></i>
@@ -357,12 +392,12 @@ $bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-
             <!-- Cheque / Post -->
             <div class="other-way-card">
                 <h3><?php esc_html_e( 'Post', 'emc-theme' ); ?></h3>
-                <p class="other-way-desc"><?php esc_html_e( 'Post one-off cheques made payable to:', 'emc-theme' ); ?></p>
+                <p class="other-way-desc"><?php esc_html_e( 'To send a cheque or postal order, make it payable to Essex Muslim Centre and post it to the address below.', 'emc-theme' ); ?></p>
                 <div class="bank-details">
-                    <div class="bank-row"><span><?php esc_html_e( 'Payable to', 'emc-theme' ); ?></span><strong><?php echo esc_html( emc_acf( 'donate_bank_name', 'Essex Muslim Centre' ) ); ?></strong></div>
-                    <div class="bank-row"><span><?php esc_html_e( 'Post to', 'emc-theme' ); ?></span><strong><?php echo nl2br( esc_html( emc_option( 'emc_footer_address', "Essex Muslim Centre\nCuton Hall Lane\nCM2 6PB" ) ) ); ?></strong></div>
+                    <div class="bank-row"><span><?php esc_html_e( 'Payable to', 'emc-theme' ); ?></span><strong><?php echo esc_html( $bank_account_name ); ?></strong></div>
+                    <div class="bank-row"><span><?php esc_html_e( 'Post to', 'emc-theme' ); ?></span><strong><?php echo nl2br( esc_html( $bank_post_address ) ); ?></strong></div>
                 </div>
-                <p class="other-way-note"><?php esc_html_e( 'Please include your name, address and email so we can acknowledge your donation.', 'emc-theme' ); ?></p>
+                <p class="other-way-note"><?php esc_html_e( 'Please include a note containing your name, address and email so we can acknowledge your donation.', 'emc-theme' ); ?></p>
             </div>
 
             <!-- Cash / In-Mosque -->

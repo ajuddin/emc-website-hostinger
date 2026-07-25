@@ -19,7 +19,7 @@ if ( ! $related ) {
 <section class="related-posts-section section-padding" aria-label="<?php esc_attr_e( 'Related posts', 'emc-theme' ); ?>">
     <div class="container">
         <h2 class="section-heading related-posts-heading">
-            <?php esc_html_e( 'You Might Also Like', 'emc-theme' ); ?>
+            <?php echo esc_html( emc_option( 'emc_blog_related_heading', __( 'You Might Also Like', 'emc-theme' ) ) ); ?>
         </h2>
         <div class="related-posts-grid">
             <?php foreach ( $related as $rp ) :

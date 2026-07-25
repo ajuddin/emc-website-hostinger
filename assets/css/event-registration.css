@@ -1,0 +1,305 @@
+/**
+ * Event schedule highlights and registration form.
+ */
+
+.event-category-tag {
+    top: 1rem;
+    right: 1rem;
+    bottom: auto;
+}
+
+.event-schedule-banner {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .72rem 1rem;
+    color: #fff;
+    background: linear-gradient(90deg, rgba(15, 57, 55, .96), rgba(42, 172, 160, .94));
+    backdrop-filter: blur(8px);
+}
+
+.event-schedule-banner strong {
+    font-size: var(--step--1);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.event-schedule-banner span {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    color: #fff;
+    font-size: var(--step--2);
+    font-weight: 700;
+}
+
+.evt-badge-weekday {
+    display: block;
+    margin-bottom: .35rem;
+    color: var(--accent-gold);
+    font-size: var(--step--2);
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.evt-external-registration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    margin-top: .8rem;
+    color: var(--primary-green);
+    font-size: var(--step--2);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.evt-external-registration:hover {
+    text-decoration: underline;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.event-registration-card {
+    scroll-margin-top: 150px;
+    margin: 2.5rem 0;
+    padding: clamp(1.4rem, 4vw, 2.25rem);
+    border: 1px solid rgba(42, 172, 160, .28);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, .07);
+}
+
+.event-registration-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.event-registration-icon {
+    display: inline-flex;
+    flex: 0 0 48px;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    color: #fff;
+    background: var(--primary-green);
+}
+
+.event-registration-kicker {
+    display: block;
+    margin-bottom: .2rem;
+    color: var(--primary-green);
+    font-size: var(--step--2);
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.event-registration-heading h2 {
+    margin: 0 0 .25rem;
+    color: var(--deep-blue);
+    font-size: var(--step-2);
+}
+
+.event-registration-heading p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--step--1);
+}
+
+.event-registration-availability {
+    display: inline-flex;
+    gap: .35rem;
+    margin: 0 0 1.25rem;
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    color: #16645d;
+    background: rgba(42, 172, 160, .1);
+    font-size: var(--step--2);
+}
+
+.event-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.emc-event-registration-form label > span {
+    display: block;
+    margin-bottom: .45rem;
+    color: var(--deep-blue);
+    font-size: var(--step--1);
+    font-weight: 700;
+}
+
+.emc-event-registration-form input:not([type="checkbox"]),
+.emc-event-registration-form textarea {
+    width: 100%;
+    min-height: 48px;
+    padding: .8rem .95rem;
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+    color: var(--deep-blue);
+    background: #fff;
+    font: inherit;
+    transition: border-color var(--trans-fast), box-shadow var(--trans-fast);
+}
+
+.emc-event-registration-form input:focus,
+.emc-event-registration-form textarea:focus {
+    border-color: var(--primary-green);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(42, 172, 160, .14);
+}
+
+.event-form-message {
+    display: block;
+    margin-top: 1rem;
+}
+
+.event-form-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
+    margin: 1.1rem 0 1.25rem;
+}
+
+.event-form-consent input {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin-top: .15rem;
+    accent-color: var(--primary-green);
+}
+
+.event-form-consent span {
+    margin: 0 !important;
+    color: var(--text-muted) !important;
+    font-weight: 500 !important;
+    line-height: 1.5;
+}
+
+.event-register-submit {
+    min-width: 220px;
+}
+
+.event-register-submit:disabled {
+    cursor: wait;
+    opacity: .7;
+}
+
+.event-form-status {
+    display: none;
+    margin-top: 1rem;
+    padding: .85rem 1rem;
+    border-radius: 10px;
+    font-size: var(--step--1);
+    line-height: 1.5;
+}
+
+.event-form-status.is-success,
+.event-form-status.is-error {
+    display: block;
+}
+
+.event-form-status.is-success {
+    color: #0f5f45;
+    border: 1px solid #92ddc3;
+    background: #ecfdf5;
+}
+
+.event-form-status.is-error {
+    color: #9f1d1d;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+}
+
+.event-registration-full {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: 1rem;
+    border-radius: 12px;
+    color: #854d0e;
+    background: #fef9c3;
+}
+
+.event-form-trap {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+}
+
+.event-weekday-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin: -1.5rem -1.5rem 1.25rem;
+    padding: .75rem 1.1rem;
+    color: #fff;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-green));
+}
+
+.event-weekday-strip strong {
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.event-weekday-strip span {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: var(--step--2);
+    font-weight: 700;
+}
+
+.event-card-actions {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-top: auto;
+}
+
+@media (max-width: 640px) {
+    .event-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .event-register-submit {
+        width: 100%;
+    }
+
+    .event-schedule-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .2rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .event-weekday-strip,
+    .event-card-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .event-card-actions .btn {
+        justify-content: center;
+    }
+}

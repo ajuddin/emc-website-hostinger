@@ -10,7 +10,7 @@ get_header();
 $heading     = emc_option( 'emc_blog_heading',     __( 'News &amp; Updates', 'emc-theme' ) );
 $subtitle    = emc_option( 'emc_blog_subtitle',    __( 'Latest News', 'emc-theme' ) );
 $description = emc_option( 'emc_blog_description', __( 'Stay informed with news, announcements, and updates from Essex Muslim Centre.', 'emc-theme' ) );
-$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 );
+$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 ) && is_active_sidebar( 'sidebar-blog' );
 ?>
 
 <section class="page-hero page-hero--blog-index" aria-label="<?php esc_attr_e( 'Blog', 'emc-theme' ); ?>">

@@ -103,13 +103,17 @@ function emc_stripe_settings_page() {
             <?php submit_button( 'Save Stripe Keys' ); ?>
         </form>
 
-        <?php if ( emc_stripe_pub_key() && emc_stripe_secret_key() ) : ?>
+        <?php if ( emc_stripe_pub_key() && emc_stripe_secret_key() && emc_payment_license_is_active() ) : ?>
         <div class="notice notice-success" style="max-width:600px;">
-            <p>✅ Stripe keys are configured. The donate page payment flow is active.</p>
+            <p>Stripe keys are configured and the payment module license is active.</p>
+        </div>
+        <?php elseif ( ! emc_payment_license_is_active() ) : ?>
+        <div class="notice notice-warning" style="max-width:600px;">
+            <p><strong>License required.</strong> Stripe keys are retained, but new payment requests remain locked until the payment module license is active.</p>
         </div>
         <?php else : ?>
         <div class="notice notice-warning" style="max-width:600px;">
-            <p>⚠️ Stripe keys are not yet set. The donate button will not process payments until both keys are entered.</p>
+            <p>Stripe keys are not yet set. The donate button will not process payments until both keys are entered.</p>
         </div>
         <?php endif; ?>
     </div>
@@ -150,6 +154,8 @@ function emc_donations_page() {
                         <th>Fund</th>
                         <th>Name</th>
                         <th>Email</th>
+                        <th>Address Line 1</th>
+                        <th>Postcode</th>
                         <th>Status</th>
                         <th>Stripe Subscription</th>
                         <th>Message</th>
@@ -172,6 +178,8 @@ function emc_donations_page() {
                                     N/A
                                 <?php endif; ?>
                             </td>
+                            <td><?php echo esc_html( $subscription['address'] ?? '' ); ?></td>
+                            <td><?php echo esc_html( $subscription['postcode'] ?? '' ); ?></td>
                             <td><?php echo esc_html( ucfirst( $subscription['status'] ?? '' ) ); ?></td>
                             <td><code><?php echo esc_html( $subscription['subscription_id'] ?? '' ); ?></code></td>
                             <td><?php echo esc_html( $subscription['message'] ?? '' ); ?></td>
@@ -196,7 +204,8 @@ function emc_donations_page() {
                         <th>Fund</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Address</th>
+                        <th>Address Line 1</th>
+                        <th>Postcode</th>
                         <th>Gift Aid</th>
                         <th>Stripe Ref</th>
                         <th>Message</th>
@@ -216,7 +225,8 @@ function emc_donations_page() {
                                     N/A
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo nl2br( esc_html( $donation['address'] ?? '' ) ); ?></td>
+                            <td><?php echo esc_html( $donation['address'] ?? '' ); ?></td>
+                            <td><?php echo esc_html( $donation['postcode'] ?? '' ); ?></td>
                             <td><?php echo ! empty( $donation['gift_aid'] ) ? 'Yes' : 'No'; ?></td>
                             <td><code><?php echo esc_html( $donation['pi_id'] ?? '' ); ?></code></td>
                             <td><?php echo esc_html( $donation['message'] ?? '' ); ?></td>

@@ -24,14 +24,28 @@ document.addEventListener('DOMContentLoaded', () => {
        changes (prayer data loading, font size, etc.)
     ────────────────────────────────────────────────────────────────────── */
     const topbar = document.getElementById('prayer-top-bar');
+    const adminBar = document.getElementById('wpadminbar');
 
     function positionHeader() {
         if (!header) return;
-        const topbarH = (topbar && window.innerWidth > 768) ? topbar.offsetHeight : 0;
-        header.style.top = topbarH + 'px';
+        const topbarRect = topbar?.getBoundingClientRect();
+        const topbarVisible = !!topbarRect
+            && topbarRect.height > 0
+            && window.getComputedStyle(topbar).display !== 'none';
+        const adminBarRect = adminBar?.getBoundingClientRect();
+        const adminBarBottom = adminBarRect?.height > 0 ? adminBarRect.bottom : 0;
+        const headerTop = topbarVisible ? topbarRect.bottom : adminBarBottom;
+        const topbarH = topbarVisible ? topbarRect.height : 0;
+
+        // Inline !important replaces the old fixed 90px/admin-bar offsets.
+        // Measuring the actual bottom edge prevents any visible strip between bars.
+        header.style.setProperty('top', Math.ceil(headerTop) + 'px', 'important');
         // Keep CSS custom property in sync for hero padding
         document.documentElement.style.setProperty('--topbar-h', topbarH + 'px');
-        document.documentElement.style.setProperty('--header-stack-h', Math.ceil(header.getBoundingClientRect().bottom) + 'px');
+        document.documentElement.style.setProperty(
+            '--header-stack-h',
+            Math.ceil(header.getBoundingClientRect().bottom - adminBarBottom) + 'px'
+        );
     }
 
     positionHeader();                                          // run on load
@@ -39,6 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Re-run after prayer JS populates the topbar (may change its height)
     setTimeout(positionHeader, 800);
     setTimeout(positionHeader, 2000);
+    if ('ResizeObserver' in window && topbar) {
+        new ResizeObserver(positionHeader).observe(topbar);
+    }
 
     // Mobile Menu Toggle
     if (mobileToggle && mobileNav && closeToggle) {
@@ -155,106 +172,81 @@ document.addEventListener('DOMContentLoaded', () => {
     revealElements.forEach(el => observer.observe(el));
 
     /* ==========================================================================
-       Campaign: Animated Stat Counters + Progress Bar
-       ========================================================================== */
-    function animateCampaignNum(el, target) {
-        const prefix = el.dataset.prefix || '';
-        const suffix = el.dataset.suffix || '';
-        const duration = 2000;
-        const start = performance.now();
-
-        function step(now) {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            // Ease-out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = Math.round(eased * target);
-            el.textContent = prefix + current.toLocaleString() + suffix;
-            if (progress < 1) requestAnimationFrame(step);
-        }
-
-        requestAnimationFrame(step);
-    }
-
-    function animateCampaignBar(fill, pctEl, percent) {
-        const duration = 1800;
-        const start = performance.now();
-
-        function step(now) {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = Math.round(eased * percent);
-            fill.style.width = current + '%';
-            if (pctEl) pctEl.textContent = current + '%';
-            if (progress < 1) requestAnimationFrame(step);
-        }
-
-        requestAnimationFrame(step);
-    }
-
-    // Observe campaign section to trigger on scroll
-    const campaignSection = document.getElementById('campaign');
-    if (campaignSection) {
-        let campaignAnimated = false;
-        const campaignObs = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !campaignAnimated) {
-                    campaignAnimated = true;
-
-                    // Animate stat numbers
-                    document.querySelectorAll('.campaign-stat-num[data-target]').forEach(el => {
-                        animateCampaignNum(el, parseInt(el.dataset.target, 10));
-                    });
-
-                    // Animate progress bar
-                    const fill = document.querySelector('.campaign-progress-bar-fill');
-                    const pctEl = document.getElementById('campaign-pct');
-                    if (fill) {
-                        const pct = parseInt(fill.dataset.percent, 10) || 0;
-                        animateCampaignBar(fill, pctEl, pct);
-                    }
-
-                    campaignObs.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.3 });
-
-        campaignObs.observe(campaignSection);
-    }
-
-    /* ==========================================================================
        Newsletter Form
        ========================================================================== */
     const newsletterForm = document.getElementById('newsletter-form');
     const nlSuccess = document.getElementById('nl-success');
     const nlEmail = document.getElementById('nl-email');
+    const nlError = document.getElementById('nl-error');
 
     if (newsletterForm) {
-        newsletterForm.addEventListener('submit', (e) => {
+        newsletterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            if (!nlEmail || !nlEmail.value.trim() || !nlEmail.value.includes('@')) {
+            if (!nlEmail || !nlEmail.value.trim() || !nlEmail.validity.valid) {
                 nlEmail.style.borderColor = '#E53935';
                 nlEmail.focus();
+                if (nlError) {
+                    nlError.textContent = 'Please enter a valid email address.';
+                    nlError.style.display = 'block';
+                }
+                return;
+            }
+
+            const consent = newsletterForm.querySelector('[name="consent"]');
+            if (!consent?.checked) {
+                consent?.focus();
+                if (nlError) {
+                    nlError.textContent = 'Please confirm that you agree to receive newsletter emails.';
+                    nlError.style.display = 'block';
+                }
                 return;
             }
 
             const btn = newsletterForm.querySelector('[type="submit"]');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing...';
+            const btnLabel = btn?.querySelector('span');
+            const defaultLabel = btnLabel?.textContent || 'Subscribe';
+            if (btnLabel) btnLabel.textContent = 'Subscribing...';
             btn.disabled = true;
+            if (nlError) {
+                nlError.textContent = '';
+                nlError.style.display = 'none';
+            }
 
-            setTimeout(() => {
+            try {
+                const response = await fetch(newsletterForm.dataset.ajaxUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: new FormData(newsletterForm),
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result?.data?.message || 'Your signup could not be completed.');
+                }
                 newsletterForm.querySelector('.newsletter-input-wrap').style.display = 'none';
                 btn.style.display = 'none';
+                newsletterForm.querySelector('.newsletter-consent').style.display = 'none';
                 newsletterForm.querySelector('.newsletter-disclaimer').style.display = 'none';
-                if (nlSuccess) nlSuccess.style.display = 'flex';
-            }, 1200);
+                if (nlSuccess) {
+                    const successText = nlSuccess.querySelector('span');
+                    if (successText) successText.textContent = result?.data?.message || 'Thank you for subscribing.';
+                    nlSuccess.style.display = 'flex';
+                }
+            } catch (error) {
+                if (nlError) {
+                    nlError.textContent = error.message || 'Your signup could not be completed. Please try again.';
+                    nlError.style.display = 'block';
+                }
+            } finally {
+                btn.disabled = false;
+                if (btnLabel) btnLabel.textContent = defaultLabel;
+            }
         });
 
         if (nlEmail) {
             nlEmail.addEventListener('input', () => {
                 nlEmail.style.borderColor = '';
+                if (nlError) nlError.style.display = 'none';
             });
         }
     }

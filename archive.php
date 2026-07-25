@@ -7,7 +7,7 @@
 
 get_header();
 
-$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 );
+$show_sidebar = (bool) emc_option( 'emc_blog_show_sidebar', 1 ) && is_active_sidebar( 'sidebar-blog' );
 $archive_title = get_the_archive_title();
 $archive_desc  = get_the_archive_description();
 ?>

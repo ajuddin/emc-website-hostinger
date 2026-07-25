@@ -203,6 +203,7 @@ function emc_event_meta_cb( $post ) {
     $link     = get_post_meta( $post->ID, '_emc_event_reg_link',   true );
     $capacity = get_post_meta( $post->ID, '_emc_event_capacity',   true );
     $featured = get_post_meta( $post->ID, '_emc_event_featured',   true );
+    $registration_disabled = get_post_meta( $post->ID, '_emc_event_registration_disabled', true );
     ?>
     <table class="form-table" style="margin:0">
         <tr>
@@ -230,12 +231,32 @@ function emc_event_meta_cb( $post ) {
         <tr>
             <th><label for="emc_event_capacity"><?php esc_html_e( 'Capacity', 'emc-theme' ); ?></label></th>
             <td><input type="number" id="emc_event_capacity" name="emc_event_capacity"
-                       value="<?php echo esc_attr( $capacity ); ?>" class="small-text" min="0"></td>
+                       value="<?php echo esc_attr( $capacity ); ?>" class="small-text" min="0">
+                <?php if ( function_exists( 'emc_event_registered_places' ) ) : ?>
+                    <p class="description">
+                        <?php
+                        printf(
+                            esc_html__( '%d places currently registered. Use 0 for unlimited capacity.', 'emc-theme' ),
+                            emc_event_registered_places( $post->ID )
+                        );
+                        ?>
+                    </p>
+                <?php endif; ?>
+            </td>
         </tr>
         <tr>
             <th><label for="emc_event_reg_link"><?php esc_html_e( 'Registration URL', 'emc-theme' ); ?></label></th>
             <td><input type="url" id="emc_event_reg_link" name="emc_event_reg_link"
-                       value="<?php echo esc_url( $link ); ?>" class="widefat"></td>
+                       value="<?php echo esc_url( $link ); ?>" class="widefat">
+                <p class="description"><?php esc_html_e( 'Optional external registration link. The built-in form is enabled by default.', 'emc-theme' ); ?></p>
+            </td>
+        </tr>
+        <tr>
+            <th><?php esc_html_e( 'Registration', 'emc-theme' ); ?></th>
+            <td><label>
+                <input type="checkbox" name="emc_event_registration_disabled" value="1" <?php checked( $registration_disabled, '1' ); ?>>
+                <?php esc_html_e( 'Disable the built-in registration form for this event', 'emc-theme' ); ?>
+            </label></td>
         </tr>
         <tr>
             <th><?php esc_html_e( 'Featured', 'emc-theme' ); ?></th>
@@ -490,6 +511,8 @@ function emc_save_meta_boxes( $post_id ) {
             absint( $_POST['emc_event_capacity'] ?? 0 ) );
         update_post_meta( $post_id, '_emc_event_featured',
             isset( $_POST['emc_event_featured'] ) ? '1' : '' );
+        update_post_meta( $post_id, '_emc_event_registration_disabled',
+            isset( $_POST['emc_event_registration_disabled'] ) ? '1' : '' );
     }
 
     // ── Portfolio ───────────────────────────────────────────────────────

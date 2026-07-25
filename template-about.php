@@ -134,16 +134,14 @@ wp_enqueue_style( 'emc-page-about', EMC_ASSETS . '/css/about.css', array( 'emc-s
         <div class="trustees-grid">
             <?php
             $trustee_defaults = array(
-                array( 'name' => 'Ahmed Khan',     'role' => __( 'Chair of Trustees', 'emc-theme' ),   'bio' => __( 'Over 20 years of experience in community leadership and Islamic education.', 'emc-theme' ), 'bg' => '0E6B47' ),
-                array( 'name' => 'Fatima Ali',      'role' => __( 'Treasurer', 'emc-theme' ),           'bio' => __( 'Qualified accountant with extensive charity finance experience.', 'emc-theme' ),              'bg' => '1A2B4C' ),
-                array( 'name' => 'Ibrahim Hassan',  'role' => __( 'Secretary', 'emc-theme' ),           'bio' => __( 'Legal professional and advocate for youth development programmes.', 'emc-theme' ),           'bg' => 'D4AF37' ),
-                array( 'name' => 'Zainab Malik',    'role' => __( 'Trustee — Education', 'emc-theme' ), 'bio' => __( 'Teacher and education specialist overseeing youth and learning programmes.', 'emc-theme' ),  'bg' => '0E6B47' ),
-                array( 'name' => 'Yusuf Rahman',    'role' => __( 'Trustee — Welfare', 'emc-theme' ),   'bio' => __( 'Social worker with a focus on community health and wellbeing initiatives.', 'emc-theme' ),   'bg' => '1A2B4C' ),
-                array( 'name' => 'Mariam Hussain',  'role' => __( 'Trustee — Outreach', 'emc-theme' ),  'bio' => __( 'Communications professional driving community engagement and fundraising.', 'emc-theme' ),  'bg' => 'D4AF37' ),
+                array( 'name' => 'Dr Hossain Hadi', 'role' => __( 'Trustee and Chairman', 'emc-theme' ), 'bio' => '', 'bg' => '0E6B47' ),
+                array( 'name' => 'Dr Nurul Kabir',  'role' => __( 'Secretary', 'emc-theme' ),            'bio' => '', 'bg' => '1A2B4C' ),
+                array( 'name' => 'Shafiqul Islam',  'role' => __( 'Vice-Chairman', 'emc-theme' ),        'bio' => '', 'bg' => 'D4AF37' ),
+                array( 'name' => 'Abu Reaz Alam',   'role' => __( 'Treasurer', 'emc-theme' ),            'bio' => '', 'bg' => '0E6B47' ),
             );
-            $bg_colors = array( '0E6B47', '1A2B4C', 'D4AF37', '0E6B47', '1A2B4C', 'D4AF37' );
+            $bg_colors = array( '0E6B47', '1A2B4C', 'D4AF37', '0E6B47' );
             $delay = 0;
-            for ( $i = 1; $i <= 6; $i++ ) :
+            for ( $i = 1; $i <= 4; $i++ ) :
                 $d    = $trustee_defaults[ $i - 1 ];
                 $name = emc_acf( 'about_trustee_' . $i . '_name', $d['name'] );
                 $role = emc_acf( 'about_trustee_' . $i . '_role', $d['role'] );
@@ -162,7 +160,7 @@ wp_enqueue_style( 'emc-page-about', EMC_ASSETS . '/css/about.css', array( 'emc-s
                 </div>
                 <h4><?php echo esc_html( $name ); ?></h4>
                 <p class="trustee-role"><?php echo esc_html( $role ); ?></p>
-                <p class="trustee-bio"><?php echo esc_html( $bio ); ?></p>
+                <?php if ( $bio ) : ?><p class="trustee-bio"><?php echo esc_html( $bio ); ?></p><?php endif; ?>
             </div>
             <?php
                 $delay = round( $delay + 0.1, 1 );
@@ -175,38 +173,55 @@ wp_enqueue_style( 'emc-page-about', EMC_ASSETS . '/css/about.css', array( 'emc-s
 <!-- Annual Reports -->
 <section class="reports-section section-padding">
     <div class="container">
+        <?php
+        $report_section = emc_get_annual_reports_section();
+        $annual_reports = emc_get_annual_reports();
+        ?>
         <div class="section-header">
-            <span class="subtitle"><?php esc_html_e( 'Accountability', 'emc-theme' ); ?></span>
-            <h2><?php esc_html_e( 'Annual Reports', 'emc-theme' ); ?></h2>
-            <p style="color:var(--text-muted); margin-top:1rem;"><?php esc_html_e( 'In line with our commitment to transparency, all annual reports and accounts are available for public download.', 'emc-theme' ); ?></p>
+            <?php if ( $report_section['subtitle'] ) : ?>
+            <span class="subtitle"><?php echo esc_html( $report_section['subtitle'] ); ?></span>
+            <?php endif; ?>
+            <h2><?php echo esc_html( $report_section['heading'] ); ?></h2>
+            <?php if ( $report_section['description'] ) : ?>
+            <p style="color:var(--text-muted); margin-top:1rem;"><?php echo esc_html( $report_section['description'] ); ?></p>
+            <?php endif; ?>
         </div>
         <div class="reports-grid">
             <?php
-            $report_defaults = array( '2024–25', '2023–24', '2022–23' );
             $delay = 0;
-            for ( $i = 1; $i <= 3; $i++ ) :
-                $year = emc_acf( 'about_report_' . $i . '_year', $report_defaults[ $i - 1 ] );
-                $desc = emc_acf( 'about_report_' . $i . '_desc', __( 'Trustees\' report, financial statements, and impact summary.', 'emc-theme' ) );
-                $file = emc_acf( 'about_report_' . $i . '_file', '' );
-                $file_url = is_array( $file ) && ! empty( $file['url'] ) ? $file['url'] : '#';
-                if ( empty( $year ) ) continue;
+            foreach ( $annual_reports as $report ) :
+                $file_url = $report['url'] ?? '';
             ?>
             <div class="report-card scroll-reveal"<?php echo $delay ? ' style="transition-delay:' . esc_attr( $delay ) . 's"' : ''; ?>>
                 <div class="report-icon"><i class="fas fa-file-pdf"></i></div>
                 <div class="report-info">
-                    <h4><?php printf( esc_html__( 'Annual Report %s', 'emc-theme' ), esc_html( $year ) ); ?></h4>
-                    <p><?php echo esc_html( $desc ); ?></p>
+                    <h4><?php echo esc_html( $report['title'] ?? __( 'Annual Report', 'emc-theme' ) ); ?></h4>
+                    <?php if ( ! empty( $report['description'] ) ) : ?>
+                    <p><?php echo esc_html( $report['description'] ); ?></p>
+                    <?php endif; ?>
                 </div>
-                <a href="<?php echo esc_url( $file_url ); ?>" class="report-download btn btn-outline"<?php echo $file_url !== '#' ? ' target="_blank"' : ''; ?>><i class="fas fa-download"></i> <?php esc_html_e( 'Download', 'emc-theme' ); ?></a>
+                <?php if ( $file_url ) : ?>
+                <a href="<?php echo esc_url( $file_url ); ?>" class="report-download btn btn-outline" target="_blank" rel="noopener noreferrer" download>
+                    <i class="fas fa-download" aria-hidden="true"></i>
+                    <?php echo esc_html( $report['button_label'] ?? __( 'Download', 'emc-theme' ) ); ?>
+                </a>
+                <?php else : ?>
+                <span class="report-download btn btn-outline is-disabled" aria-disabled="true">
+                    <i class="fas fa-download" aria-hidden="true"></i>
+                    <?php echo esc_html( $report['button_label'] ?? __( 'Download', 'emc-theme' ) ); ?>
+                </span>
+                <?php endif; ?>
             </div>
             <?php
                 $delay = round( $delay + 0.1, 1 );
-            endfor;
+            endforeach;
             ?>
         </div>
         <p style="text-align:center; margin-top:2rem; font-size:var(--step--1); color:var(--text-muted);">
-            <?php esc_html_e( 'Our charity is registered with the Charity Commission for England and Wales.', 'emc-theme' ); ?>
-            <a href="https://register-of-charities.charitycommission.gov.uk/charity-search?q=<?php echo esc_attr( emc_option( 'emc_charity_number', '1209815' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View on Charity Commission Register', 'emc-theme' ); ?> <i class="fas fa-external-link-alt"></i></a>
+            <?php echo esc_html( $report_section['register_text'] ); ?>
+            <?php if ( $report_section['register_url'] && $report_section['register_label'] ) : ?>
+            <a href="<?php echo esc_url( $report_section['register_url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $report_section['register_label'] ); ?> <i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+            <?php endif; ?>
         </p>
     </div>
 </section>
@@ -228,7 +243,7 @@ wp_enqueue_style( 'emc-page-about', EMC_ASSETS . '/css/about.css', array( 'emc-s
                 $vacancies_url  = $vacancies_page ? get_permalink( $vacancies_page ) : home_url( '/vacancies/' );
                 ?>
                 <a href="<?php echo esc_url( $vacancies_url ); ?>" class="btn btn-primary"><i class="fas fa-briefcase"></i> <?php esc_html_e( 'View All Roles', 'emc-theme' ); ?></a>
-                <a href="mailto:<?php echo esc_attr( emc_option( 'emc_admin_email', 'admin@essexmuslimcentre.org' ) ); ?>?subject=<?php echo esc_attr( rawurlencode( 'Volunteer Enquiry' ) ); ?>" class="btn btn-outline" style="color:var(--white);border-color:rgba(255,255,255,0.5);"><?php esc_html_e( 'Express Interest', 'emc-theme' ); ?></a>
+                <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-outline" style="color:var(--white);border-color:rgba(255,255,255,0.5);"><?php esc_html_e( 'Volunteer With Us', 'emc-theme' ); ?></a>
             </div>
         </div>
     </div>

@@ -7,14 +7,14 @@
 $badge       = emc_option( 'emc_campaign_badge',   __( 'Building Fund', 'emc-theme' ) );
 $heading     = emc_option( 'emc_campaign_heading',  __( 'Be One of the 313', 'emc-theme' ) );
 $desc        = emc_option( 'emc_campaign_desc',     __( 'Help us build a lasting place of worship for future generations. Our building campaign needs your generous support. Every pound brings us closer to our goal.', 'emc-theme' ) );
-$raised      = (int) emc_option( 'emc_campaign_raised', 68400 );
-$target      = (int) emc_option( 'emc_campaign_target', 100000 );
-$donors      = (int) emc_option( 'emc_campaign_donors', 247 );
 $cta_label   = emc_option( 'emc_campaign_cta_label', __( 'Choose Badr Wall Level', 'emc-theme' ) );
-$learn_url   = get_permalink( get_page_by_path( 'campaign' ) ) ?: home_url( '/campaign/' );
-$cta_url     = emc_option( 'emc_campaign_cta_url', '' ) ?: $learn_url . '#badr-membership';
-
-$percent = $target > 0 ? min( 100, round( ( $raised / $target ) * 100 ) ) : 0;
+$learn_url   = emc_get_campaign_url();
+$custom_cta  = trim( (string) emc_option( 'emc_campaign_cta_url', '' ) );
+$cta_url     = $custom_cta
+    ? ( 0 === strpos( $custom_cta, '#' ) ? $learn_url . $custom_cta : $custom_cta )
+    : $learn_url . '#badr-membership';
+$badr_levels = emc_get_badr_levels();
+$badr_total_remaining = array_sum( array_column( $badr_levels, 'remaining' ) );
 ?>
 <section class="homepage-campaign section-padding" id="campaign" aria-labelledby="campaign-heading">
     <div class="container">
@@ -29,43 +29,58 @@ $percent = $target > 0 ? min( 100, round( ( $raised / $target ) * 100 ) ) : 0;
                 <h2 id="campaign-heading"><?php echo esc_html( $heading ); ?></h2>
                 <p><?php echo esc_html( $desc ); ?></p>
 
-                <div class="campaign-stats-row" aria-label="<?php esc_attr_e( 'Campaign progress', 'emc-theme' ); ?>">
-                    <div class="campaign-stat">
-                        <span class="campaign-stat-num" data-target="<?php echo esc_attr( $raised ); ?>" data-prefix="£">£0</span>
-                        <span class="campaign-stat-label"><?php esc_html_e( 'Raised', 'emc-theme' ); ?></span>
-                    </div>
-                    <div class="campaign-stat">
-                        <span class="campaign-stat-num" data-target="<?php echo esc_attr( $target ); ?>" data-prefix="£">£0</span>
-                        <span class="campaign-stat-label"><?php esc_html_e( 'Target', 'emc-theme' ); ?></span>
-                    </div>
-                    <div class="campaign-stat">
-                        <span class="campaign-stat-num" data-target="<?php echo esc_attr( $donors ); ?>" data-suffix=" donors">0</span>
-                        <span class="campaign-stat-label"><?php esc_html_e( 'Donors', 'emc-theme' ); ?></span>
-                    </div>
-                </div>
-
-                <div
-                    class="campaign-progress-wrap"
-                    role="progressbar"
-                    aria-valuenow="<?php echo esc_attr( $percent ); ?>"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    aria-label="<?php echo esc_attr( sprintf( __( 'Campaign progress: %d%% of target reached', 'emc-theme' ), $percent ) ); ?>"
-                >
-                    <div class="campaign-progress-bar-track">
-                        <div class="campaign-progress-bar-fill" data-percent="<?php echo esc_attr( $percent ); ?>"></div>
-                    </div>
-                    <div class="campaign-progress-labels">
-                        <span class="campaign-pct" id="campaign-pct">0%</span>
-                        <span style="color:var(--text-muted);font-size:var(--step--2);">
+                <div class="home-badr-dashboard" aria-label="<?php esc_attr_e( 'Badr Wall tile availability', 'emc-theme' ); ?>">
+                    <div class="home-badr-dashboard-head">
+                        <span><?php esc_html_e( 'Badr Wall Tile Status', 'emc-theme' ); ?></span>
+                        <strong>
                             <?php
                             printf(
-                                /* translators: %s: formatted target amount */
-                                esc_html__( 'of £%s target', 'emc-theme' ),
-                                esc_html( number_format( $target ) )
+                                esc_html__( '%s remaining', 'emc-theme' ),
+                                esc_html( number_format_i18n( $badr_total_remaining ) )
                             );
                             ?>
-                        </span>
+                        </strong>
+                    </div>
+                    <div class="home-badr-grid">
+                        <?php foreach ( $badr_levels as $level ) :
+                            $taken_percent = $level['total'] > 0 ? round( ( $level['filled'] / $level['total'] ) * 100 ) : 0;
+                            ?>
+                            <article class="home-badr-tier <?php echo esc_attr( $level['class'] ); ?>">
+                                <div class="home-badr-tier-head">
+                                    <span class="home-badr-icon" aria-hidden="true">
+                                        <i class="<?php echo esc_attr( $level['icon'] ); ?>"></i>
+                                    </span>
+                                    <div>
+                                        <h3><?php echo esc_html( $level['label'] ); ?></h3>
+                                        <span><?php echo esc_html( '£' . number_format_i18n( $level['amount'] ) . '+' ); ?></span>
+                                    </div>
+                                </div>
+                                <dl class="home-badr-stats">
+                                    <div>
+                                        <dt><?php esc_html_e( 'Total', 'emc-theme' ); ?></dt>
+                                        <dd><?php echo esc_html( number_format_i18n( $level['total'] ) ); ?></dd>
+                                    </div>
+                                    <div>
+                                        <dt><?php esc_html_e( 'Taken', 'emc-theme' ); ?></dt>
+                                        <dd><?php echo esc_html( number_format_i18n( $level['filled'] ) ); ?></dd>
+                                    </div>
+                                    <div class="is-remaining">
+                                        <dt><?php esc_html_e( 'Remaining', 'emc-theme' ); ?></dt>
+                                        <dd><?php echo esc_html( number_format_i18n( $level['remaining'] ) ); ?></dd>
+                                    </div>
+                                </dl>
+                                <div
+                                    class="home-badr-track"
+                                    role="progressbar"
+                                    aria-label="<?php echo esc_attr( sprintf( __( '%s tiles taken', 'emc-theme' ), $level['label'] ) ); ?>"
+                                    aria-valuenow="<?php echo esc_attr( $level['filled'] ); ?>"
+                                    aria-valuemin="0"
+                                    aria-valuemax="<?php echo esc_attr( $level['total'] ); ?>"
+                                >
+                                    <span style="width: <?php echo esc_attr( $taken_percent ); ?>%"></span>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
                     </div>
                 </div>
 

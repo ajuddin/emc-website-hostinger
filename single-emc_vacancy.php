@@ -48,14 +48,13 @@ while ( have_posts() ) :
 
                 <div class="vacancy-apply-box glass-card" role="complementary" aria-label="<?php esc_attr_e( 'How to apply', 'emc-theme' ); ?>">
                     <h3><?php esc_html_e( 'How to Apply', 'emc-theme' ); ?></h3>
-                    <p><?php esc_html_e( 'To apply for this role, please send your CV and a covering letter to:', 'emc-theme' ); ?></p>
+                    <p><?php esc_html_e( 'Complete the application form and our team will contact you about this role.', 'emc-theme' ); ?></p>
                     <p>
-                        <a href="mailto:<?php echo esc_attr( emc_option( 'emc_email', 'info@essexmuslimcentre.org.uk' ) ); ?>" class="btn btn-primary">
-                            <i class="fas fa-envelope" aria-hidden="true"></i>
-                            <?php echo esc_html( emc_option( 'emc_email', 'info@essexmuslimcentre.org.uk' ) ); ?>
+                        <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-primary">
+                            <i class="fas fa-file-alt" aria-hidden="true"></i>
+                            <?php esc_html_e( 'Open Application Form', 'emc-theme' ); ?>
                         </a>
                     </p>
-                    <p class="vacancy-apply-note"><?php esc_html_e( 'Please state the vacancy title in the subject line.', 'emc-theme' ); ?></p>
                 </div>
 
                 <div class="single-back-link">
@@ -101,7 +100,7 @@ while ( have_posts() ) :
                             </div>
                         </li>
                     </ul>
-                    <a href="mailto:<?php echo esc_attr( emc_option( 'emc_email', 'info@essexmuslimcentre.org.uk' ) ); ?>" class="btn btn-primary btn-block">
+                    <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-primary btn-block">
                         <i class="fas fa-paper-plane" aria-hidden="true"></i>
                         <?php esc_html_e( 'Apply for This Role', 'emc-theme' ); ?>
                     </a>
