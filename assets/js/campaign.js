@@ -89,6 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = activeTier?.dataset.label || 'Badr Wall Membership';
         const name = document.getElementById('badr-donor-name')?.value.trim() || '';
         const email = document.getElementById('badr-donor-email')?.value.trim() || '';
+        const tileName = document.getElementById('badr-tile-name')?.value.trim() || name;
+        const dedication = document.getElementById('badr-dedication')?.value.trim() || '';
+        const anonymous = document.getElementById('badr-anonymous')?.checked || false;
         const address = document.getElementById('badr-donor-address')?.value.trim() || '';
         const postcodeInput = document.getElementById('badr-donor-postcode');
         const postcodeCompact = (postcodeInput?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -133,8 +136,37 @@ document.addEventListener('DOMContentLoaded', () => {
             email,
             address,
             postcode,
-            message: `Badr Wall membership level: ${label}`,
+            message: [
+                `Badr Wall membership level: ${label}`,
+                `Tile name: ${tileName}`,
+                `Dedication: ${dedication}`,
+                `Display anonymously: ${anonymous ? 'Yes' : 'No'}`,
+            ].join('\n'),
             giftAid: false,
         });
+    });
+
+    document.getElementById('badr-whatsapp-pledge')?.addEventListener('click', event => {
+        const activeTier = badrCard?.querySelector('.badr-tier-option.active');
+        const label = activeTier?.dataset.label || 'Badr Wall Membership';
+        const donorName = document.getElementById('badr-donor-name')?.value.trim() || '';
+        const tileName = document.getElementById('badr-tile-name')?.value.trim() || donorName || 'To be confirmed';
+        const dedication = document.getElementById('badr-dedication')?.value.trim() || 'For the sake of Allah';
+        const anonymous = document.getElementById('badr-anonymous')?.checked || false;
+        const message = [
+            'Assalamu alaikum, I would like to pledge towards the Badr Wall building fund.',
+            `Level: ${label}`,
+            `Tile name: ${tileName}`,
+            `Dedication: ${dedication}`,
+            `Display anonymously: ${anonymous ? 'Yes' : 'No'}`,
+        ].join('\n');
+
+        try {
+            const url = new URL(event.currentTarget.href);
+            url.searchParams.set('text', message);
+            event.currentTarget.href = url.toString();
+        } catch (error) {
+            // Keep the server-provided fallback link when URL parsing is unavailable.
+        }
     });
 });

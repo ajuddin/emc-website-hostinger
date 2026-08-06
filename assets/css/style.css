@@ -1624,6 +1624,7 @@ body.sticky-header-enabled .ramadan-hero {
 
 @media (max-width: 1100px) {
     .desktop-nav { display: none; }
+    .header-actions .magnetic-btn { display: none; }
     .mobile-menu-toggle { display: block; }
 
     /* Hero: switch to auto height so stacked content isn't clipped */

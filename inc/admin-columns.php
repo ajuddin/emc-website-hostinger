@@ -17,7 +17,7 @@ add_filter( 'manage_emc_event_posts_columns', function( $cols ) {
     foreach ( $cols as $key => $label ) {
         $new[ $key ] = $label;
         if ( 'title' === $key ) {
-            $new['event_date']     = __( 'Date', 'emc-theme' );
+            $new['event_date']     = __( 'Date / Day', 'emc-theme' );
             $new['event_venue']    = __( 'Venue', 'emc-theme' );
             $new['event_featured'] = __( 'Homepage', 'emc-theme' );
         }
@@ -29,7 +29,9 @@ add_action( 'manage_emc_event_posts_custom_column', function( $col, $post_id ) {
     switch ( $col ) {
         case 'event_date':
             $d = get_post_meta( $post_id, '_emc_event_date', true );
-            echo $d ? esc_html( date_i18n( get_option( 'date_format' ), strtotime( $d ) ) ) : '—';
+            echo $d
+                ? esc_html( date_i18n( get_option( 'date_format' ), strtotime( $d ) ) )
+                : esc_html( emc_get_event_display_day( $post_id ) ?: '—' );
             break;
         case 'event_venue':
             $v = get_post_meta( $post_id, '_emc_event_venue', true );

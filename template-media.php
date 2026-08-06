@@ -9,14 +9,20 @@
  * @package emc-theme
  */
 
-get_header();
-
-wp_enqueue_style( 'emc-page-media', EMC_ASSETS . '/css/media.css', array( 'emc-style' ), EMC_VERSION );
+$media_css_path = EMC_DIR . '/assets/css/media.css';
+wp_enqueue_style(
+    'emc-page-media',
+    EMC_ASSETS . '/css/media.css',
+    array( 'emc-style' ),
+    file_exists( $media_css_path ) ? filemtime( $media_css_path ) : EMC_VERSION
+);
 
 $media_js_path = EMC_DIR . '/assets/js/media.js';
 if ( file_exists( $media_js_path ) ) {
     wp_enqueue_script( 'emc-page-media', EMC_ASSETS . '/js/media.js', array( 'emc-script' ), filemtime( $media_js_path ), true );
 }
+
+get_header();
 ?>
 
 <!-- Page Hero -->
@@ -144,7 +150,7 @@ if ( file_exists( $media_js_path ) ) {
             // Dynamic Photo Gallery — powered by emc_gallery CPT
             $gallery_query = new WP_Query( array(
                 'post_type'      => 'emc_gallery',
-                'posts_per_page' => 60,
+                'posts_per_page' => max( 1, absint( emc_site_setting( 'emc_media_gallery_count', 60 ) ) ),
                 'post_status'    => 'publish',
                 'orderby'        => 'date',
                 'order'          => 'DESC',
@@ -166,7 +172,7 @@ if ( file_exists( $media_js_path ) ) {
                         <?php echo esc_html( $term->name ); ?>
                     </button>
                     <?php endforeach; ?>
-                <?php else : ?>
+                <?php elseif ( false ) : ?>
                     <?php foreach ( $fallback_cats as $cat ) : ?>
                     <button class="gallery-filter-btn" data-filter="<?php echo esc_attr( sanitize_title( $cat ) ); ?>">
                         <?php echo esc_html( $cat ); ?>
@@ -183,12 +189,15 @@ if ( file_exists( $media_js_path ) ) {
                         $gallery_query->the_post();
                         $thumb_url = get_the_post_thumbnail_url( get_the_ID(), 'large' );
                         if ( ! $thumb_url ) continue;
+                        $full_url    = get_the_post_thumbnail_url( get_the_ID(), 'full' ) ?: $thumb_url;
                         $size_class  = isset( $size_classes[ $idx ] ) ? $size_classes[ $idx ] : '';
                         $delay       = round( fmod( $idx * 0.1, 0.3 ), 1 );
                         $item_terms  = wp_get_post_terms( get_the_ID(), 'gallery_category', array( 'fields' => 'slugs' ) );
                         $cat_slug    = ! empty( $item_terms ) && ! is_wp_error( $item_terms ) ? implode( ' ', $item_terms ) : 'uncategorised';
                     ?>
                     <div class="gallery-item <?php echo esc_attr( $size_class ); ?> scroll-reveal"
+                         data-index="<?php echo esc_attr( $idx ); ?>"
+                         data-full="<?php echo esc_url( $full_url ); ?>"
                          data-category="<?php echo esc_attr( $cat_slug ); ?>"
                          <?php echo $delay ? ' style="transition-delay:' . esc_attr( $delay ) . 's"' : ''; ?>>
                         <img src="<?php echo esc_url( $thumb_url ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>" loading="lazy">
@@ -202,7 +211,7 @@ if ( file_exists( $media_js_path ) ) {
                     endwhile;
                     wp_reset_postdata();
                     ?>
-                <?php else : ?>
+                <?php elseif ( false ) : ?>
                     <!-- Static fallback (pre-import) -->
                     <?php
                     $fallback_items = function_exists( 'emc_demo_get_gallery_items' ) ? emc_demo_get_gallery_items() : array();
@@ -214,6 +223,8 @@ if ( file_exists( $media_js_path ) ) {
                         $cat_slug   = sanitize_title( $fb['category'] );
                     ?>
                     <div class="gallery-item <?php echo esc_attr( $size_class ); ?> scroll-reveal"
+                         data-index="<?php echo esc_attr( $idx ); ?>"
+                         data-full="<?php echo esc_url( $fb_url ); ?>"
                          data-category="<?php echo esc_attr( $cat_slug ); ?>"
                          <?php echo $delay ? ' style="transition-delay:' . esc_attr( $delay ) . 's"' : ''; ?>>
                         <img src="<?php echo esc_url( $fb_url ); ?>" alt="<?php echo esc_attr( $fb['title'] ); ?>" loading="lazy">
@@ -240,7 +251,7 @@ if ( file_exists( $media_js_path ) ) {
                 <?php
                 $news_query = new WP_Query( array(
                     'post_type'      => 'post',
-                    'posts_per_page' => 6,
+                    'posts_per_page' => max( 1, absint( emc_site_setting( 'emc_media_news_count', 6 ) ) ),
                     'orderby'        => 'date',
                     'order'          => 'DESC',
                 ) );
@@ -297,10 +308,12 @@ if ( file_exists( $media_js_path ) ) {
 </section>
 
 <!-- Lightbox Modal -->
-<div class="lightbox" id="lightbox">
-    <button class="lightbox-close" id="lightbox-close"><i class="fas fa-times"></i></button>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true" aria-label="<?php esc_attr_e( 'Gallery image preview', 'emc-theme' ); ?>" hidden>
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="<?php esc_attr_e( 'Close image preview', 'emc-theme' ); ?>"><i class="fas fa-times" aria-hidden="true"></i></button>
+    <button type="button" class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="<?php esc_attr_e( 'Previous image', 'emc-theme' ); ?>"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
     <img src="" alt="<?php esc_attr_e( 'Gallery Preview', 'emc-theme' ); ?>" id="lightbox-img" class="lightbox-img">
     <div class="lightbox-caption" id="lightbox-caption"></div>
+    <button type="button" class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="<?php esc_attr_e( 'Next image', 'emc-theme' ); ?>"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
 </div>
 
 <?php get_footer(); ?>

@@ -9,7 +9,18 @@
  * @package emc-theme
  */
 
+$emc_payments_available = function_exists( 'emc_payments_is_available' ) && emc_payments_is_available();
+if ( $emc_payments_available ) {
+    emc_payments_enqueue_assets( 'donate' );
+}
+
 get_header();
+
+if ( ! $emc_payments_available ) {
+    emc_render_payment_plugin_required();
+    get_footer();
+    return;
+}
 
 if ( ! emc_payment_license_is_active() ) {
     emc_payment_license_render_required();
@@ -17,36 +28,50 @@ if ( ! emc_payment_license_is_active() ) {
     return;
 }
 
-wp_enqueue_style( 'emc-page-donate',  EMC_ASSETS . '/css/donate.css',  array( 'emc-style' ), EMC_VERSION );
-wp_enqueue_style( 'emc-page-ramadan', EMC_ASSETS . '/css/ramadan.css', array( 'emc-style' ), EMC_VERSION );
-
-// Stripe.js — must load from js.stripe.com for PCI compliance
-wp_register_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
-wp_enqueue_script( 'stripe-js' );
-
-$donate_js_path = EMC_DIR . '/assets/js/donate.js';
-if ( file_exists( $donate_js_path ) ) {
-    wp_enqueue_script(
-        'emc-page-donate',
-        EMC_ASSETS . '/js/donate.js',
-        array( 'emc-script', 'stripe-js' ),
-        filemtime( $donate_js_path ),
-        true
-    );
-    wp_localize_script( 'emc-page-donate', 'emcStripeConfig', array(
-        'publishableKey' => emc_stripe_pub_key(),
-        'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
-        'nonce'          => wp_create_nonce( 'emc_donate_nonce' ),
-    ) );
+$bank_pay_url      = emc_site_setting( 'emc_bank_pay_url', 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-8fe1-41fe-aa6b-9109dc847445' );
+$bank_account_name = emc_site_setting( 'emc_bank_account_name', 'Essex Muslim Centre' );
+$bank_account_no   = emc_site_setting( 'emc_bank_account_number', '31512852' );
+$bank_sort_code    = emc_site_setting( 'emc_bank_sort_code', '56-00-18' );
+$bank_bic          = emc_site_setting( 'emc_bank_bic', 'NWBKGB2L' );
+$bank_iban         = emc_site_setting( 'emc_bank_iban', 'GB38NWBK56001831512852' );
+$bank_post_address = emc_site_setting( 'emc_bank_post_address', "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\nChelmsford, CM2 6PB\nUnited Kingdom" );
+$currency_symbol   = '£'; // Payments are processed in GBP by the Stripe integration.
+$parse_amounts     = static function( $raw ) {
+    return array_values( array_filter( array_map( static function( $value ) {
+        return (float) preg_replace( '/[^0-9.]/', '', $value );
+    }, explode( ',', $raw ) ) ) );
+};
+$oneoff_amounts    = $parse_amounts( emc_site_setting( 'emc_donate_oneoff_amounts', emc_acf( 'donate_oneoff_amounts', '5,10,25,50,100' ) ) );
+$regular_amounts   = $parse_amounts( emc_site_setting( 'emc_donate_regular_amounts', emc_acf( 'donate_regular_amounts', '5,10,20,50' ) ) );
+if ( ! $oneoff_amounts ) {
+    $oneoff_amounts = array( 5, 10, 25, 50, 100 );
 }
-
-$bank_pay_url = 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-8fe1-41fe-aa6b-9109dc847445';
-$bank_account_name = 'Essex Muslim Centre';
-$bank_account_no   = '31512852';
-$bank_sort_code    = '56-00-18';
-$bank_bic          = 'NWBKGB2L';
-$bank_iban         = 'GB38NWBK56001831512852';
-$bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\nChelmsford, CM2 6PB\nUnited Kingdom";
+if ( ! $regular_amounts ) {
+    $regular_amounts = array( 5, 10, 20, 50 );
+}
+$oneoff_default_index  = min( 2, count( $oneoff_amounts ) - 1 );
+$regular_default_index = min( 2, count( $regular_amounts ) - 1 );
+$donation_campaigns    = array_values( array_filter( get_posts( array(
+    'post_type'      => 'emc_campaign',
+    'post_status'    => 'publish',
+    'posts_per_page' => -1,
+    'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+) ), static function( $campaign ) {
+    return 'active' === ( get_post_meta( $campaign->ID, '_emc_campaign_status', true ) ?: 'active' ) && emc_campaign_donations_enabled( $campaign->ID );
+} ) );
+$selected_campaign     = null;
+$selected_campaign_id  = absint( wp_unslash( $_GET['campaign'] ?? 0 ) );
+if ( $selected_campaign_id ) {
+    $candidate = get_post( $selected_campaign_id );
+    if ( $candidate && 'emc_campaign' === $candidate->post_type && 'publish' === $candidate->post_status && 'active' === ( get_post_meta( $candidate->ID, '_emc_campaign_status', true ) ?: 'active' ) && emc_campaign_donations_enabled( $candidate->ID ) ) {
+        $selected_campaign = $candidate;
+        $campaign_amounts  = $parse_amounts( get_post_meta( $candidate->ID, '_emc_campaign_amounts', true ) );
+        if ( $campaign_amounts ) {
+            $oneoff_amounts = $campaign_amounts;
+            $oneoff_default_index = min( 1, count( $oneoff_amounts ) - 1 );
+        }
+    }
+}
 ?>
 
 <!-- Page Hero -->
@@ -85,11 +110,9 @@ $bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\n
                         <h3><?php echo esc_html( emc_acf( 'donate_oneoff_heading', 'One-Off Donation' ) ); ?></h3>
                         <p class="form-desc"><?php echo esc_html( emc_acf( 'donate_oneoff_desc', 'Every amount makes a real difference to our community.' ) ); ?></p>
                         <div class="amount-grid">
-                            <button class="amount-btn">£5</button>
-                            <button class="amount-btn">£10</button>
-                            <button class="amount-btn active">£25</button>
-                            <button class="amount-btn">£50</button>
-                            <button class="amount-btn">£100</button>
+                            <?php foreach ( $oneoff_amounts as $index => $amount ) : ?>
+                                <button class="amount-btn<?php echo $oneoff_default_index === $index ? ' active' : ''; ?>" data-amount="<?php echo esc_attr( $amount ); ?>"><?php echo esc_html( $currency_symbol . ( $amount == (int) $amount ? (int) $amount : $amount ) ); ?></button>
+                            <?php endforeach; ?>
                             <button class="amount-btn custom-other"><?php esc_html_e( 'Other', 'emc-theme' ); ?></button>
                         </div>
                         <div class="custom-amount-wrapper" id="custom-amount-wrapper" style="display:none;">
@@ -119,7 +142,8 @@ $bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\n
                         <div class="form-group">
                             <label><?php echo esc_html( emc_acf( 'donate_fund_label', 'Donation Fund' ) ); ?></label>
                             <div class="category-grid">
-                                <button class="cat-btn active" data-cat="General Fund"><i class="fas fa-mosque"></i> <?php echo esc_html( emc_acf( 'donate_fund_general', 'General Fund' ) ); ?></button>
+                                <?php foreach ( $donation_campaigns as $donation_campaign ) : ?><button class="cat-btn<?php echo $selected_campaign && $selected_campaign->ID === $donation_campaign->ID ? ' active' : ''; ?>" data-cat="<?php echo esc_attr( emc_campaign_fund_name( $donation_campaign->ID ) ); ?>"><i class="fas fa-bullseye"></i> <?php echo esc_html( get_the_title( $donation_campaign ) ); ?></button><?php endforeach; ?>
+                                <button class="cat-btn<?php echo $selected_campaign ? '' : ' active'; ?>" data-cat="General Fund"><i class="fas fa-mosque"></i> <?php echo esc_html( emc_acf( 'donate_fund_general', 'General Fund' ) ); ?></button>
                                 <button class="cat-btn" data-cat="Education"><i class="fas fa-book-open"></i> <?php echo esc_html( emc_acf( 'donate_fund_education', 'Education' ) ); ?></button>
                                 <button class="cat-btn" data-cat="Zakat"><i class="fas fa-hand-holding-usd"></i> <?php echo esc_html( emc_acf( 'donate_fund_zakat', 'Zakat' ) ); ?></button>
                             </div>
@@ -157,7 +181,9 @@ $bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\n
                         <h3><?php echo esc_html( emc_acf( 'donate_regular_heading', 'Regular Donation' ) ); ?></h3>
                         <p class="form-desc"><?php echo esc_html( emc_acf( 'donate_regular_desc', 'Set up a recurring gift to provide ongoing support to the community.' ) ); ?></p>
                         <div class="amount-grid">
-                            <button class="amount-btn">£5</button><button class="amount-btn">£10</button><button class="amount-btn active">£20</button><button class="amount-btn">£50</button>
+                            <?php foreach ( $regular_amounts as $index => $amount ) : ?>
+                                <button class="amount-btn<?php echo $regular_default_index === $index ? ' active' : ''; ?>" data-amount="<?php echo esc_attr( $amount ); ?>"><?php echo esc_html( $currency_symbol . ( $amount == (int) $amount ? (int) $amount : $amount ) ); ?></button>
+                            <?php endforeach; ?>
                             <button class="amount-btn custom-other"><?php esc_html_e( 'Other', 'emc-theme' ); ?></button>
                         </div>
                         <div class="custom-amount-wrapper" style="display:none;">
@@ -168,7 +194,7 @@ $bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\n
                             <div class="form-group"><label><?php esc_html_e( 'Frequency', 'emc-theme' ); ?></label><select class="form-control regular-frequency"><option value="daily"><?php esc_html_e( 'Daily', 'emc-theme' ); ?></option><option value="monthly" selected><?php esc_html_e( 'Monthly', 'emc-theme' ); ?></option><option value="weekly"><?php esc_html_e( 'Weekly', 'emc-theme' ); ?></option><option value="quarterly"><?php esc_html_e( 'Quarterly', 'emc-theme' ); ?></option><option value="annually"><?php esc_html_e( 'Annually', 'emc-theme' ); ?></option></select></div>
                             <div class="form-group"><label><?php esc_html_e( 'Start Date', 'emc-theme' ); ?></label><input type="date" class="form-control regular-start-date"></div>
                         </div>
-                        <div class="form-group"><label><?php esc_html_e( 'Donation Fund', 'emc-theme' ); ?></label><select class="form-control regular-fund"><option value="General Fund"><?php esc_html_e( 'General Fund', 'emc-theme' ); ?></option><option value="Education"><?php esc_html_e( 'Education', 'emc-theme' ); ?></option><option value="Zakat"><?php esc_html_e( 'Zakat', 'emc-theme' ); ?></option></select></div>
+                        <div class="form-group"><label><?php esc_html_e( 'Donation Fund', 'emc-theme' ); ?></label><select class="form-control regular-fund"><?php foreach ( $donation_campaigns as $donation_campaign ) : ?><option value="<?php echo esc_attr( emc_campaign_fund_name( $donation_campaign->ID ) ); ?>" <?php selected( $selected_campaign && $selected_campaign->ID === $donation_campaign->ID ); ?>><?php echo esc_html( get_the_title( $donation_campaign ) ); ?></option><?php endforeach; ?><option value="General Fund" <?php selected( ! $selected_campaign ); ?>><?php esc_html_e( 'General Fund', 'emc-theme' ); ?></option><option value="Education"><?php esc_html_e( 'Education', 'emc-theme' ); ?></option><option value="Zakat"><?php esc_html_e( 'Zakat', 'emc-theme' ); ?></option></select></div>
                         <div class="donor-details-grid">
                             <div class="form-group">
                                 <label for="donor-name-regular"><?php esc_html_e( 'Full Name *', 'emc-theme' ); ?></label>
@@ -203,7 +229,7 @@ $bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\n
                         $portal_url  = emc_acf( 'donate_portal_url', '#' );
                         $portal_text = emc_acf( 'donate_portal_text', 'Already a regular donor? Access your Donor Portal to view, pause, or cancel your giving schedule.' );
                         ?>
-                        <div class="donor-portal-box"><i class="fas fa-user-circle"></i><p><?php echo wp_kses( $portal_text, array( 'a' => array( 'href' => true ) ) ); ?></p></div>
+                        <div class="donor-portal-box"><i class="fas fa-user-circle"></i><p><a href="<?php echo esc_url( $portal_url ); ?>"><?php echo wp_kses_post( $portal_text ); ?></a></p></div>
                     </div>
                 </div>
 
@@ -321,7 +347,7 @@ $bank_post_address = "Essex Muslim Centre\nDairy Farm Cottage, Cuton Hall Lane\n
                         </div>
                         <div class="progress-labels">
                             <span><?php echo esc_html( emc_acf( 'donate_campaign_raised', '£62,500' ) ); ?> raised</span>
-                            <span>Goal: <?php echo esc_html( emc_acf( 'donate_campaign_goal', '£100,000' ) ); ?></span>
+                            <span><?php esc_html_e( 'Goal:', 'emc-theme' ); ?> <?php echo esc_html( emc_acf( 'donate_campaign_goal', '£100,000' ) ); ?></span>
                         </div>
                     </div>
                     <?php

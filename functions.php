@@ -110,7 +110,8 @@ add_filter( 'template_include', function ( $template ) {
         $slug = get_post_field( 'post_name', get_queried_object_id() );
 
         $slug_templates = array(
-            'campaign' => 'template-campaign.php',
+            'campaign'        => 'template-campaign.php',
+            'badr-wall-tiles' => 'page-badr-wall-tiles.php',
         );
 
         if ( isset( $slug_templates[ $slug ] ) ) {
@@ -159,7 +160,7 @@ if ( ! function_exists( 'emc_enqueue_assets' ) ) :
 
         // ── Page-Specific CSS ─────────────────────────────────────────────
         // Loaded conditionally by page template (handled in template files)
-        // e.g. wp_enqueue_style('emc-donate', EMC_ASSETS.'/css/donate.css', ...)
+        // Payment page assets are supplied by the separate EMC Payments plugin.
 
         // ── Blog CSS (archive + single posts) ────────────────────────────
         if ( is_home() || is_single() || is_category() || is_tag() || is_author() || is_search() || is_archive() ) {
@@ -223,7 +224,7 @@ if ( ! function_exists( 'emc_enqueue_assets' ) ) :
         );
         // Pass the JSON data URL so the top bar JS can fetch it
         wp_localize_script( 'emc-prayer-topbar', 'emcPrayer', array(
-            'dataUrl' => EMC_ASSETS . '/js/prayer-data.json',
+            'dataUrl' => emc_prayer_data_url(),
         ) );
 
         // ── Localize script data ──────────────────────────────────────────
@@ -232,6 +233,7 @@ if ( ! function_exists( 'emc_enqueue_assets' ) ) :
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce'   => wp_create_nonce( 'emc_nonce' ),
             'themeUri' => EMC_URI,
+            'prayerDataUrl' => emc_prayer_data_url(),
         ) );
 
         // ── Comments ──────────────────────────────────────────────────────
@@ -375,10 +377,18 @@ if ( ! function_exists( 'emc_enqueue_cpt_assets' ) ) :
 
         if ( file_exists( $js_path ) ) {
             $handle = 'emc-cpt-' . $post_type;
+            $script_dependencies = array( 'emc-script' );
+            if ( 'emc_event' === $post_type && is_singular( 'emc_event' ) ) {
+                $event_payment = emc_event_payment_config( get_queried_object_id() );
+                if ( $event_payment['enabled'] && emc_event_stripe_is_available() ) {
+                    wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
+                    $script_dependencies[] = 'stripe-js';
+                }
+            }
             wp_enqueue_script(
                 $handle,
                 EMC_ASSETS . '/js/' . $assets['js'],
-                array( 'emc-script' ),
+                $script_dependencies,
                 filemtime( $js_path ),
                 true
             );
@@ -464,23 +474,30 @@ add_action( 'pre_get_posts', 'emc_apply_blog_posts_per_page' );
 $emc_includes = array(
     '/inc/custom-post-types.php',   // CPTs: Services, Events, Vacancies, etc.
     '/inc/meta-boxes.php',          // Native meta boxes for CPT custom fields
+    '/inc/campaign-manager.php',    // Campaign goals, Stripe totals, controls, and admin reporting
     '/inc/admin-columns.php',       // Custom admin list columns for all CPTs
     '/inc/customizer.php',          // Theme Customizer options
     '/inc/customizer-pages.php',    // Page Content Customizer sections (migrated from ACF)
+    '/inc/admin-organizer.php',     // Customer-friendly EMC admin hub and grouped navigation
+    '/inc/site-content-editor.php', // Central editor for every theme string and operational value
+    '/inc/form-notifications.php',  // Central recipients and delivery controls for every public form
     '/inc/helper-functions.php',    // Utility functions
+    '/inc/prayer-timetable-import.php', // Admin Masjidbox XLSX timetable importer
+    '/inc/donation-csv-export.php', // Admin CSV exports for EMC Payments records
+    '/inc/form-response-exports.php', // CSV exports for every stored website form response
+    '/inc/badr-wall.php',           // Badr Wall tile records, gallery, and payment intake
+    '/inc/gallery-admin.php',       // Bulk gallery uploads, category assignment, and previews
     '/inc/annual-reports.php',      // Dynamic About page annual reports manager
     '/inc/media-videos.php',        // Admin-managed, inline-playable media videos
     '/inc/acf-helpers.php',         // ACF wrapper (emc_acf, emc_acf_image) with fallback
     '/inc/acf-fields.php',          // ACF field group definitions for page templates
     '/inc/shortcodes.php',          // Shortcodes (prayer times, campaign bar, etc.)
-    '/inc/payment-license.php',     // Expiring license gate for donation and Stripe features
-    '/inc/ajax-handlers.php',       // AJAX handlers (newsletter, contact form, Stripe donations)
+    '/inc/ajax-handlers.php',       // Theme-only AJAX handlers
     '/inc/contact-submissions.php', // Contact form records and administrator inbox
     '/inc/newsletter.php',          // Mailchimp newsletter sync, submissions, and settings
     '/inc/gift-aid.php',            // Gift Aid declaration storage and admin records
     '/inc/volunteers.php',          // Volunteer applications, notifications, and admin records
     '/inc/event-registrations.php', // Event forms, email notifications, submissions, and settings
-    '/inc/stripe-settings.php',     // WP Admin settings page for Stripe API keys
     '/inc/elementor-compat.php',    // Elementor compatibility (locations, style fixes)
     '/inc/elementor-widgets.php',   // Custom Elementor widgets (donate, prayer, counter)
     // Phase 11 — Demo Import System

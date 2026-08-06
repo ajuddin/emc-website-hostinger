@@ -207,21 +207,31 @@ function emc_handle_gift_aid_declaration() {
     set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
 
     $full_name = trim( $prefix . ' ' . $first_name . ' ' . $last_name );
-    $to        = sanitize_email( get_option( 'emc_gift_aid_notification_email', 'info@essexmuslimcentre.org' ) );
     $subject   = 'New Gift Aid Declaration — ' . $full_name;
-    $body      = '<h2>New Gift Aid Declaration</h2>'
-               . '<p><strong>Declaration ID:</strong> #' . absint( $declaration_id ) . '</p>'
-               . '<p><strong>Name:</strong> ' . esc_html( $full_name ) . '</p>'
-               . '<p><strong>Email:</strong> ' . esc_html( $email ) . '</p>'
-               . '<p><strong>Phone:</strong> ' . esc_html( $phone ) . '</p>'
-               . '<p><strong>Home address:</strong> ' . esc_html( $address_line_1 . ', ' . $town_city . ', ' . $postcode . ', ' . $country ) . '</p>'
-               . '<p><strong>Scope:</strong> Past 4 years and future donations</p>'
-               . '<p><strong>Date Submitted:</strong> ' . esc_html( current_time( 'Y-m-d H:i:s' ) ) . '</p>';
+    $body      = emc_form_notification_html( __( 'New Gift Aid Declaration', 'emc-theme' ), array(
+        __( 'Declaration ID', 'emc-theme' )     => '#' . absint( $declaration_id ),
+        __( 'Prefix', 'emc-theme' )             => $prefix,
+        __( 'First name', 'emc-theme' )         => $first_name,
+        __( 'Last name', 'emc-theme' )          => $last_name,
+        __( 'Address line 1', 'emc-theme' )     => $address_line_1,
+        __( 'Town or city', 'emc-theme' )       => $town_city,
+        __( 'Postcode', 'emc-theme' )           => $postcode,
+        __( 'Country', 'emc-theme' )            => $country,
+        __( 'Non-UK donor', 'emc-theme' )       => 'United Kingdom' !== $country ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ),
+        __( 'Phone', 'emc-theme' )              => $phone,
+        __( 'Email', 'emc-theme' )              => $email,
+        __( 'Declaration scope', 'emc-theme' )  => __( 'Past 4 years and future donations', 'emc-theme' ),
+        __( 'Declaration', 'emc-theme' )        => $declaration_text,
+        __( 'Accuracy confirmed', 'emc-theme' ) => $accuracy ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ),
+        __( 'Taxpayer confirmed', 'emc-theme' ) => $taxpayer ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ),
+        __( 'Submitted at', 'emc-theme' )       => current_time( 'mysql' ),
+    ) );
     $headers   = array(
         'Content-Type: text/html; charset=UTF-8',
         'Reply-To: ' . $full_name . ' <' . $email . '>',
     );
-    wp_mail( $to ?: 'info@essexmuslimcentre.org', $subject, $body, $headers );
+    $notification_sent = emc_send_form_notification( 'gift_aid', $subject, $body, $headers );
+    update_post_meta( $declaration_id, '_emc_gift_aid_email_status', $notification_sent ? 'sent' : 'failed' );
 
     $confirmation  = sprintf( __( "Dear %s,\n\nWe have received your Gift Aid declaration for Essex Muslim Centre.", 'emc-theme' ), $full_name );
     $confirmation .= "\n\n" . $declaration_text;
@@ -254,14 +264,13 @@ add_action( 'admin_init', 'emc_register_gift_aid_settings' );
  * Add a protected admin screen for declaration records.
  */
 function emc_gift_aid_admin_menu() {
-    add_menu_page(
+    add_submenu_page(
+        null,
         __( 'Gift Aid Declarations', 'emc-theme' ),
         __( 'Gift Aid', 'emc-theme' ),
         'manage_options',
         'emc-gift-aid-declarations',
-        'emc_gift_aid_admin_page',
-        'dashicons-heart',
-        26
+        'emc_gift_aid_admin_page'
     );
 }
 add_action( 'admin_menu', 'emc_gift_aid_admin_menu' );

@@ -9,29 +9,20 @@ $media_url = get_permalink( get_page_by_path( 'media' ) ) ?: home_url( '/media/'
 // Query latest blog posts
 $news_query = new WP_Query( array(
     'post_type'      => 'post',
-    'posts_per_page' => 3,
+    'posts_per_page' => max( 1, absint( emc_site_setting( 'emc_home_news_count', 3 ) ) ),
     'post_status'    => 'publish',
 ) );
 
-// Three EMC YouTube videos
-$emc_videos = array(
-    array(
-        'id'    => 'DkNOV8f2_Dk',
-        'title' => 'The Importance of Community Ties in Islam',
-        'date'  => '10 May 2026',
-    ),
-    array(
-        'id'    => 'pUMETJipeqk',
-        'title' => 'EMC Community Events & Activities',
-        'date'  => '02 Apr 2026',
-    ),
-    array(
-        'id'    => 'lCEIDLfIVeY',
-        'title' => 'EMC — Faith, Community & Welfare',
-        'date'  => '15 Mar 2026',
-    ),
-);
-$featured = $emc_videos[0];
+$emc_videos = array();
+foreach ( emc_get_media_videos() as $video ) {
+    if ( 'youtube' === $video['type'] && preg_match( '#/embed/([A-Za-z0-9_-]+)#', $video['play_url'], $match ) ) {
+        $video['id'] = $match[1];
+        $emc_videos[] = $video;
+    }
+}
+$emc_videos = array_slice( $emc_videos, 0, max( 1, absint( emc_site_setting( 'emc_home_video_count', 3 ) ) ) );
+$featured   = $emc_videos[0] ?? null;
+$youtube_url = emc_option( 'emc_social_youtube', '' );
 ?>
 <section class="homepage-media section-padding" id="media-news" style="background:var(--white);" aria-labelledby="media-heading">
     <div class="container">
@@ -49,7 +40,8 @@ $featured = $emc_videos[0];
                     <?php esc_html_e( 'Latest Videos', 'emc-theme' ); ?>
                 </div>
 
-                <!-- Featured Video — uses existing .media-preview-featured styles -->
+                <?php if ( $featured ) : ?>
+                <!-- Featured Video — managed in Media Videos -->
                 <div class="media-preview-featured">
                     <button
                         class="media-preview-thumb yt-play-btn"
@@ -102,11 +94,17 @@ $featured = $emc_videos[0];
                     <?php endforeach; ?>
                 </div>
 
-                <a href="https://www.youtube.com/@essexmuslimcentre" target="_blank" rel="noopener noreferrer"
+                <?php else : ?>
+                    <p><?php esc_html_e( 'New videos will be added here soon.', 'emc-theme' ); ?></p>
+                <?php endif; ?>
+
+                <?php if ( $youtube_url ) : ?>
+                <a href="<?php echo esc_url( $youtube_url ); ?>" target="_blank" rel="noopener noreferrer"
                    class="btn btn-outline" style="width:100%;justify-content:center;margin-top:1.5rem;">
                     <i class="fab fa-youtube" aria-hidden="true"></i>
                     <?php esc_html_e( 'Visit Our YouTube Channel', 'emc-theme' ); ?>
                 </a>
+                <?php endif; ?>
             </div>
 
             <!-- Right: News -->
@@ -155,7 +153,7 @@ $featured = $emc_videos[0];
                         endwhile;
                         wp_reset_postdata();
                         ?>
-                    <?php else : ?>
+                    <?php elseif ( false ) : ?>
                         <!-- Static fallback cards until posts are published -->
                         <?php
                         $static_news = array(

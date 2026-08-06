@@ -7,8 +7,10 @@
 
 $post_url   = rawurlencode( get_permalink() );
 $post_title = rawurlencode( get_the_title() );
+$is_event   = 'emc_event' === get_post_type();
+$share_aria = $is_event ? __( 'Share this event', 'emc-theme' ) : __( 'Share this post', 'emc-theme' );
 ?>
-<div class="post-share" aria-label="<?php esc_attr_e( 'Share this post', 'emc-theme' ); ?>">
+<div class="post-share" aria-label="<?php echo esc_attr( $share_aria ); ?>">
     <span class="post-share-label"><?php esc_html_e( 'Share:', 'emc-theme' ); ?></span>
 
     <a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo $post_url; ?>"

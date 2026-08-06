@@ -10,7 +10,7 @@ $subheading = emc_option( 'emc_testimonials_subheading', __( 'Community Voices',
 
 $query = new WP_Query( array(
     'post_type'      => 'emc_testimonial',
-    'posts_per_page' => 6,
+    'posts_per_page' => max( 1, absint( emc_site_setting( 'emc_testimonial_count', 6 ) ) ),
     'post_status'    => 'publish',
     'orderby'        => 'rand',
 ) );

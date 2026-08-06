@@ -63,8 +63,9 @@ function emc_shortcode_campaign_bar( $atts ) {
     $post = get_post( (int) $atts['id'] );
     if ( ! $post ) return '';
 
-    $raised  = (int) get_post_meta( $post->ID, '_emc_raised', true );
-    $target  = (int) $atts['target'];
+    $raised  = function_exists( 'emc_campaign_amount_raised' ) ? emc_campaign_amount_raised( $post->ID ) : (float) get_post_meta( $post->ID, '_emc_raised', true );
+    $stored_target = function_exists( 'emc_campaign_goal' ) ? emc_campaign_goal( $post->ID ) : (float) get_post_meta( $post->ID, '_emc_target', true );
+    $target  = $stored_target > 0 ? $stored_target : (float) $atts['target'];
     $percent = $target > 0 ? min( 100, round( ( $raised / $target ) * 100 ) ) : 0;
 
     ob_start();

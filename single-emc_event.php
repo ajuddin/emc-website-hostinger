@@ -46,7 +46,7 @@ while ( have_posts() ) :
     $day          = $date ? date( 'd', strtotime( $date ) ) : '';
     $month        = $date ? strtoupper( date( 'M', strtotime( $date ) ) ) : '';
     $year         = $date ? date( 'Y', strtotime( $date ) ) : '';
-    $weekday      = $date ? date_i18n( 'l', strtotime( $date ) ) : '';
+    $weekday      = emc_get_event_display_day( $post_id );
     $fmt_date     = $date ? date_i18n( 'l, j F Y', strtotime( $date ) ) : '';
     $fmt_end      = $end_date ? date_i18n( 'l, j F Y', strtotime( $end_date ) ) : '';
 
@@ -83,14 +83,20 @@ while ( have_posts() ) :
         'fundraising' => 'cat-fundraising',
     );
     $cat_class = $cat_colours[ $ev_cat ] ?? 'cat-community';
+
+    // Avoid duplicating the featured image when it has already been inserted
+    // into the event content through the editor.
+    $featured_image_id  = get_post_thumbnail_id( $post_id );
+    $featured_image_url = $featured_image_id ? wp_get_attachment_url( $featured_image_id ) : '';
+    $raw_content        = (string) get_post_field( 'post_content', $post_id );
+    $content_has_featured_image = $featured_image_id && (
+        false !== strpos( $raw_content, 'wp-image-' . $featured_image_id ) ||
+        ( $featured_image_url && false !== strpos( $raw_content, $featured_image_url ) )
+    );
 ?>
 
 <?php /* ════ HERO ════ */ ?>
-<section class="evt-single-hero <?php echo esc_attr( $cat_class ); ?>"
-         <?php if ( has_post_thumbnail() ) : ?>
-         style="background-image:url(<?php echo esc_url( get_the_post_thumbnail_url( $post_id, 'emc-hero' ) ); ?>)"
-         <?php endif; ?>
-         aria-labelledby="evt-single-heading">
+<section class="evt-single-hero <?php echo esc_attr( $cat_class ); ?>" aria-labelledby="evt-single-heading">
     <div class="evt-single-hero-overlay"></div>
     <div class="container evt-single-hero-inner">
 
@@ -144,12 +150,25 @@ while ( have_posts() ) :
             <?php /* ── Main content ── */ ?>
             <article class="evt-single-content">
 
+                <?php if ( $featured_image_id && ! $content_has_featured_image ) : ?>
+                <figure class="single-featured-image evt-single-featured-image">
+                    <?php echo get_the_post_thumbnail( $post_id, 'large', array(
+                        'loading'       => 'eager',
+                        'fetchpriority' => 'high',
+                    ) ); ?>
+                </figure>
+                <?php endif; ?>
+
                 <?php if ( $intro ) : ?>
                 <p class="evt-single-intro"><?php echo nl2br( esc_html( $intro ) ); ?></p>
                 <?php endif; ?>
 
                 <div class="svc-prose">
                     <?php the_content(); ?>
+                </div>
+
+                <div class="post-footer-row evt-single-share">
+                    <?php get_template_part( 'template-parts/blog/post-share' ); ?>
                 </div>
 
                 <?php if ( ! empty( $highlights ) ) : ?>
@@ -314,7 +333,7 @@ if ( $related->have_posts() ) : ?>
                 $r_cat   = get_post_meta( get_the_ID(), '_emc_event_category', true );
                 $r_day   = $r_date ? date( 'd', strtotime( $r_date ) ) : '—';
                 $r_month = $r_date ? strtoupper( date( 'M', strtotime( $r_date ) ) ) : '';
-                $r_weekday = $r_date ? date_i18n( 'l', strtotime( $r_date ) ) : __( 'Date TBC', 'emc-theme' );
+                $r_weekday = emc_get_event_display_day( get_the_ID() );
                 $r_registration_url = get_permalink() . ( emc_event_registration_is_open( get_the_ID() ) ? '#event-registration' : '' );
             ?>
             <article class="evt-related-card scroll-reveal">
@@ -333,7 +352,7 @@ if ( $related->have_posts() ) : ?>
                         <span class="event-category-tag <?php echo esc_attr( $r_cat ); ?>"><?php echo esc_html( ucfirst( $r_cat ) ); ?></span>
                         <?php endif; ?>
                         <div class="event-schedule-banner">
-                            <strong><?php echo esc_html( $r_weekday ); ?></strong>
+                            <?php if ( $r_weekday ) : ?><strong><?php echo esc_html( $r_weekday ); ?></strong><?php endif; ?>
                             <?php if ( $r_time ) : ?><span><i class="far fa-clock" aria-hidden="true"></i> <?php echo esc_html( $r_time ); ?></span><?php endif; ?>
                         </div>
                     </div>

@@ -113,7 +113,7 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
             <div class="ptb-jumuah" id="ptb-jumuah-wrap">
                 <span class="ptb-jumuah-label"><?php esc_html_e( "Jum'a", 'emc-theme' ); ?></span>
                 <span class="ptb-jumuah-time" id="ptb-jumuah">--:--</span>
-                <span class="ptb-jumuah-extra">&amp; 14:15</span>
+                <span class="ptb-jumuah-extra">&amp; <?php echo esc_html( emc_site_setting( 'emc_header_second_jumuah', '14:15' ) ); ?></span>
                 <span class="ptb-jumuah-dot" aria-hidden="true">·</span>
                 <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'prayer-times' ) ) ?: home_url( '/prayer-times/' ) ); ?>" class="ptb-prayer-times-link">
                     <?php esc_html_e( 'Prayer Times', 'emc-theme' ); ?>

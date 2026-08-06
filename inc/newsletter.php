@@ -221,6 +221,25 @@ function emc_handle_newsletter_signup() {
     set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
     $result = emc_sync_newsletter_submission( $submission_id );
 
+    $mailchimp_status = is_wp_error( $result )
+        ? __( 'Stored locally — Mailchimp sync requires attention', 'emc-theme' )
+        : sanitize_text_field( $result['status'] ?? __( 'Synchronized', 'emc-theme' ) );
+    $body = emc_form_notification_html( __( 'New Newsletter Signup', 'emc-theme' ), array(
+        __( 'Submission ID', 'emc-theme' )    => '#' . absint( $submission_id ),
+        __( 'Email', 'emc-theme' )            => $email,
+        __( 'Marketing consent', 'emc-theme' ) => $consent ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ),
+        __( 'Mailchimp status', 'emc-theme' ) => $mailchimp_status,
+        __( 'Mailchimp message', 'emc-theme' ) => is_wp_error( $result ) ? $result->get_error_message() : '',
+        __( 'Submitted at', 'emc-theme' )     => current_time( 'mysql' ),
+    ) );
+    $notification_sent = emc_send_form_notification(
+        'newsletter',
+        sprintf( __( 'New newsletter signup: %s', 'emc-theme' ), $email ),
+        $body,
+        array( 'Content-Type: text/html; charset=UTF-8', 'Reply-To: ' . $email )
+    );
+    update_post_meta( $submission_id, '_emc_newsletter_email_status', $notification_sent ? 'sent' : 'failed' );
+
     if ( is_wp_error( $result ) ) {
         wp_send_json_success( array(
             'message' => __( 'Thank you. Your signup has been recorded and an administrator will complete the subscription.', 'emc-theme' ),
@@ -286,17 +305,8 @@ add_action( 'admin_init', 'emc_register_newsletter_settings' );
  * Newsletter administrator navigation.
  */
 function emc_newsletter_admin_menu() {
-    add_menu_page(
-        __( 'Newsletter', 'emc-theme' ),
-        __( 'Newsletter', 'emc-theme' ),
-        'manage_options',
-        'emc-newsletter',
-        'emc_newsletter_submissions_page',
-        'dashicons-email-alt2',
-        27
-    );
     add_submenu_page(
-        'emc-newsletter',
+        null,
         __( 'Newsletter Subscribers', 'emc-theme' ),
         __( 'Subscribers', 'emc-theme' ),
         'manage_options',
@@ -304,7 +314,7 @@ function emc_newsletter_admin_menu() {
         'emc_newsletter_submissions_page'
     );
     add_submenu_page(
-        'emc-newsletter',
+        null,
         __( 'Mailchimp Settings', 'emc-theme' ),
         __( 'Mailchimp Settings', 'emc-theme' ),
         'manage_options',

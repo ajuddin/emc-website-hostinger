@@ -10,7 +10,18 @@
  * @package emc-theme
  */
 
+$emc_payments_available = function_exists( 'emc_payments_is_available' ) && emc_payments_is_available();
+if ( $emc_payments_available ) {
+    emc_payments_enqueue_assets( 'ramadan' );
+}
+
 get_header();
+
+if ( ! $emc_payments_available ) {
+    emc_render_payment_plugin_required();
+    get_footer();
+    return;
+}
 
 if ( ! emc_payment_license_is_active() ) {
     emc_payment_license_render_required();
@@ -18,37 +29,22 @@ if ( ! emc_payment_license_is_active() ) {
     return;
 }
 
-wp_enqueue_style( 'emc-page-ramadan', EMC_ASSETS . '/css/ramadan.css', array( 'emc-style' ), EMC_VERSION );
-wp_enqueue_style( 'emc-page-donate',  EMC_ASSETS . '/css/donate.css',  array( 'emc-style' ), EMC_VERSION );
-
-// Stripe.js — required for PCI compliance (must load from js.stripe.com)
-wp_register_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
-wp_enqueue_script( 'stripe-js' );
-
-$donate_js = EMC_DIR . '/assets/js/donate.js';
-if ( file_exists( $donate_js ) ) {
-    wp_enqueue_script( 'emc-page-donate', EMC_ASSETS . '/js/donate.js', array( 'emc-script', 'stripe-js' ), filemtime( $donate_js ), true );
-    wp_localize_script( 'emc-page-donate', 'emcStripeConfig', array(
-        'publishableKey' => emc_stripe_pub_key(),
-        'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
-        'nonce'          => wp_create_nonce( 'emc_donate_nonce' ),
-    ) );
-}
-
-$ramadan_js = EMC_DIR . '/assets/js/ramadan.js';
-if ( file_exists( $ramadan_js ) ) {
-    wp_enqueue_script( 'emc-page-ramadan', EMC_ASSETS . '/js/ramadan.js', array( 'emc-page-donate' ), filemtime( $ramadan_js ), true );
-}
-
 $donate_url = get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' );
-$ramadan_start_date = emc_acf( 'ramadan_start_date', '2027-02-08' );
+$ramadan_start_date = emc_site_setting( 'emc_ramadan_start_date', emc_acf( 'ramadan_start_date', '2027-02-08' ) );
 if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $ramadan_start_date ) ) {
     $ramadan_start_date = '2027-02-08';
 }
-
-// TEMP TEST OVERRIDE: start Ramadan scheduled payments immediately for testing.
-// Remove this line after testing to restore the ACF/default Ramadan start date.
-$ramadan_start_date = date_i18n( 'Y-m-d', current_time( 'timestamp' ) );
+$ramadan_amounts        = array_values( array_filter( array_map( 'floatval', explode( ',', emc_site_setting( 'emc_ramadan_amounts', '1,2,3,5,10' ) ) ) ) );
+$ramadan_default_amount = (float) emc_site_setting( 'emc_ramadan_default_amount', 3 );
+$fitrana_rate           = (float) emc_site_setting( 'emc_fitrana_rate', 7 );
+$fidya_rate             = (float) emc_site_setting( 'emc_fidya_rate', 5 );
+$fidya_max_days         = max( 1, absint( emc_site_setting( 'emc_fidya_max_days', 30 ) ) );
+if ( ! $ramadan_amounts ) {
+    $ramadan_amounts = array( 1, 2, 3, 5, 10 );
+}
+if ( ! in_array( $ramadan_default_amount, $ramadan_amounts, true ) ) {
+    $ramadan_default_amount = (float) $ramadan_amounts[0];
+}
 
 wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
     'startDate' => $ramadan_start_date,
@@ -115,12 +111,10 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     <!-- Daily Amount -->
                     <div class="form-group">
                         <label><?php esc_html_e( 'Daily Sadaqah Amount', 'emc-theme' ); ?></label>
-                        <div class="amount-grid" style="grid-template-columns:repeat(5,1fr);">
-                            <button class="amount-btn" data-amount="1">£1</button>
-                            <button class="amount-btn" data-amount="2">£2</button>
-                            <button class="amount-btn active" data-amount="3">£3</button>
-                            <button class="amount-btn" data-amount="5">£5</button>
-                            <button class="amount-btn" data-amount="10">£10</button>
+                        <div class="amount-grid" style="grid-template-columns:repeat(<?php echo esc_attr( max( 1, count( $ramadan_amounts ) ) ); ?>,1fr);">
+                            <?php foreach ( $ramadan_amounts as $amount ) : ?>
+                                <button class="amount-btn<?php echo $amount === $ramadan_default_amount ? ' active' : ''; ?>" data-amount="<?php echo esc_attr( $amount ); ?>">£<?php echo esc_html( $amount == (int) $amount ? (int) $amount : $amount ); ?></button>
+                            <?php endforeach; ?>
                             <button class="amount-btn custom-other"><?php esc_html_e( 'Other', 'emc-theme' ); ?></button>
                         </div>
                         <div class="custom-amount-wrapper" id="ramadan-custom-wrapper" style="display:none;margin-top:0.75rem;">
@@ -190,7 +184,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     <!-- Schedule Summary -->
                     <div class="schedule-summary" id="rm-summary">
                         <p><?php esc_html_e( 'Your total scheduled giving:', 'emc-theme' ); ?></p>
-                        <div class="total-amount" id="rm-total">£90 <span>(30 × £3)</span></div>
+                        <div class="total-amount" id="rm-total">£<?php echo esc_html( number_format( 30 * $ramadan_default_amount, 2 ) ); ?> <span>(30 × £<?php echo esc_html( $ramadan_default_amount ); ?>)</span></div>
                     </div>
 
                     <!-- Gift Aid -->
@@ -221,7 +215,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     <p class="form-desc"><?php esc_html_e( 'Obligatory charity paid before Eid al-Fitr. Calculated per person in your household.', 'emc-theme' ); ?></p>
                     <div class="form-group">
                         <label><?php esc_html_e( 'Current Fitrana Rate (per person)', 'emc-theme' ); ?></label>
-                        <div class="input-prefix-wrap"><span class="input-prefix">£</span><input type="number" id="fitrana-rate" class="form-control" value="7" min="1"></div>
+                        <div class="input-prefix-wrap"><span class="input-prefix">£</span><input type="number" id="fitrana-rate" class="form-control" value="<?php echo esc_attr( $fitrana_rate ); ?>" min="0" step="0.01"></div>
                     </div>
                     <div class="form-group">
                         <label><?php esc_html_e( 'Number of People in Household', 'emc-theme' ); ?></label>
@@ -229,7 +223,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     </div>
                     <div class="fitrana-result">
                         <p><?php esc_html_e( 'Total Fitrana Due:', 'emc-theme' ); ?></p>
-                        <div class="fitrana-amount" id="fitrana-total">£7.00</div>
+                        <div class="fitrana-amount" id="fitrana-total">£<?php echo esc_html( number_format( $fitrana_rate, 2 ) ); ?></div>
                     </div>
                     <a href="<?php echo esc_url( $donate_url ); ?>?fund=Zakat" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:1rem;">
                         <i class="fas fa-lock" aria-hidden="true"></i>
@@ -243,11 +237,11 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     <p class="form-desc"><?php esc_html_e( 'Compensation for missed fasts due to illness or old age (£5/day per person).', 'emc-theme' ); ?></p>
                     <div class="form-group">
                         <label><?php esc_html_e( 'Fidya Rate (per day/person)', 'emc-theme' ); ?></label>
-                        <div class="input-prefix-wrap"><span class="input-prefix">£</span><input type="number" id="fidya-rate" class="form-control" value="5" min="1"></div>
+                        <div class="input-prefix-wrap"><span class="input-prefix">£</span><input type="number" id="fidya-rate" class="form-control" value="<?php echo esc_attr( $fidya_rate ); ?>" min="0" step="0.01"></div>
                     </div>
                     <div class="form-group">
                         <label><?php esc_html_e( 'Number of Missed Fasts', 'emc-theme' ); ?></label>
-                        <input type="number" id="fidya-days" class="form-control" value="1" min="1" max="30">
+                        <input type="number" id="fidya-days" class="form-control" value="1" min="1" max="<?php echo esc_attr( $fidya_max_days ); ?>">
                     </div>
                     <div class="form-group">
                         <label for="fidya-donor-name"><?php esc_html_e( 'Your Details', 'emc-theme' ); ?></label>
@@ -267,7 +261,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     </div>
                     <div class="fitrana-result">
                         <p><?php esc_html_e( 'Total Fidya Due:', 'emc-theme' ); ?></p>
-                        <div class="fitrana-amount" id="fidya-total">£5.00</div>
+                        <div class="fitrana-amount" id="fidya-total">£<?php echo esc_html( number_format( $fidya_rate, 2 ) ); ?></div>
                     </div>
                     <button type="button" id="fidya-btn" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:1rem;">
                         <i class="fas fa-lock" aria-hidden="true"></i>
@@ -297,10 +291,10 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
 <script>
 ( function() {
     function ramadanCountdown() {
-        var configuredDate = window.emcRamadanConfig && window.emcRamadanConfig.startDate ? window.emcRamadanConfig.startDate : '2027-02-08';
+        var configuredDate = window.emcRamadanConfig && window.emcRamadanConfig.startDate ? window.emcRamadanConfig.startDate : <?php echo wp_json_encode( $ramadan_start_date ); ?>;
         var target = new Date( configuredDate + 'T00:00:00' );
         if ( isNaN( target.getTime() ) ) {
-            target = new Date( '2027-02-08T00:00:00' );
+            target = new Date( <?php echo wp_json_encode( $ramadan_start_date . 'T00:00:00' ); ?> );
         }
         var now    = new Date();
         var diff   = target - now;
@@ -324,7 +318,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
 
     // ── Fitrana ────────────────────────────────────────────────────────────
     function calcFitrana() {
-        var rate   = parseFloat( document.getElementById('fitrana-rate')?.value   ) || 7;
+        var rate   = parseFloat( document.getElementById('fitrana-rate')?.value   ) || <?php echo wp_json_encode( $fitrana_rate ); ?>;
         var people = parseFloat( document.getElementById('fitrana-people')?.value ) || 1;
         var el = document.getElementById('fitrana-total');
         if (el) el.textContent = '£' + (rate * people).toFixed(2);
@@ -337,7 +331,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
 
     // ── Fidya ──────────────────────────────────────────────────────────────
     function calcFidya() {
-        var rate = parseFloat( document.getElementById('fidya-rate')?.value ) || 5;
+        var rate = parseFloat( document.getElementById('fidya-rate')?.value ) || <?php echo wp_json_encode( $fidya_rate ); ?>;
         var days = parseFloat( document.getElementById('fidya-days')?.value ) || 1;
         var el = document.getElementById('fidya-total');
         if (el) el.textContent = '£' + (rate * days).toFixed(2);

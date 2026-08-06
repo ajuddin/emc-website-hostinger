@@ -2,12 +2,12 @@
 
 ## What is included
 
-This repository now contains two connected parts:
+This repository now contains two connected plugins:
 
-1. **Theme license client** — built into the EMC theme in `inc/payment-license.php`.
+1. **Customer payment plugin** — `plugins/emc-payments/`, installed on each licensed website.
 2. **License server plugin** — in `license-server/emc-payment-license-server/`.
 
-The solution is self-hosted and does not require a paid WordPress licensing plugin. A separate WordPress installation acts as the license server.
+The solution is self-hosted and does not require a paid WordPress licensing plugin. The EMC theme provides compatible donation page layouts, the EMC Payments plugin provides all functional payment code, and a separate WordPress installation acts as the license server.
 
 When a license is missing, revoked, unreachable beyond the grace period, or expired:
 
@@ -19,6 +19,21 @@ When a license is missing, revoked, unreachable beyond the grace period, or expi
 - Stripe keys remain stored but cannot be used by the public payment forms.
 
 Stripe webhooks intentionally remain available. This preserves records for payments and subscriptions that already existed before a license expired.
+
+## Install the customer payment plugin
+
+Install **EMC Payments** on every website that needs donation and Stripe features:
+
+1. Build or use `plugins/emc-payments.zip`.
+2. Open **Plugins → Add New → Upload Plugin** on the customer website.
+3. Install and activate EMC Payments.
+4. Update the EMC theme to the separated-plugin version.
+5. Open **Settings → EMC Payment License** and activate the key.
+6. Open **Settings → EMC Stripe** and confirm the existing Stripe configuration.
+
+Existing Stripe settings, payment records, subscriptions and license activation options use their original WordPress option names, so they remain available after separation from the theme.
+
+For a safe upgrade, the payment plugin detects an older theme that still contains embedded payment functions and waits instead of loading duplicate functions. After the compatible theme update, the plugin takes over automatically.
 
 ## Costs
 
@@ -104,7 +119,7 @@ Use Stripe test-mode keys and test Prices for all enabled plans before enabling 
 
 ## Activate a customer site
 
-On the WordPress site running the EMC theme:
+On the customer WordPress site running the EMC theme and EMC Payments plugin:
 
 1. Open **Settings → EMC Payment License**.
 2. Enter the license-server home URL, without the REST path.

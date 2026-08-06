@@ -137,6 +137,10 @@ html {
     gap: 1rem;
 }
 
+.event-form-field-wide {
+    grid-column: 1 / -1;
+}
+
 .emc-event-registration-form label > span {
     display: block;
     margin-bottom: .45rem;
@@ -146,7 +150,8 @@ html {
 }
 
 .emc-event-registration-form input:not([type="checkbox"]),
-.emc-event-registration-form textarea {
+.emc-event-registration-form textarea,
+.emc-event-registration-form select {
     width: 100%;
     min-height: 48px;
     padding: .8rem .95rem;
@@ -159,10 +164,97 @@ html {
 }
 
 .emc-event-registration-form input:focus,
-.emc-event-registration-form textarea:focus {
+.emc-event-registration-form textarea:focus,
+.emc-event-registration-form select:focus {
     border-color: var(--primary-green);
     outline: none;
     box-shadow: 0 0 0 3px rgba(42, 172, 160, .14);
+}
+
+.event-form-field-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
+    margin: .15rem 0;
+}
+
+.event-form-field-wide > input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin-top: .15rem;
+    accent-color: var(--primary-green);
+}
+
+.event-form-field-wide > input[type="checkbox"] + span {
+    margin: 0;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.event-registration-price {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 1.25rem;
+    padding: .8rem 1rem;
+    border: 1px solid rgba(42, 172, 160, .22);
+    border-radius: 12px;
+    color: var(--deep-blue);
+    background: rgba(42, 172, 160, .07);
+}
+
+.event-registration-price strong {
+    color: var(--primary-green);
+}
+
+.event-payment-box {
+    margin: 1.25rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: #f8fbfc;
+}
+
+.event-payment-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    color: var(--deep-blue);
+}
+
+.event-payment-total strong {
+    color: var(--primary-green);
+    font-size: var(--step-1);
+}
+
+.event-stripe-card {
+    min-height: 48px;
+    padding: .92rem .95rem;
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+    background: #fff;
+}
+
+.event-stripe-card.StripeElement--focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(42, 172, 160, .14);
+}
+
+.event-card-errors {
+    min-height: 1.3em;
+    margin-top: .5rem;
+    color: #9f1d1d;
+    font-size: var(--step--2);
+}
+
+.event-payment-secure {
+    margin: .4rem 0 0;
+    color: var(--text-muted);
+    font-size: var(--step--2);
 }
 
 .event-form-message {
@@ -197,7 +289,7 @@ html {
 }
 
 .event-register-submit:disabled {
-    cursor: wait;
+    cursor: not-allowed;
     opacity: .7;
 }
 

@@ -197,6 +197,7 @@ function emc_testimonial_meta_cb( $post ) {
 function emc_event_meta_cb( $post ) {
     wp_nonce_field( 'emc_event_meta_save', 'emc_event_meta_nonce' );
     $date     = get_post_meta( $post->ID, '_emc_event_date',       true );
+    $day      = get_post_meta( $post->ID, '_emc_event_day',        true );
     $end_date = get_post_meta( $post->ID, '_emc_event_end_date',   true );
     $time     = get_post_meta( $post->ID, '_emc_event_time',       true );
     $venue    = get_post_meta( $post->ID, '_emc_event_venue',      true );
@@ -210,6 +211,29 @@ function emc_event_meta_cb( $post ) {
             <th><label for="emc_event_date"><?php esc_html_e( 'Start Date', 'emc-theme' ); ?></label></th>
             <td><input type="date" id="emc_event_date" name="emc_event_date"
                        value="<?php echo esc_attr( $date ); ?>" class="regular-text"></td>
+        </tr>
+        <tr>
+            <th><label for="emc_event_day"><?php esc_html_e( 'Recurring Day', 'emc-theme' ); ?></label></th>
+            <td>
+                <select id="emc_event_day" name="emc_event_day">
+                    <option value=""><?php esc_html_e( 'Select a day', 'emc-theme' ); ?></option>
+                    <?php
+                    $event_days = array(
+                        'monday'    => __( 'Monday', 'emc-theme' ),
+                        'tuesday'   => __( 'Tuesday', 'emc-theme' ),
+                        'wednesday' => __( 'Wednesday', 'emc-theme' ),
+                        'thursday'  => __( 'Thursday', 'emc-theme' ),
+                        'friday'    => __( 'Friday', 'emc-theme' ),
+                        'saturday'  => __( 'Saturday', 'emc-theme' ),
+                        'sunday'    => __( 'Sunday', 'emc-theme' ),
+                    );
+                    foreach ( $event_days as $day_value => $day_label ) :
+                    ?>
+                    <option value="<?php echo esc_attr( $day_value ); ?>" <?php selected( $day, $day_value ); ?>><?php echo esc_html( $day_label ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="description"><?php esc_html_e( 'Use this for weekly events without a specific start date.', 'emc-theme' ); ?></p>
+            </td>
         </tr>
         <tr>
             <th><label for="emc_event_end_date"><?php esc_html_e( 'End Date', 'emc-theme' ); ?></label></th>
@@ -499,6 +523,12 @@ function emc_save_meta_boxes( $post_id ) {
          wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['emc_event_meta_nonce'] ) ), 'emc_event_meta_save' ) ) {
         update_post_meta( $post_id, '_emc_event_date',
             sanitize_text_field( wp_unslash( $_POST['emc_event_date'] ?? '' ) ) );
+        $event_day = sanitize_key( wp_unslash( $_POST['emc_event_day'] ?? '' ) );
+        update_post_meta(
+            $post_id,
+            '_emc_event_day',
+            in_array( $event_day, array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ), true ) ? $event_day : ''
+        );
         update_post_meta( $post_id, '_emc_event_end_date',
             sanitize_text_field( wp_unslash( $_POST['emc_event_end_date'] ?? '' ) ) );
         update_post_meta( $post_id, '_emc_event_time',

@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  #header-next-prayer               header compact label
        ========================================================================== */
     if (typeof emcData !== 'undefined') {
-        const dataUrl = emcData.themeUri + '/assets/js/prayer-data.json';
+        const dataUrl = emcData.prayerDataUrl || (emcData.themeUri + '/assets/js/prayer-data.json');
 
         // Parse "HH:MM" -> total minutes
         function parseMins(str) {

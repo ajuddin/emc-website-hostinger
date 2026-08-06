@@ -109,18 +109,21 @@ function emc_handle_contact_submission() {
     set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
 
     $full_name = trim( $first_name . ' ' . $last_name );
-    $recipient = sanitize_email( emc_option( 'emc_admin_email', get_option( 'admin_email' ) ) );
-    $body      = '<h2>' . esc_html( $subjects[ $subject ] ) . '</h2>'
-               . '<p><strong>Submission ID:</strong> #' . absint( $submission_id ) . '</p>'
-               . '<p><strong>Name:</strong> ' . esc_html( $full_name ) . '</p>'
-               . '<p><strong>Email:</strong> ' . esc_html( $email ) . '</p>'
-               . '<p><strong>Message:</strong><br>' . nl2br( esc_html( $message ) ) . '</p>';
+    $body      = emc_form_notification_html( $subjects[ $subject ], array(
+        __( 'Submission ID', 'emc-theme' ) => '#' . absint( $submission_id ),
+        __( 'First name', 'emc-theme' )    => $first_name,
+        __( 'Last name', 'emc-theme' )     => $last_name,
+        __( 'Email', 'emc-theme' )         => $email,
+        __( 'Subject', 'emc-theme' )       => $subjects[ $subject ],
+        __( 'Message', 'emc-theme' )       => $message,
+        __( 'Submitted at', 'emc-theme' )  => current_time( 'mysql' ),
+    ) );
     $headers   = array(
         'Content-Type: text/html; charset=UTF-8',
         'Reply-To: ' . $full_name . ' <' . $email . '>',
     );
-    $sent      = wp_mail(
-        $recipient ?: get_option( 'admin_email' ),
+    $sent      = emc_send_form_notification(
+        'contact',
         'EMC Website Enquiry: ' . $subjects[ $subject ],
         $body,
         $headers
@@ -141,14 +144,13 @@ add_action( 'wp_ajax_nopriv_emc_contact_form', 'emc_handle_contact_submission' )
  * Add the Contact Messages administrator screen.
  */
 function emc_contact_submissions_admin_menu() {
-    add_menu_page(
+    add_submenu_page(
+        null,
         __( 'Contact Messages', 'emc-theme' ),
         __( 'Contact Messages', 'emc-theme' ),
         'manage_options',
         'emc-contact-messages',
-        'emc_contact_submissions_admin_page',
-        'dashicons-email',
-        28
+        'emc_contact_submissions_admin_page'
     );
 }
 add_action( 'admin_menu', 'emc_contact_submissions_admin_menu' );

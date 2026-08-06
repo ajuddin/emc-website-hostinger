@@ -83,7 +83,7 @@ if ( $service_cats && ! is_wp_error( $service_cats ) ) :
             'next_text' => __( 'Next', 'emc-theme' ) . ' <i class="fas fa-arrow-right" aria-hidden="true"></i>',
         ) ); ?>
 
-        <?php else : ?>
+        <?php elseif ( false ) : ?>
         <?php
         // ── Static fallback when no service CPT posts exist ────────────────
         $fallback_services = array(

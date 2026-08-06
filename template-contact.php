@@ -148,7 +148,7 @@ if ( file_exists( $contact_js_path ) ) {
                 <div class="map-container">
                     <?php
                     $map_embed = emc_acf( 'contact_map_embed', '' );
-                    $default_map = 'https://www.google.com/maps?q=51.745083,0.507917&output=embed';
+                    $default_map = emc_site_setting( 'emc_contact_map_embed', 'https://www.google.com/maps?q=51.745083,0.507917&output=embed' );
                     $map_src = $map_embed ? $map_embed : $default_map;
                     ?>
                     <iframe
@@ -164,13 +164,13 @@ if ( file_exists( $contact_js_path ) ) {
 
                 <div class="getting-there-card glass-card">
                     <h3><i class="fas fa-route" aria-hidden="true"></i> <?php esc_html_e( 'Getting There', 'emc-theme' ); ?></h3>
-                    <p><?php esc_html_e( 'Use the exact map pin for Essex Muslim Centre, Cuton Hall Lane, CM2 6PB. The postcode may not always land on the precise entrance, so use coordinates 51.745083, 0.507917 where possible.', 'emc-theme' ); ?></p>
+                    <p><?php echo esc_html( emc_content( 'contact_directions_intro', 'Use the exact map pin for Essex Muslim Centre, Cuton Hall Lane, CM2 6PB. The postcode may not always land on the precise entrance, so use coordinates 51.745083, 0.507917 where possible.' ) ); ?></p>
                     <ul>
-                        <li><strong><?php esc_html_e( 'By train from London:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'Take a Greater Anglia service from London Liverpool Street to Chelmsford station, then continue by local bus or taxi to the exact map pin.', 'emc-theme' ); ?></li>
-                        <li><strong><?php esc_html_e( 'By bus:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'From Chelmsford city centre, use local services towards Springfield/Cuton Hall Lane and check live bus options before travelling.', 'emc-theme' ); ?></li>
-                        <li><strong><?php esc_html_e( 'By taxi/car:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'For door-to-door travel from London or Chelmsford station, share the exact map link or coordinates 51.745083, 0.507917 with your driver.', 'emc-theme' ); ?></li>
+                        <li><strong><?php esc_html_e( 'By train from London:', 'emc-theme' ); ?></strong> <?php echo esc_html( emc_content( 'contact_directions_train', 'Take a Greater Anglia service from London Liverpool Street to Chelmsford station, then continue by local bus or taxi to the exact map pin.' ) ); ?></li>
+                        <li><strong><?php esc_html_e( 'By bus:', 'emc-theme' ); ?></strong> <?php echo esc_html( emc_content( 'contact_directions_bus', 'From Chelmsford city centre, use local services towards Springfield/Cuton Hall Lane and check live bus options before travelling.' ) ); ?></li>
+                        <li><strong><?php esc_html_e( 'By taxi/car:', 'emc-theme' ); ?></strong> <?php echo esc_html( emc_content( 'contact_directions_car', 'For door-to-door travel from London or Chelmsford station, share the exact map link or coordinates 51.745083, 0.507917 with your driver.' ) ); ?></li>
                     </ul>
-                    <a href="https://maps.app.goo.gl/ctL7XFdazy4xsHAA7" class="btn btn-outline" target="_blank" rel="noopener noreferrer">
+                    <a href="<?php echo esc_url( emc_site_setting( 'emc_contact_map_link', 'https://maps.app.goo.gl/ctL7XFdazy4xsHAA7' ) ); ?>" class="btn btn-outline" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
                         <?php esc_html_e( 'Open Exact Map Pin', 'emc-theme' ); ?>
                     </a>

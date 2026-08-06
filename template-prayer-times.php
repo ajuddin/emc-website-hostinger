@@ -15,7 +15,7 @@ wp_enqueue_style( 'emc-page-prayer', EMC_ASSETS . '/css/prayer-times.css', array
 
 $prayer_js_path     = EMC_DIR . '/assets/js/prayer-times.js';
 $prayer_pdf_js_path = EMC_DIR . '/assets/js/prayer-pdf.js';
-$prayer_data_url    = EMC_ASSETS . '/js/prayer-data.json';
+$prayer_data_url    = emc_prayer_data_url();
 $prayer_js_deps     = array( 'emc-script' );
 if ( file_exists( $prayer_pdf_js_path ) ) {
     wp_enqueue_script( 'emc-prayer-pdf', EMC_ASSETS . '/js/prayer-pdf.js', array(), filemtime( $prayer_pdf_js_path ), true );

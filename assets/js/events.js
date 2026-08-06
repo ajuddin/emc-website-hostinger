@@ -176,6 +176,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const buttonLabel  = submitButton?.querySelector('span');
         const status       = form.querySelector('.event-form-status');
         const defaultLabel = buttonLabel?.textContent || 'Complete Registration';
+        const isPaid       = form.dataset.paid === '1';
+        const ticketPrice  = Number.parseInt(form.dataset.ticketPrice || '0', 10);
+        const attendees    = form.querySelector('[name="fields[attendees]"]');
+        const totalDisplay = form.querySelector('[data-event-payment-total]');
+        const cardErrors   = form.querySelector('.event-card-errors');
+        let stripe = null;
+        let card = null;
+        let paymentSession = null;
+        let completedPayment = null;
+
+        if (isPaid && form.dataset.stripeKey && typeof window.Stripe === 'function') {
+            stripe = window.Stripe(form.dataset.stripeKey);
+            card = stripe.elements().create('card', {
+                hidePostalCode: false,
+                style: {
+                    base: { color: '#102333', fontSize: '16px', fontFamily: 'inherit', '::placeholder': { color: '#8aa0ad' } },
+                    invalid: { color: '#b42318' },
+                },
+            });
+            card.mount(form.querySelector('.event-stripe-card'));
+            card.on('change', event => {
+                if (cardErrors) cardErrors.textContent = event.error?.message || '';
+            });
+        }
+
+        const attendeeCount = () => Math.min(20, Math.max(1, Number.parseInt(attendees?.value || '1', 10) || 1));
+        const updateTotal = () => {
+            if (totalDisplay && ticketPrice > 0) {
+                totalDisplay.textContent = `£${((ticketPrice * attendeeCount()) / 100).toFixed(2)}`;
+            }
+        };
+        attendees?.addEventListener('input', updateTotal);
+        updateTotal();
+
+        const postForm = async formData => {
+            const response = await fetch(window.emcEventsConfig.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData,
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result?.data?.message || 'Your registration could not be submitted.');
+            }
+            return result.data;
+        };
 
         form.addEventListener('submit', async event => {
             event.preventDefault();
@@ -193,32 +239,72 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const formData = new FormData(form);
-            formData.set('nonce', window.emcEventsConfig.nonce);
-
             if (submitButton) submitButton.disabled = true;
-            if (buttonLabel) buttonLabel.textContent = 'Submitting…';
+            if (buttonLabel) buttonLabel.textContent = isPaid ? 'Preparing payment…' : 'Submitting…';
             if (status) {
                 status.className = 'event-form-status';
                 status.textContent = '';
             }
 
             try {
-                const response = await fetch(window.emcEventsConfig.ajaxUrl, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    body: formData,
-                });
-                const result = await response.json();
+                if (isPaid && (!stripe || !card)) {
+                    throw new Error('Secure card payment is temporarily unavailable. Please contact the centre.');
+                }
 
-                if (!response.ok || !result.success) {
-                    throw new Error(result?.data?.message || 'Your registration could not be submitted.');
+                if (!completedPayment) {
+                    let prepared = paymentSession;
+                    if (!prepared) {
+                        const formData = new FormData(form);
+                        formData.set('nonce', window.emcEventsConfig.nonce);
+                        prepared = await postForm(formData);
+                        if (prepared.requiresPayment) paymentSession = prepared;
+                    }
+
+                    if (prepared.requiresPayment) {
+                        if (buttonLabel) buttonLabel.textContent = `Paying ${prepared.amount}…`;
+                        const nameInput = form.querySelector('[name="fields[full_name]"]') || form.querySelector('input[type="text"]');
+                        const emailInput = form.querySelector('input[type="email"]');
+                        const confirmation = await stripe.confirmCardPayment(prepared.clientSecret, {
+                            payment_method: {
+                                card,
+                                billing_details: {
+                                    name: nameInput?.value || undefined,
+                                    email: emailInput?.value || undefined,
+                                },
+                            },
+                        });
+                        if (confirmation.error) {
+                            throw new Error(confirmation.error.message || 'Stripe could not complete the payment.');
+                        }
+                        if (confirmation.paymentIntent?.status !== 'succeeded') {
+                            throw new Error('Stripe has not confirmed the payment. Please try again.');
+                        }
+                        completedPayment = {
+                            token: prepared.token,
+                            paymentIntent: confirmation.paymentIntent.id,
+                        };
+                    } else {
+                        completedPayment = { freeResult: prepared };
+                    }
+                }
+
+                let finalResult = completedPayment.freeResult;
+                if (!finalResult) {
+                    if (buttonLabel) buttonLabel.textContent = 'Confirming registration…';
+                    const confirmationData = new FormData();
+                    confirmationData.set('action', 'emc_event_confirm_registration');
+                    confirmationData.set('nonce', window.emcEventsConfig.nonce);
+                    confirmationData.set('token', completedPayment.token);
+                    confirmationData.set('payment_intent', completedPayment.paymentIntent);
+                    finalResult = await postForm(confirmationData);
                 }
 
                 form.reset();
+                card?.clear();
+                updateTotal();
                 if (status) {
                     status.className = 'event-form-status is-success';
-                    status.textContent = result.data.message;
+                    status.textContent = finalResult.message;
                     status.focus();
                 }
                 if (submitButton) submitButton.hidden = true;

@@ -212,12 +212,6 @@ if ( $show_app ) :
                             esc_attr( $data['label'] ),
                             esc_attr( $data['icon'] )
                         );
-                    else :
-                        printf(
-                            '<a href="#" aria-label="%s"><i class="%s" aria-hidden="true"></i></a>',
-                            esc_attr( $data['label'] ),
-                            esc_attr( $data['icon'] )
-                        );
                     endif;
                 endforeach;
                 ?>

@@ -197,12 +197,17 @@ document.addEventListener('DOMContentLoaded', () => {
         lightbox.classList.add('active');
         lightbox.removeAttribute('hidden');
         lightbox.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
         lightboxClose?.focus();
     }
 
     function closeLightbox() {
         lightbox.classList.remove('active');
         lightbox.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        window.setTimeout(() => {
+            if (!lightbox.classList.contains('active')) lightbox.setAttribute('hidden', '');
+        }, 300);
         // Restore focus to the gallery item that was clicked
         galleryItems[currentIndex]?.focus();
     }

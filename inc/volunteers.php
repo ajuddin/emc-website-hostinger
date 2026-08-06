@@ -174,22 +174,31 @@ function emc_handle_volunteer_application() {
     set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
 
     $full_name = trim( $first_name . ' ' . $last_name );
-    $to        = sanitize_email( get_option( 'emc_volunteer_notification_email', 'info@essexmuslimcentre.org' ) );
     $subject   = 'New Volunteer Application — ' . $full_name;
-    $body      = '<h2>New Volunteer Application</h2>'
-               . '<p><strong>Application ID:</strong> #' . absint( $application_id ) . '</p>'
-               . '<p><strong>Name:</strong> ' . esc_html( $full_name ) . '</p>'
-               . '<p><strong>Email:</strong> ' . esc_html( $email ) . '</p>'
-               . '<p><strong>Phone:</strong> ' . esc_html( $phone ) . '</p>'
-               . '<p><strong>Postcode:</strong> ' . esc_html( $postcode ) . '</p>'
-               . '<p><strong>Interests:</strong> ' . esc_html( implode( ', ', $interests ) ) . '</p>'
-               . '<p><strong>Availability:</strong> ' . esc_html( implode( ', ', $availability ) ) . '</p>'
-               . '<p><strong>Motivation:</strong><br>' . nl2br( esc_html( $motivation ) ) . '</p>';
+    $body      = emc_form_notification_html( __( 'New Volunteer Application', 'emc-theme' ), array(
+        __( 'Application ID', 'emc-theme' )         => '#' . absint( $application_id ),
+        __( 'First name', 'emc-theme' )             => $first_name,
+        __( 'Last name', 'emc-theme' )              => $last_name,
+        __( 'Email', 'emc-theme' )                  => $email,
+        __( 'Phone', 'emc-theme' )                  => $phone,
+        __( 'Postcode', 'emc-theme' )               => $postcode,
+        __( 'Over 18', 'emc-theme' )                => $over_18,
+        __( 'Interests', 'emc-theme' )              => $interests,
+        __( 'Other interest', 'emc-theme' )         => $interest_other,
+        __( 'Availability', 'emc-theme' )           => $availability,
+        __( 'Availability details', 'emc-theme' )   => $availability_detail,
+        __( 'Skills and experience', 'emc-theme' )  => $skills,
+        __( 'Reason for volunteering', 'emc-theme' ) => $motivation,
+        __( 'Checks consent', 'emc-theme' )         => $checks_consent ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ),
+        __( 'Privacy consent', 'emc-theme' )        => $privacy_consent ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ),
+        __( 'Submitted at', 'emc-theme' )           => current_time( 'mysql' ),
+    ) );
     $headers   = array(
         'Content-Type: text/html; charset=UTF-8',
         'Reply-To: ' . $full_name . ' <' . $email . '>',
     );
-    wp_mail( $to ?: 'info@essexmuslimcentre.org', $subject, $body, $headers );
+    $notification_sent = emc_send_form_notification( 'volunteer', $subject, $body, $headers );
+    update_post_meta( $application_id, '_emc_volunteer_email_status', $notification_sent ? 'sent' : 'failed' );
 
     $confirmation  = sprintf( __( "Dear %s,\n\nThank you for applying to volunteer with Essex Muslim Centre.", 'emc-theme' ), $full_name );
     $confirmation .= "\n\n" . __( 'Our team will review your application and contact you if a suitable opportunity is available.', 'emc-theme' );
@@ -213,7 +222,7 @@ add_action( 'admin_init', 'emc_register_volunteer_settings' );
 
 function emc_volunteer_admin_menu() {
     add_submenu_page(
-        'edit.php?post_type=emc_vacancy',
+        null,
         __( 'Volunteer Applications', 'emc-theme' ),
         __( 'Volunteer Applications', 'emc-theme' ),
         'manage_options',

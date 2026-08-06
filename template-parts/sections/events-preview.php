@@ -66,11 +66,8 @@ $events_query = new WP_Query( $query_args );
                     $event_time  = get_post_meta( get_the_ID(), '_emc_event_time', true );
                     $event_venue = get_post_meta( get_the_ID(), '_emc_event_venue', true );
                     $thumb       = get_the_post_thumbnail_url( get_the_ID(), 'emc-card' );
-                    $day         = $event_date ? date( 'd', strtotime( $event_date ) ) : '';
-                    $mon         = $event_date ? strtoupper( date( 'M', strtotime( $event_date ) ) ) : '';
-                    $formatted_date = $event_date
-                        ? date_i18n( 'l, j F Y', strtotime( $event_date ) )
-                        : __( 'To be confirmed', 'emc-theme' );
+                    $day         = $event_date ? strtoupper( date_i18n( 'D', strtotime( $event_date ) ) ) : '';
+                    $formatted_date = emc_get_event_display_day( get_the_ID() );
                     $formatted_time = $event_time ?: __( 'To be confirmed', 'emc-theme' );
                     $formatted_venue = $event_venue ?: __( 'Essex Muslim Centre', 'emc-theme' );
                     $event_url        = get_permalink();
@@ -82,7 +79,6 @@ $events_query = new WP_Query( $query_args );
                         <?php if ( $day ) : ?>
                         <div class="event-date">
                             <span style="display:block;font-size:var(--step-2);font-weight:700;color:var(--primary-green);line-height:1;"><?php echo esc_html( $day ); ?></span>
-                            <span style="display:block;font-size:var(--step--2);font-weight:600;color:var(--text-muted);"><?php echo esc_html( $mon ); ?></span>
                         </div>
                         <?php endif; ?>
                     </div>

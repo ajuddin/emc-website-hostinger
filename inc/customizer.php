@@ -242,7 +242,7 @@ function emc_customize_register( $wp_customize ) {
         'priority' => 20,
     ) );
 
-    foreach ( array( 'facebook', 'instagram', 'twitter', 'tiktok', 'youtube' ) as $network ) {
+    foreach ( array( 'facebook', 'instagram', 'twitter', 'tiktok', 'youtube', 'whatsapp' ) as $network ) {
         emc_add_url_setting(
             $wp_customize,
             'emc_social_' . $network,
@@ -250,6 +250,21 @@ function emc_customize_register( $wp_customize ) {
             'emc_social',
             ucfirst( $network ) . ' URL'
         );
+    }
+
+    $wp_customize->get_section( 'emc_social' )->description = __( 'Add the full URL for each network. For WhatsApp, use a link such as https://wa.me/447000000000. Use the custom slots for any other platform or contact link.', 'emc-theme' );
+
+    $custom_icon_options = array();
+    foreach ( emc_social_icon_choices() as $icon_key => $icon_data ) {
+        $custom_icon_options[ $icon_key ] = $icon_data['label'];
+    }
+    foreach ( range( 1, 4 ) as $slot ) {
+        $wp_customize->add_setting( 'emc_social_custom_' . $slot . '_label', array( 'default' => '', 'sanitize_callback' => 'sanitize_text_field' ) );
+        $wp_customize->add_control( 'emc_social_custom_' . $slot . '_label', array( 'label' => sprintf( __( 'Custom link %d — Name', 'emc-theme' ), $slot ), 'description' => 1 === $slot ? __( 'For example: LinkedIn, Telegram, WhatsApp Community or Sisters Group.', 'emc-theme' ) : '', 'section' => 'emc_social', 'type' => 'text' ) );
+        $wp_customize->add_setting( 'emc_social_custom_' . $slot . '_url', array( 'default' => '', 'sanitize_callback' => 'esc_url_raw' ) );
+        $wp_customize->add_control( 'emc_social_custom_' . $slot . '_url', array( 'label' => sprintf( __( 'Custom link %d — URL', 'emc-theme' ), $slot ), 'section' => 'emc_social', 'type' => 'url' ) );
+        $wp_customize->add_setting( 'emc_social_custom_' . $slot . '_icon', array( 'default' => 'link', 'sanitize_callback' => 'emc_sanitize_social_icon' ) );
+        $wp_customize->add_control( 'emc_social_custom_' . $slot . '_icon', array( 'label' => sprintf( __( 'Custom link %d — Icon', 'emc-theme' ), $slot ), 'section' => 'emc_social', 'type' => 'select', 'choices' => $custom_icon_options ) );
     }
 
     /* ──────────────────────────────────────────────────────────────────────
@@ -597,9 +612,6 @@ function emc_customize_register( $wp_customize ) {
     emc_add_text_setting( $wp_customize, 'emc_services_cta_label', __( 'View All Services', 'emc-theme' ),
         'emc_hp_services', __( 'CTA Button Label', 'emc-theme' ) );
 
-    emc_add_checkbox_setting( $wp_customize, 'emc_services_cpt_only', false,
-        'emc_hp_services', __( 'Only show CPT services (hide static fallback)', 'emc-theme' ) );
-
     /* ── Events Section ─────────────────────────────────────────────────── */
     $wp_customize->add_section( 'emc_hp_events', array(
         'title'    => __( 'Events Section', 'emc-theme' ),
@@ -652,10 +664,10 @@ function emc_customize_register( $wp_customize ) {
 
     // ── Badr Wall Tier Fill Counts ─────────────────────────────────────────
     emc_add_text_setting( $wp_customize, 'emc_campaign_tier1_filled', '19',
-        'emc_hp_campaign', __( 'Badr Wall — Founder tiles taken (max 100)', 'emc-theme' ) );
+        'emc_hp_campaign', sprintf( __( 'Badr Wall — tier 1 tiles taken (max %d)', 'emc-theme' ), absint( emc_site_setting( 'emc_badr_tier1_total', 100 ) ) ) );
 
     emc_add_text_setting( $wp_customize, 'emc_campaign_tier2_filled', '11',
-        'emc_hp_campaign', __( 'Badr Wall — Co-Founder tiles taken (max 213)', 'emc-theme' ) );
+        'emc_hp_campaign', sprintf( __( 'Badr Wall — tier 2 tiles taken (max %d)', 'emc-theme' ), absint( emc_site_setting( 'emc_badr_tier2_total', 213 ) ) ) );
 
     /* ── Counters / Stats Section ───────────────────────────────────────── */
     $wp_customize->add_section( 'emc_hp_counters', array(

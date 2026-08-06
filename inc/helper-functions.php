@@ -8,6 +8,30 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Render a safe fallback when the separate EMC Payments plugin is inactive.
+ */
+function emc_render_payment_plugin_required() {
+    ?>
+    <main>
+        <section class="page-hero">
+            <div class="container">
+                <div class="page-hero-content">
+                    <span class="badge"><i class="fas fa-plug" aria-hidden="true"></i> <?php esc_html_e( 'Payment Add-on', 'emc-theme' ); ?></span>
+                    <h1><?php esc_html_e( 'EMC Payments Plugin Required', 'emc-theme' ); ?></h1>
+                    <p><?php esc_html_e( 'The donation and online payment features are unavailable until the licensed EMC Payments plugin is installed and activated.', 'emc-theme' ); ?></p>
+                    <?php if ( current_user_can( 'activate_plugins' ) ) : ?>
+                        <a class="btn btn-primary" href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>">
+                            <?php esc_html_e( 'Manage Plugins', 'emc-theme' ); ?>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </section>
+    </main>
+    <?php
+}
+
 /* ==========================================================================
    Theme Option Shorthand
    ========================================================================== */
@@ -20,6 +44,50 @@ function emc_option( $option, $default = '' ) {
 }
 
 /**
+ * Return the weekday shown for an event.
+ *
+ * A dated event uses the weekday from its start date. Recurring events use
+ * the weekday selected in Event Details instead.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Localized weekday, or an empty string when none is configured.
+ */
+function emc_get_event_display_day( $post_id ) {
+    $event_date = get_post_meta( $post_id, '_emc_event_date', true );
+
+    if ( $event_date ) {
+        return date_i18n( 'l', strtotime( $event_date ) );
+    }
+
+    $event_day = strtolower( get_post_meta( $post_id, '_emc_event_day', true ) );
+    $weekdays  = array(
+        'monday'    => __( 'Monday', 'emc-theme' ),
+        'tuesday'   => __( 'Tuesday', 'emc-theme' ),
+        'wednesday' => __( 'Wednesday', 'emc-theme' ),
+        'thursday'  => __( 'Thursday', 'emc-theme' ),
+        'friday'    => __( 'Friday', 'emc-theme' ),
+        'saturday'  => __( 'Saturday', 'emc-theme' ),
+        'sunday'    => __( 'Sunday', 'emc-theme' ),
+    );
+
+    if ( isset( $weekdays[ $event_day ] ) ) {
+        return $weekdays[ $event_day ];
+    }
+
+    // Preserve the schedules shown on the existing recurring-event flyers.
+    $existing_schedules = array(
+        'quranic-arabic-language-course' => 'wednesday',
+        'dawn-of-reflection'              => 'sunday',
+        'tajweed-workshop'                => 'friday',
+    );
+    $event_slug = sanitize_title( get_the_title( $post_id ) );
+
+    return isset( $existing_schedules[ $event_slug ] )
+        ? $weekdays[ $existing_schedules[ $event_slug ] ]
+        : '';
+}
+
+/**
  * Return the shared Badr Wall levels and their current availability.
  *
  * The totals are fixed by the campaign structure, while the number taken is
@@ -29,26 +97,28 @@ function emc_option( $option, $default = '' ) {
  * @return array[]
  */
 function emc_get_badr_levels() {
+    $tier1_total = max( 1, absint( emc_site_setting( 'emc_badr_tier1_total', 100 ) ) );
+    $tier2_total = max( 1, absint( emc_site_setting( 'emc_badr_tier2_total', 213 ) ) );
     $levels = array(
         array(
             'id'     => 'founder',
-            'label'  => __( 'Founder of the Centre', 'emc-theme' ),
-            'amount' => 10000,
+            'label'  => emc_site_setting( 'emc_badr_tier1_label', __( 'Founder of the Centre', 'emc-theme' ) ),
+            'amount' => (float) emc_site_setting( 'emc_badr_tier1_amount', 10000 ),
             'icon'   => 'fas fa-trophy',
             'class'  => 'tier-founder',
-            'total'  => 100,
-            'filled' => min( max( 0, (int) emc_option( 'emc_campaign_tier1_filled', 19 ) ), 100 ),
-            'desc'   => __( '£10,000+ — founding places', 'emc-theme' ),
+            'total'  => $tier1_total,
+            'filled' => min( max( 0, (int) emc_option( 'emc_campaign_tier1_filled', 19 ) ), $tier1_total ),
+            'desc'   => emc_site_setting( 'emc_badr_tier1_desc', __( '£10,000+ — founding places', 'emc-theme' ) ),
         ),
         array(
             'id'     => 'co-founder',
-            'label'  => __( 'Co-Founder of the Centre', 'emc-theme' ),
-            'amount' => 5000,
+            'label'  => emc_site_setting( 'emc_badr_tier2_label', __( 'Co-Founder of the Centre', 'emc-theme' ) ),
+            'amount' => (float) emc_site_setting( 'emc_badr_tier2_amount', 5000 ),
             'icon'   => 'fas fa-star',
             'class'  => 'tier-cofunder',
-            'total'  => 213,
-            'filled' => min( max( 0, (int) emc_option( 'emc_campaign_tier2_filled', 11 ) ), 213 ),
-            'desc'   => __( '£5,000+ — co-founder places', 'emc-theme' ),
+            'total'  => $tier2_total,
+            'filled' => min( max( 0, (int) emc_option( 'emc_campaign_tier2_filled', 11 ) ), $tier2_total ),
+            'desc'   => emc_site_setting( 'emc_badr_tier2_desc', __( '£5,000+ — co-founder places', 'emc-theme' ) ),
         ),
     );
 
@@ -133,7 +203,7 @@ function emc_get_phone_href() {
  * @return array
  */
 function emc_get_social_links() {
-    return array(
+    $links = array(
         'facebook'  => array(
             'url'   => emc_option( 'emc_social_facebook',  '' ),
             'icon'  => 'fab fa-facebook',
@@ -159,7 +229,50 @@ function emc_get_social_links() {
             'icon'  => 'fab fa-youtube',
             'label' => __( 'YouTube', 'emc-theme' ),
         ),
+        'whatsapp'  => array(
+            'url'   => emc_option( 'emc_social_whatsapp', '' ),
+            'icon'  => 'fab fa-whatsapp',
+            'label' => __( 'WhatsApp', 'emc-theme' ),
+        ),
     );
+
+    $icons = emc_social_icon_choices();
+    foreach ( range( 1, 4 ) as $slot ) {
+        $url = emc_option( 'emc_social_custom_' . $slot . '_url', '' );
+        if ( ! $url ) {
+            continue;
+        }
+        $icon_key = sanitize_key( emc_option( 'emc_social_custom_' . $slot . '_icon', 'link' ) );
+        $label = trim( (string) emc_option( 'emc_social_custom_' . $slot . '_label', '' ) );
+        $links[ 'custom_' . $slot ] = array(
+            'url'   => $url,
+            'icon'  => $icons[ $icon_key ]['class'] ?? $icons['link']['class'],
+            'label' => $label ?: __( 'Social link', 'emc-theme' ),
+        );
+    }
+
+    return $links;
+}
+
+/** Icon options available to administrator-defined social links. */
+function emc_social_icon_choices() {
+    return array(
+        'link'      => array( 'label' => __( 'Website / Link', 'emc-theme' ), 'class' => 'fas fa-link' ),
+        'whatsapp'  => array( 'label' => __( 'WhatsApp', 'emc-theme' ), 'class' => 'fab fa-whatsapp' ),
+        'telegram'  => array( 'label' => __( 'Telegram', 'emc-theme' ), 'class' => 'fab fa-telegram' ),
+        'linkedin'  => array( 'label' => __( 'LinkedIn', 'emc-theme' ), 'class' => 'fab fa-linkedin-in' ),
+        'threads'   => array( 'label' => __( 'Threads', 'emc-theme' ), 'class' => 'fab fa-threads' ),
+        'snapchat'  => array( 'label' => __( 'Snapchat', 'emc-theme' ), 'class' => 'fab fa-snapchat' ),
+        'discord'   => array( 'label' => __( 'Discord', 'emc-theme' ), 'class' => 'fab fa-discord' ),
+        'pinterest' => array( 'label' => __( 'Pinterest', 'emc-theme' ), 'class' => 'fab fa-pinterest-p' ),
+        'email'     => array( 'label' => __( 'Email', 'emc-theme' ), 'class' => 'fas fa-envelope' ),
+        'phone'     => array( 'label' => __( 'Phone', 'emc-theme' ), 'class' => 'fas fa-phone' ),
+    );
+}
+
+function emc_sanitize_social_icon( $value ) {
+    $value = sanitize_key( $value );
+    return isset( emc_social_icon_choices()[ $value ] ) ? $value : 'link';
 }
 
 /**

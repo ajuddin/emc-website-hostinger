@@ -84,7 +84,7 @@ if ( $vacancy_types && ! is_wp_error( $vacancy_types ) ) :
                     </div>
                     <p class="vacancy-location">
                         <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                        <?php esc_html_e( 'Essex Muslim Centre, Chelmsford, Essex', 'emc-theme' ); ?>
+                        <?php echo esc_html( emc_site_setting( 'emc_default_vacancy_location', __( 'Essex Muslim Centre, Chelmsford, Essex', 'emc-theme' ) ) ); ?>
                     </p>
                 </div>
                 <div class="vacancy-item-actions">

@@ -56,7 +56,7 @@ if ( file_exists( $events_js_path ) ) {
             <?php
             $events_query = new WP_Query( array(
                 'post_type'      => 'emc_event',
-                'posts_per_page' => 12,
+    'posts_per_page' => max( 1, absint( emc_site_setting( 'emc_events_page_count', 12 ) ) ),
                 'orderby'        => 'meta_value',
                 'meta_key'       => '_emc_event_date',
                 'order'          => 'ASC',
@@ -80,9 +80,8 @@ if ( file_exists( $events_js_path ) ) {
                         : ( get_post_meta( get_the_ID(), '_emc_event_category', true ) ?: 'community' );
                     $event_spots    = get_post_meta( get_the_ID(), '_emc_event_capacity', true );
                     $flyer_url      = has_post_thumbnail() ? get_the_post_thumbnail_url( get_the_ID(), 'full' ) : EMC_ASSETS . '/gallery/Community Support Services/New-Muslim-600x338.jpeg';
-                    $day   = $event_date ? date( 'd', strtotime( $event_date ) ) : '—';
-                    $month = $event_date ? strtoupper( date( 'M', strtotime( $event_date ) ) ) : '';
-                    $weekday = $event_date ? date_i18n( 'l', strtotime( $event_date ) ) : __( 'Date TBC', 'emc-theme' );
+                    $day   = $event_date ? strtoupper( date_i18n( 'D', strtotime( $event_date ) ) ) : '—';
+                    $weekday = emc_get_event_display_day( get_the_ID() );
                     $registration_open = emc_event_registration_is_open( get_the_ID() );
                     $details_url       = get_permalink();
                     $registration_url  = $details_url . '#event-registration';
@@ -90,10 +89,10 @@ if ( file_exists( $events_js_path ) ) {
             <article class="event-hub-card scroll-reveal" data-category="<?php echo esc_attr( $event_category ); ?>"<?php echo $delay ? ' style="transition-delay:' . esc_attr( $delay ) . 's"' : ''; ?>>
                 <div class="event-card-link">
                     <div class="event-hub-img" data-flyer-url="<?php echo esc_url( $flyer_url ); ?>" title="<?php esc_attr_e( 'View full flyer', 'emc-theme' ); ?>" <?php if ( has_post_thumbnail() ) : ?>style="background-image:url('<?php echo esc_url( get_the_post_thumbnail_url( get_the_ID(), 'emc-card' ) ); ?>');"<?php else : ?>style="background-image:url('<?php echo esc_url( EMC_ASSETS . '/gallery/Community Support Services/New-Muslim-600x338.jpeg' ); ?>');background-size:cover;background-position:center;"<?php endif; ?>>
-                        <div class="event-hub-date"><span class="day"><?php echo esc_html( $day ); ?></span><span class="month"><?php echo esc_html( $month ); ?></span></div>
+                        <div class="event-hub-date"><span class="day"><?php echo esc_html( $day ); ?></span></div>
                         <span class="event-category-tag <?php echo esc_attr( $event_category ); ?>"><?php echo esc_html( ucfirst( $event_category ) ); ?></span>
                         <div class="event-schedule-banner">
-                            <strong><?php echo esc_html( $weekday ); ?></strong>
+                            <?php if ( $weekday ) : ?><strong><?php echo esc_html( $weekday ); ?></strong><?php endif; ?>
                             <?php if ( $event_time ) : ?><span><i class="far fa-clock" aria-hidden="true"></i> <?php echo esc_html( $event_time ); ?></span><?php endif; ?>
                         </div>
                     </div>
@@ -103,7 +102,6 @@ if ( file_exists( $events_js_path ) ) {
                             <?php if ( $event_time ) : ?><span><i class="far fa-clock"></i> <?php echo esc_html( $event_time ); ?></span><?php endif; ?>
                             <?php if ( $event_location ) : ?><span><i class="fas fa-map-marker-alt"></i> <?php echo esc_html( $event_location ); ?></span><?php endif; ?>
                         </div>
-                        <?php if ( has_excerpt() ) : ?><p><?php echo esc_html( get_the_excerpt() ); ?></p><?php endif; ?>
                         <div class="event-hub-footer">
                             <span class="event-spots"><i class="fas fa-users"></i> <?php echo $event_spots ? esc_html( $event_spots ) : esc_html__( 'Free entry', 'emc-theme' ); ?></span>
                             <div class="event-hub-actions">

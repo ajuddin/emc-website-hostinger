@@ -148,7 +148,7 @@ function emc_annual_reports_admin_menu() {
     global $emc_annual_reports_hook;
 
     $emc_annual_reports_hook = add_submenu_page(
-        'edit.php?post_type=page',
+        null,
         __( 'Annual Reports', 'emc-theme' ),
         __( 'Annual Reports', 'emc-theme' ),
         'edit_pages',

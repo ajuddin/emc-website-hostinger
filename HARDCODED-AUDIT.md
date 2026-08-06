@@ -30,10 +30,10 @@ Other fixed donation values:
 - One-off buttons: £5, £10, £25, £50, £100 — `template-donate.php:82`
 - Regular buttons: £5, £10, £20, £50 — `template-donate.php:154`
 - Regular frequencies and fund choices — `template-donate.php:162`
-- Minimum donation: £0.50 — `assets/js/donate.js:504` and `inc/ajax-handlers.php:176`
-- Currency: GBP — `inc/ajax-handlers.php:191`
+- Minimum donation: £0.50 — `plugins/emc-payments/assets/js/donate.js:504` and `plugins/emc-payments/includes/stripe-gateway.php:140`
+- Currency: GBP — `plugins/emc-payments/includes/stripe-gateway.php:155`
 - Zakat Nisab: £452.06
-- Zakat rate: 2.5% — `assets/js/donate.js:160`
+- Zakat rate: 2.5% — `plugins/emc-payments/assets/js/donate.js:161`
 
 The admin has quick-amount fields, but the templates ignore them:
 

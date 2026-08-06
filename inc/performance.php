@@ -14,7 +14,7 @@
  *  8.  Remove query strings from static assets (for proxy caches)
  *  9.  File-mtime-based cache busting for local assets
  * 10.  Optimised WP_Query helpers (no_found_rows, etc.)
- * 11.  Output buffering to add missing loading="lazy" to all <img>
+ * 11.  Native WordPress image loading without whole-page output buffering
  *
  * @package emc-theme
  */
@@ -308,75 +308,35 @@ function emc_get_posts_query( $post_type, $count = 6, $extra_args = array() ) {
 
 
 /* ==========================================================================
-   11. Output Buffer: Add loading="lazy" to theme template <img> tags
-       (Catches images output by template-parts that bypass the_content)
+   11. Image Loading Compatibility
+       Whole-page rewriting is disabled to remain compatible with page caches.
    ========================================================================== */
 
-add_action( 'template_redirect', 'emc_start_output_buffer' );
-add_action( 'shutdown',          'emc_end_output_buffer', 0 );
-
-function emc_start_output_buffer() {
-    // Don't buffer admin, login, AJAX, REST, or Cron requests
-    if (
-        is_admin() ||
-        wp_doing_ajax() ||
-        wp_doing_cron() ||
-        ( defined( 'REST_REQUEST' ) && REST_REQUEST )
-    ) return;
-
-    ob_start( 'emc_process_output_buffer' );
-}
-
-function emc_end_output_buffer() {
-    if ( ob_get_level() > 0 ) {
-        ob_end_flush();
-    }
-}
+/*
+ * Whole-page buffering is intentionally disabled. WordPress already adds
+ * native image loading attributes, and an additional response buffer can
+ * conflict with LiteSpeed/Hostinger caching and cache a partial document.
+ */
 
 /**
- * Process the buffered HTML — add loading="lazy" and decoding="async"
- * to all <img> tags that are not the LCP/hero image.
+ * Never page-cache logged-in front-end requests.
  *
- * @param  string $html
- * @return string
+ * Administrators see personalized markup such as the admin toolbar. Preventing
+ * LiteSpeed from storing that private response also keeps a transient PHP error
+ * or partial response from becoming the user's cached page.
  */
-function emc_process_output_buffer( $html ) {
-    if ( ! $html ) return $html;
+function emc_disable_logged_in_page_cache() {
+    if ( is_admin() || ! is_user_logged_in() ) {
+        return;
+    }
 
-    $lcp_done = false; // First image gets fetchpriority="high" + loading="eager"
+    nocache_headers();
 
-    $html = preg_replace_callback(
-        '/<img([^>]+?)(\s*\/?>)/i',
-        function ( $m ) use ( &$lcp_done ) {
-            $attrs  = $m[1];
-            $close  = $m[2];
-            $tag    = '<img' . $attrs . $close;
-
-            // Don't touch images that already have loading=
-            if ( stripos( $attrs, 'loading=' ) !== false ) return $tag;
-            // Don't touch data URIs
-            if ( stripos( $attrs, 'src="data:' ) !== false ) return $tag;
-            // Don't touch images with no src
-            if ( stripos( $attrs, ' src=' ) === false ) return $tag;
-
-            // First image in the page: treat as LCP
-            if ( ! $lcp_done ) {
-                $lcp_done = true;
-                if ( stripos( $attrs, 'fetchpriority=' ) === false ) {
-                    return '<img fetchpriority="high" loading="eager" decoding="async"' . $attrs . $close;
-                }
-                return $tag;
-            }
-
-            // All subsequent images: lazy load
-            return '<img loading="lazy" decoding="async"' . $attrs . $close;
-        },
-        $html
-    );
-
-    return $html;
+    if ( ! headers_sent() ) {
+        header( 'X-LiteSpeed-Cache-Control: no-cache' );
+    }
 }
-
+add_action( 'send_headers', 'emc_disable_logged_in_page_cache', 99 );
 
 /* ==========================================================================
    12. Critical CSS Inline Hint

@@ -1,0 +1,20 @@
+.post-type-emc_campaign .wp-heading-inline { font-weight: 700; }
+.emc-campaign-admin-intro { margin: 0 0 14px; padding: 12px 14px; border-left: 4px solid #18a99e; background: #effaf8; }
+.emc-campaign-admin-intro p { margin: 4px 0 0; color: #52666e; }
+.emc-campaign-settings-table th { width: 220px; }
+.emc-campaign-summary-total span, .emc-campaign-summary-total strong { display: block; }
+.emc-campaign-summary-total span { color: #667980; font-size: 12px; }
+.emc-campaign-summary-total strong { margin-top: 2px; color: #12323e; font-size: 24px; }
+.emc-campaign-admin-track { overflow: hidden; height: 8px; margin: 12px 0 7px; border-radius: 999px; background: #dce9e8; }
+.emc-campaign-admin-track span { display: block; height: 100%; border-radius: inherit; background: #18a99e; }
+.emc-campaign-summary ul { margin: 13px 0; border-top: 1px solid #e1e8ea; }
+.emc-campaign-summary li { display: flex; justify-content: space-between; margin: 0; padding: 8px 0; border-bottom: 1px solid #e1e8ea; }
+.emc-campaign-column-progress { min-width: 210px; color: #64767d; }
+.emc-campaign-column-progress > span { float: right; color: #11867d; font-weight: 700; }
+.emc-campaign-column-progress > div { overflow: hidden; height: 5px; margin-top: 6px; border-radius: 99px; background: #dde9e8; }
+.emc-campaign-column-progress i { display: block; height: 100%; background: #1aa99d; }
+.emc-campaign-status { display: inline-block; padding: 4px 8px; border-radius: 99px; background: #e8f7f4; color: #08796f; font-size: 11px; font-weight: 700; }
+.emc-campaign-status.is-paused { background: #fff4dc; color: #8a5c00; }
+.emc-campaign-status.is-completed { background: #e9eef2; color: #4f626d; }
+.emc-campaign-list-guide { border-left-color: #18a99e; }
+@media (max-width: 782px) { .emc-campaign-settings-table th { width: auto; } }

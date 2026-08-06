@@ -78,7 +78,7 @@ function emc_register_post_types() {
         'has_archive'   => true,
         'menu_icon'     => 'dashicons-chart-line',
         'menu_position' => 10,
-        'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt', 'custom-fields' ),
+        'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
         'show_in_rest'  => true,
         'rewrite'       => array( 'slug' => 'campaigns' ),
     ) );
@@ -199,10 +199,11 @@ function emc_register_taxonomies() {
 
     // Gallery Categories
     register_taxonomy( 'gallery_category', array( 'emc_gallery' ), array(
-        'labels'       => emc_tax_labels( 'Gallery Categories', 'Gallery Category' ),
-        'hierarchical' => true,
-        'show_in_rest' => true,
-        'rewrite'      => array( 'slug' => 'gallery-category' ),
+        'labels'            => emc_tax_labels( 'Gallery Categories', 'Gallery Category' ),
+        'hierarchical'      => true,
+        'show_admin_column' => true,
+        'show_in_rest'      => true,
+        'rewrite'           => array( 'slug' => 'gallery-category' ),
     ) );
 }
 add_action( 'init', 'emc_register_taxonomies' );

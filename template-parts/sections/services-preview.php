@@ -9,14 +9,14 @@
 $heading      = emc_option( 'emc_services_heading',    __( 'Serving the Community', 'emc-theme' ) );
 $subheading   = emc_option( 'emc_services_subheading', __( 'Our Services', 'emc-theme' ) );
 $cta_label    = emc_option( 'emc_services_cta_label',  __( 'View All Services', 'emc-theme' ) );
-$cpt_only     = (bool) emc_option( 'emc_services_cpt_only', false );
 $services_url = get_permalink( get_page_by_path( 'services' ) ) ?: home_url( '/services/' );
 $contact_url  = get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' );
+$services_count = max( 1, absint( emc_site_setting( 'emc_home_services_count', 8 ) ) );
 
 // Query featured services from CPT
 $cpt_query = new WP_Query( array(
     'post_type'      => 'emc_service',
-    'posts_per_page' => 8,
+    'posts_per_page' => $services_count,
     'post_status'    => 'publish',
     'meta_query'     => array(
         array(
@@ -33,7 +33,7 @@ $cpt_query = new WP_Query( array(
 if ( ! $cpt_query->have_posts() ) {
     $cpt_query = new WP_Query( array(
         'post_type'      => 'emc_service',
-        'posts_per_page' => 8,
+        'posts_per_page' => $services_count,
         'post_status'    => 'publish',
         'orderby'        => 'menu_order date',
         'order'          => 'ASC',
@@ -135,7 +135,7 @@ $static_services = array(
                 endwhile;
                 wp_reset_postdata();
                 ?>
-            <?php elseif ( ! $cpt_only ) : ?>
+            <?php elseif ( false ) : ?>
                 <?php foreach ( $static_services as $s ) : ?>
                 <div class="service-card scroll-reveal" style="transition-delay:<?php echo esc_attr( $s['delay'] ); ?>">
                     <div class="icon-wrapper" aria-hidden="true">

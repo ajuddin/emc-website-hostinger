@@ -87,7 +87,7 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                 $ev_time  = get_post_meta( $pid, '_emc_event_time',  true );
                 $ev_venue = get_post_meta( $pid, '_emc_event_venue', true );
                 $ev_cats  = get_the_terms( $pid, 'event_category' );
-                $ev_weekday = $ev_date ? date_i18n( 'l', strtotime( $ev_date ) ) : __( 'Date TBC', 'emc-theme' );
+                $ev_weekday = emc_get_event_display_day( $pid );
             ?>
             <article class="event-card glass-card" id="post-<?php echo esc_attr( $pid ); ?>">
                 <?php if ( has_post_thumbnail( $pid ) ) : ?>
@@ -97,24 +97,13 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                 <?php endif; ?>
                 <div class="event-card-body">
                     <div class="event-weekday-strip">
-                        <strong><?php echo esc_html( $ev_weekday ); ?></strong>
+                        <?php if ( $ev_weekday ) : ?><strong><?php echo esc_html( $ev_weekday ); ?></strong><?php endif; ?>
                         <?php if ( $ev_time ) : ?><span><i class="far fa-clock" aria-hidden="true"></i> <?php echo esc_html( $ev_time ); ?></span><?php endif; ?>
                     </div>
                     <?php if ( $ev_cats && ! is_wp_error( $ev_cats ) ) : ?>
                     <span class="event-cat-label"><?php echo esc_html( $ev_cats[0]->name ); ?></span>
                     <?php endif; ?>
-                    <?php if ( $ev_date ) : ?>
-                    <time class="event-date-chip upcoming" datetime="<?php echo esc_attr( $ev_date ); ?>">
-                        <i class="fas fa-calendar-check" aria-hidden="true"></i>
-                        <?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $ev_date ) ) ); ?>
-                        <?php if ( $ev_time ) : ?>
-                        &bull; <?php echo esc_html( $ev_time ); ?>
-                        <?php endif; ?>
-                    </time>
-                    <?php endif; ?>
                     <h3><a href="<?php echo esc_url( get_permalink( $pid ) ); ?>"><?php echo esc_html( get_the_title( $pid ) ); ?></a></h3>
-                    <?php $excerpt = get_the_excerpt( $pid );
-                          if ( $excerpt ) echo '<p>' . esc_html( $excerpt ) . '</p>'; ?>
                     <?php if ( $ev_venue ) : ?>
                     <p class="event-venue">
                         <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
@@ -146,6 +135,7 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
         <div class="event-cards-grid event-cards-grid--past">
             <?php foreach ( $past_posts as $pid ) :
                 $ev_date  = get_post_meta( $pid, '_emc_event_date',  true );
+                $ev_time  = get_post_meta( $pid, '_emc_event_time',  true );
                 $ev_venue = get_post_meta( $pid, '_emc_event_venue', true );
             ?>
             <article class="event-card event-card--past glass-card" id="post-<?php echo esc_attr( $pid ); ?>">
@@ -157,7 +147,10 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                 <div class="event-card-body">
                     <?php if ( $ev_date ) : ?>
                     <time class="event-date-chip past" datetime="<?php echo esc_attr( $ev_date ); ?>">
-                        <?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $ev_date ) ) ); ?>
+                        <?php echo esc_html( date_i18n( 'l', strtotime( $ev_date ) ) ); ?>
+                        <?php if ( $ev_time ) : ?>
+                        &bull; <?php echo esc_html( $ev_time ); ?>
+                        <?php endif; ?>
                     </time>
                     <?php endif; ?>
                     <h3><a href="<?php echo esc_url( get_permalink( $pid ) ); ?>"><?php echo esc_html( get_the_title( $pid ) ); ?></a></h3>
@@ -207,7 +200,6 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
                         &bull; <?php echo esc_html( $evt['time'] ); ?>
                     </time>
                     <h3><?php echo esc_html( $evt['title'] ); ?></h3>
-                    <p><?php echo esc_html( $evt['excerpt'] ); ?></p>
                     <?php if ( ! empty( $evt['location'] ) ) : ?>
                     <p class="event-venue">
                         <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
