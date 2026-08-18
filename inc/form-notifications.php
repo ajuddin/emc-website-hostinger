@@ -11,7 +11,8 @@ defined( 'ABSPATH' ) || exit;
 function emc_form_notification_types() {
 	return array(
 		'contact'            => __( 'Contact form', 'emc-theme' ),
-		'volunteer'          => __( 'Volunteer applications', 'emc-theme' ),
+		'volunteer'          => __( 'Job applications', 'emc-theme' ),
+		'volunteer_signup'   => __( 'Volunteer applications', 'emc-theme' ),
 		'gift_aid'           => __( 'Gift Aid declarations', 'emc-theme' ),
 		'event_registration' => __( 'Event registrations and event payments', 'emc-theme' ),
 		'newsletter'         => __( 'Newsletter signups', 'emc-theme' ),
@@ -25,6 +26,7 @@ function emc_form_legacy_recipient( $type ) {
 	$defaults = array(
 		'contact'            => emc_option( 'emc_admin_email', get_option( 'admin_email' ) ),
 		'volunteer'          => get_option( 'emc_volunteer_notification_email', get_option( 'admin_email' ) ),
+		'volunteer_signup'   => get_option( 'admin_email' ),
 		'gift_aid'           => get_option( 'emc_gift_aid_notification_email', get_option( 'admin_email' ) ),
 		'event_registration' => get_option( 'emc_event_registration_email', get_option( 'admin_email' ) ),
 		'newsletter'         => get_option( 'admin_email' ),

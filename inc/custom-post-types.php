@@ -85,7 +85,7 @@ function emc_register_post_types() {
 
     // ── 7. Vacancies ──────────────────────────────────────────────────────
     register_post_type( 'emc_vacancy', array(
-        'labels'        => emc_cpt_labels( 'Vacancies', 'Vacancy', 'Add New Vacancy' ),
+        'labels'        => emc_cpt_labels( 'Job Roles', 'Job Role', 'Add New Job Role' ),
         'public'        => true,
         'has_archive'   => true,
         'menu_icon'     => 'dashicons-businessperson',
@@ -93,6 +93,17 @@ function emc_register_post_types() {
         'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt' ),
         'show_in_rest'  => true,
         'rewrite'       => array( 'slug' => 'vacancies' ),
+    ) );
+
+    register_post_type( 'emc_volunteer_role', array(
+        'labels'        => emc_cpt_labels( 'Volunteer Roles', 'Volunteer Role', 'Add New Volunteer Role' ),
+        'public'        => true,
+        'has_archive'   => 'volunteer-opportunity',
+        'menu_icon'     => 'dashicons-universal-access-alt',
+        'menu_position' => 12,
+        'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ),
+        'show_in_rest'  => true,
+        'rewrite'       => array( 'slug' => 'volunteer-opportunity' ),
     ) );
 
     // ── 8. Community Projects (Portfolio) ────────────────────────────────
@@ -191,10 +202,17 @@ function emc_register_taxonomies() {
 
     // Vacancy Types
     register_taxonomy( 'vacancy_type', array( 'emc_vacancy' ), array(
-        'labels'       => emc_tax_labels( 'Vacancy Types', 'Vacancy Type' ),
+        'labels'       => emc_tax_labels( 'Job Role Types', 'Job Role Type' ),
         'hierarchical' => true,
         'show_in_rest' => true,
         'rewrite'      => array( 'slug' => 'vacancy-type' ),
+    ) );
+
+    register_taxonomy( 'volunteer_role_type', array( 'emc_volunteer_role' ), array(
+        'labels'       => emc_tax_labels( 'Volunteer Role Types', 'Volunteer Role Type' ),
+        'hierarchical' => true,
+        'show_in_rest' => true,
+        'rewrite'      => array( 'slug' => 'volunteer-role-type' ),
     ) );
 
     // Gallery Categories
@@ -207,6 +225,17 @@ function emc_register_taxonomies() {
     ) );
 }
 add_action( 'init', 'emc_register_taxonomies' );
+
+/** Refresh permalinks once when the theme's public content routes change. */
+function emc_maybe_refresh_content_rewrites() {
+    $schema_version = '2026-08-volunteer-roles-2';
+    if ( $schema_version === get_option( 'emc_content_rewrite_schema' ) ) {
+        return;
+    }
+    flush_rewrite_rules( false );
+    update_option( 'emc_content_rewrite_schema', $schema_version, false );
+}
+add_action( 'init', 'emc_maybe_refresh_content_rewrites', 99 );
 
 
 /* ==========================================================================
@@ -244,6 +273,13 @@ function emc_cpt_archive_queries( $query ) {
         $query->set( 'orderby',        'date' );
         $query->set( 'order',          'DESC' );
         $query->set( 'posts_per_page', 9 );
+    }
+
+    // Volunteer opportunities: newest first.
+    if ( is_post_type_archive( 'emc_volunteer_role' ) || is_tax( 'volunteer_role_type' ) ) {
+        $query->set( 'orderby', 'date' );
+        $query->set( 'order', 'DESC' );
+        $query->set( 'posts_per_page', 12 );
     }
 
     // Vacancies: newest first

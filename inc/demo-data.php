@@ -114,9 +114,16 @@ function emc_demo_get_pages() {
             'parent'   => '',
         ),
         array(
+            'slug'     => 'job-application',
+            'title'    => 'Job Application',
+            'template' => 'page-volunteer.php',
+            'content'  => '<!-- Managed via page template -->',
+            'parent'   => '',
+        ),
+        array(
             'slug'     => 'volunteer',
             'title'    => 'Volunteer With Us',
-            'template' => 'page-volunteer.php',
+            'template' => 'page-volunteer-registration.php',
             'content'  => '<!-- Managed via page template -->',
             'parent'   => '',
         ),
@@ -197,6 +204,7 @@ function emc_demo_get_footer_community_menu() {
     return array(
         array( 'label' => 'Upcoming Events', 'slug' => 'events' ),
         array( 'label' => 'Media Gallery', 'slug' => 'media' ),
+        array( 'label' => 'Careers', 'slug' => 'job-application' ),
         array( 'label' => 'Volunteering', 'slug' => 'volunteer' ),
         array( 'label' => 'Contact Us', 'slug' => 'contact' ),
     );
@@ -246,6 +254,7 @@ function emc_demo_get_theme_mods() {
         'emc_header_prayer'       => true,
         'emc_header_donate_btn'   => true,
         'emc_header_donate_label' => 'Donate Now',
+		'emc_header_donate_url'   => '',
 
         /* ── Contact Info ─────────────────────────────────────── */
         'emc_location'         => 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB',

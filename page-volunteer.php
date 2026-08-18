@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Volunteer Registration
+ * Template Name: Job Application
  * Template Post Type: page
  *
  * @package emc-theme
@@ -12,9 +12,9 @@ get_header();
 <main class="volunteer-page">
     <section class="volunteer-hero" aria-labelledby="volunteer-page-title">
         <div class="container volunteer-hero-inner">
-            <span class="volunteer-eyebrow"><i class="fas fa-hands-helping" aria-hidden="true"></i> <?php esc_html_e( 'Make a difference locally', 'emc-theme' ); ?></span>
-            <h1 id="volunteer-page-title"><?php esc_html_e( 'Volunteer With Us', 'emc-theme' ); ?></h1>
-            <p><?php esc_html_e( 'Share your time and skills to help Essex Muslim Centre support worshippers, families, young people, and the wider community.', 'emc-theme' ); ?></p>
+            <span class="volunteer-eyebrow"><i class="fas fa-briefcase" aria-hidden="true"></i> <?php esc_html_e( 'Careers at Essex Muslim Centre', 'emc-theme' ); ?></span>
+            <h1 id="volunteer-page-title"><?php esc_html_e( 'Job Application', 'emc-theme' ); ?></h1>
+            <p><?php esc_html_e( 'Apply to join our team and help Essex Muslim Centre serve worshippers, families, young people, and the wider community.', 'emc-theme' ); ?></p>
         </div>
     </section>
 
@@ -23,16 +23,16 @@ get_header();
             <div class="volunteer-layout">
                 <article class="volunteer-form-card">
                     <header class="volunteer-form-header">
-                        <span class="volunteer-form-icon" aria-hidden="true"><i class="fas fa-handshake"></i></span>
+                        <span class="volunteer-form-icon" aria-hidden="true"><i class="fas fa-user-tie"></i></span>
                         <div>
-                            <span><?php esc_html_e( 'Volunteer Registration', 'emc-theme' ); ?></span>
-                            <h2><?php esc_html_e( 'Tell us how you would like to help', 'emc-theme' ); ?></h2>
-                            <p><?php esc_html_e( 'Complete this form and our team will contact you when a suitable opportunity is available.', 'emc-theme' ); ?></p>
+                            <span><?php esc_html_e( 'Employment Application', 'emc-theme' ); ?></span>
+                            <h2><?php esc_html_e( 'Apply to join our team', 'emc-theme' ); ?></h2>
+                            <p><?php esc_html_e( 'Complete the form and upload your CV. Our team will contact shortlisted applicants.', 'emc-theme' ); ?></p>
                         </div>
                     </header>
 
-                    <form id="volunteer-form" class="volunteer-form" method="post" data-ajax-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" novalidate>
-                        <input type="hidden" name="action" value="emc_volunteer_application">
+                    <form id="volunteer-form" class="volunteer-form" method="post" enctype="multipart/form-data" data-ajax-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" novalidate>
+                        <input type="hidden" name="action" value="emc_job_application">
                         <input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'emc_nonce' ) ); ?>">
                         <div class="volunteer-honeypot" aria-hidden="true">
                             <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
@@ -72,70 +72,65 @@ get_header();
                             </div>
                         </fieldset>
 
-                        <fieldset class="volunteer-form-section volunteer-choice-group" data-group="interests">
-                            <legend><span>2</span> <?php esc_html_e( 'How would you like to help?', 'emc-theme' ); ?></legend>
-                            <p class="volunteer-section-help"><?php esc_html_e( 'Select one or more areas.', 'emc-theme' ); ?></p>
-                            <div class="volunteer-choice-grid">
-                                <label><input type="checkbox" name="interests[]" value="events"><span><i class="fas fa-calendar-alt"></i> <?php esc_html_e( 'Events', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="education"><span><i class="fas fa-book-open"></i> <?php esc_html_e( 'Education', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="welfare"><span><i class="fas fa-hand-holding-heart"></i> <?php esc_html_e( 'Welfare', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="fundraising"><span><i class="fas fa-sterling-sign"></i> <?php esc_html_e( 'Fundraising', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="admin"><span><i class="fas fa-clipboard"></i> <?php esc_html_e( 'Admin / Reception', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="facilities"><span><i class="fas fa-tools"></i> <?php esc_html_e( 'Facilities', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="media"><span><i class="fas fa-camera"></i> <?php esc_html_e( 'Media / Communications', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="interests[]" value="other" id="volunteer-interest-other-toggle"><span><i class="fas fa-ellipsis-h"></i> <?php esc_html_e( 'Other', 'emc-theme' ); ?></span></label>
-                            </div>
-                            <div class="volunteer-field" id="volunteer-interest-other-field" hidden>
-                                <label for="volunteer-interest-other"><?php esc_html_e( 'Describe your interest', 'emc-theme' ); ?> *</label>
-                                <input type="text" id="volunteer-interest-other" name="interest_other">
-                            </div>
-                            <div class="volunteer-group-error" role="alert"></div>
-                        </fieldset>
-
-                        <fieldset class="volunteer-form-section volunteer-choice-group" data-group="availability">
-                            <legend><span>3</span> <?php esc_html_e( 'When are you usually available?', 'emc-theme' ); ?></legend>
-                            <p class="volunteer-section-help"><?php esc_html_e( 'Select one or more options.', 'emc-theme' ); ?></p>
-                            <div class="volunteer-choice-grid volunteer-choice-grid--availability">
-                                <label><input type="checkbox" name="availability[]" value="weekday_day"><span><?php esc_html_e( 'Weekday daytime', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="availability[]" value="weekday_evening"><span><?php esc_html_e( 'Weekday evenings', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="availability[]" value="saturday"><span><?php esc_html_e( 'Saturdays', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="availability[]" value="sunday"><span><?php esc_html_e( 'Sundays', 'emc-theme' ); ?></span></label>
-                                <label><input type="checkbox" name="availability[]" value="occasional"><span><?php esc_html_e( 'Occasional events', 'emc-theme' ); ?></span></label>
+                        <fieldset class="volunteer-form-section">
+                            <legend><span>2</span> <?php esc_html_e( 'Role and availability', 'emc-theme' ); ?></legend>
+                            <div class="volunteer-field">
+                                <label for="job-position"><?php esc_html_e( 'Position applied for', 'emc-theme' ); ?> *</label>
+                                <select id="job-position" name="position" required>
+                                    <option value=""><?php esc_html_e( 'Select a position', 'emc-theme' ); ?></option>
+                                    <?php $requested_position = sanitize_text_field( wp_unslash( $_GET['position'] ?? '' ) ); ?>
+                                    <?php foreach ( get_posts( array( 'post_type' => 'emc_vacancy', 'post_status' => 'publish', 'posts_per_page' => -1, 'orderby' => 'title', 'order' => 'ASC' ) ) as $vacancy ) : ?>
+                                        <option value="<?php echo esc_attr( $vacancy->post_title ); ?>" <?php selected( $requested_position, $vacancy->post_title ); ?>><?php echo esc_html( $vacancy->post_title ); ?></option>
+                                    <?php endforeach; ?>
+                                    <option value="General application" <?php selected( $requested_position, 'General application' ); ?>><?php esc_html_e( 'General application', 'emc-theme' ); ?></option>
+                                </select>
                             </div>
                             <div class="volunteer-field">
-                                <label for="volunteer-availability-details"><?php esc_html_e( 'Additional availability details', 'emc-theme' ); ?></label>
-                                <textarea id="volunteer-availability-details" name="availability_details" rows="3"></textarea>
+                                <label for="job-availability"><?php esc_html_e( 'Notice period / earliest available start date', 'emc-theme' ); ?></label>
+                                <input type="text" id="job-availability" name="availability_details">
                             </div>
-                            <div class="volunteer-group-error" role="alert"></div>
                         </fieldset>
 
                         <fieldset class="volunteer-form-section">
-                            <legend><span>4</span> <?php esc_html_e( 'About you', 'emc-theme' ); ?></legend>
+                            <legend><span>3</span> <?php esc_html_e( 'Your application', 'emc-theme' ); ?></legend>
                             <div class="volunteer-field">
-                                <label for="volunteer-skills"><?php esc_html_e( 'Relevant skills or experience', 'emc-theme' ); ?></label>
-                                <textarea id="volunteer-skills" name="skills" rows="4" placeholder="<?php esc_attr_e( 'Tell us about any skills, qualifications, languages or previous volunteering experience.', 'emc-theme' ); ?>"></textarea>
+                                <label for="job-cv"><?php esc_html_e( 'Upload your CV', 'emc-theme' ); ?> *</label>
+                                <input type="file" id="job-cv" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+                                <small class="volunteer-section-help"><?php esc_html_e( 'PDF, DOC or DOCX, up to 5 MB.', 'emc-theme' ); ?></small>
                             </div>
                             <div class="volunteer-field">
-                                <label for="volunteer-motivation"><?php esc_html_e( 'Why would you like to volunteer with EMC?', 'emc-theme' ); ?> *</label>
+                                <label for="volunteer-skills"><?php esc_html_e( 'Relevant skills or experience', 'emc-theme' ); ?></label>
+                                <textarea id="volunteer-skills" name="skills" rows="4" placeholder="<?php esc_attr_e( 'Tell us about relevant skills, qualifications, languages or previous employment.', 'emc-theme' ); ?>"></textarea>
+                            </div>
+                            <div class="volunteer-field">
+                                <label for="volunteer-motivation"><?php esc_html_e( 'Supporting statement', 'emc-theme' ); ?> *</label>
                                 <textarea id="volunteer-motivation" name="motivation" rows="5" required></textarea>
                             </div>
                         </fieldset>
 
+                        <?php $extra_fields = function_exists( 'emc_job_application_fields' ) ? emc_job_application_fields() : array(); ?>
+                        <?php if ( $extra_fields ) : ?>
+                        <fieldset class="volunteer-form-section">
+                            <legend><span>4</span> <?php esc_html_e( 'Additional information', 'emc-theme' ); ?></legend>
+                            <?php foreach ( $extra_fields as $field ) { emc_render_job_application_field( $field ); } ?>
+                        </fieldset>
+                        <?php endif; ?>
+
                         <fieldset class="volunteer-form-section volunteer-confirmations">
-                            <legend><span>5</span> <?php esc_html_e( 'Confirmations', 'emc-theme' ); ?></legend>
+                            <legend><span><?php echo $extra_fields ? '5' : '4'; ?></span> <?php esc_html_e( 'Confirmations', 'emc-theme' ); ?></legend>
                             <label>
                                 <input type="checkbox" name="checks_consent" value="1" required>
-                                <span><?php esc_html_e( 'I understand that some roles may require references, safeguarding checks or a DBS check.', 'emc-theme' ); ?> *</span>
+                                <span><?php esc_html_e( 'I understand that employment may be subject to references, right-to-work checks, safeguarding checks or a DBS check.', 'emc-theme' ); ?> *</span>
                             </label>
                             <label>
                                 <input type="checkbox" name="privacy_consent" value="1" required>
-                                <span><?php esc_html_e( 'I consent to Essex Muslim Centre storing and using this information to manage my volunteer application.', 'emc-theme' ); ?> *</span>
+                                <span><?php esc_html_e( 'I consent to Essex Muslim Centre storing and using this information to manage my job application.', 'emc-theme' ); ?> *</span>
                             </label>
                         </fieldset>
 
                         <button type="submit" class="btn btn-primary volunteer-submit">
                             <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                            <span><?php esc_html_e( 'Submit Volunteer Application', 'emc-theme' ); ?></span>
+                            <span><?php esc_html_e( 'Submit Job Application', 'emc-theme' ); ?></span>
                         </button>
                         <div class="volunteer-status" role="status" aria-live="polite" tabindex="-1"></div>
                     </form>
@@ -143,7 +138,7 @@ get_header();
                     <div class="volunteer-success" id="volunteer-success" hidden tabindex="-1">
                         <i class="fas fa-check-circle" aria-hidden="true"></i>
                         <h2><?php esc_html_e( 'Application received', 'emc-theme' ); ?></h2>
-                        <p><?php esc_html_e( 'Thank you for offering your time. Our team will review your application and contact you when a suitable opportunity is available.', 'emc-theme' ); ?></p>
+                        <p><?php esc_html_e( 'Thank you for applying. Our team will review your application and contact you if you are shortlisted.', 'emc-theme' ); ?></p>
                         <a href="<?php echo esc_url( get_post_type_archive_link( 'emc_vacancy' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'View Current Opportunities', 'emc-theme' ); ?></a>
                     </div>
                 </article>
@@ -153,14 +148,14 @@ get_header();
                         <i class="fas fa-users" aria-hidden="true"></i>
                         <h2><?php esc_html_e( 'What happens next?', 'emc-theme' ); ?></h2>
                         <ol>
-                            <li><span>1</span><?php esc_html_e( 'We review your interests and availability.', 'emc-theme' ); ?></li>
-                            <li><span>2</span><?php esc_html_e( 'A team member contacts you about suitable roles.', 'emc-theme' ); ?></li>
-                            <li><span>3</span><?php esc_html_e( 'Relevant induction and checks are completed.', 'emc-theme' ); ?></li>
+                            <li><span>1</span><?php esc_html_e( 'We review your application and CV.', 'emc-theme' ); ?></li>
+                            <li><span>2</span><?php esc_html_e( 'Shortlisted applicants are contacted for the next stage.', 'emc-theme' ); ?></li>
+                            <li><span>3</span><?php esc_html_e( 'Pre-employment checks are completed before appointment.', 'emc-theme' ); ?></li>
                         </ol>
                     </div>
                     <div class="volunteer-info-note">
                         <i class="fas fa-shield-alt" aria-hidden="true"></i>
-                        <p><?php esc_html_e( 'Submitting this form does not guarantee placement. Opportunities depend on current needs, suitability, safeguarding, and available supervision.', 'emc-theme' ); ?></p>
+                        <p><?php esc_html_e( 'Submitting an application does not guarantee an interview or employment. Appointment is subject to suitability and all required checks.', 'emc-theme' ); ?></p>
                     </div>
                 </aside>
             </div>

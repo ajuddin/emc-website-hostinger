@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const otherToggle = document.getElementById('volunteer-interest-other-toggle');
     const otherFieldWrap = document.getElementById('volunteer-interest-other-field');
     const otherField = document.getElementById('volunteer-interest-other');
-    const defaultLabel = submitLabel?.textContent || 'Submit Volunteer Application';
+    const defaultLabel = submitLabel?.textContent || 'Submit Job Application';
 
     function clearError(field) {
         field.removeAttribute('aria-invalid');
@@ -45,6 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (field.type === 'tel' && field.value.replace(/\D/g, '').length < 8) {
             setError(field, 'Please enter a valid phone number.');
             return false;
+        }
+        if (field.type === 'file' && field.files?.length) {
+            const file = field.files[0];
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (!['pdf', 'doc', 'docx'].includes(extension) || file.size > 5 * 1024 * 1024) {
+                setError(field, 'Please upload a PDF, DOC or DOCX file no larger than 5 MB.');
+                return false;
+            }
         }
         if (field === postcode && !/^(GIR 0AA|(?:[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}))$/i.test(field.value.trim())) {
             setError(field, 'Please enter a valid UK postcode.');

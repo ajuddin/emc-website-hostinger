@@ -314,6 +314,12 @@ function emc_customize_register( $wp_customize ) {
 
     emc_add_text_setting( $wp_customize, 'emc_header_donate_label', __( 'Donate Now', 'emc-theme' ),
         'emc_header_opts', __( 'Donate Button Label', 'emc-theme' ) );
+	
+	emc_add_url_setting( $wp_customize, 'emc_header_donate_url', '',
+        'emc_header_opts', __( 'Donate Button Link', 'emc-theme' ) );
+    $wp_customize->get_control( 'emc_header_donate_url' )->description =
+        __( 'Enter the full destination URL. Leave blank to use the Donate page.', 'emc-theme' );
+
 
     // ── Logo Size ────────────────────────────────────────────────────────
     $wp_customize->add_setting( 'emc_logo_height', array(

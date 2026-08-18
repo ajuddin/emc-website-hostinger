@@ -214,7 +214,7 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
 
             <?php if ( $show_donate ) : ?>
             <div class="magnetic-btn">
-                <?php echo emc_donate_button( $donate_label ); ?>
+                <?php echo emc_donate_button( $donate_label, '', $donate_url ); ?>
             </div>
             <?php endif; ?>
 

@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 function emc_organize_post_type_menu( $args, $post_type ) {
 	$managed = array(
 		'emc_event', 'emc_service', 'emc_team', 'emc_testimonial', 'emc_faq',
-		'emc_campaign', 'emc_vacancy', 'emc_portfolio', 'emc_pricing',
+		'emc_campaign', 'emc_vacancy', 'emc_volunteer_role', 'emc_portfolio', 'emc_pricing',
 		'emc_case_study', 'emc_gallery', 'emc_video', 'emc_badr_tile',
 	);
 	if ( in_array( $post_type, $managed, true ) ) {
@@ -34,7 +34,8 @@ function emc_admin_workspace_cards() {
 			array( 'Testimonials', 'Community feedback displayed across the website.', 'dashicons-format-quote', admin_url( 'edit.php?post_type=emc_testimonial' ), 'edit_posts' ),
 			array( 'FAQs', 'Frequently asked questions and their display order.', 'dashicons-editor-help', admin_url( 'edit.php?post_type=emc_faq' ), 'edit_posts' ),
 			array( 'Fundraising Campaigns', 'Manage goals, Stripe fund matching, progress, dates and campaign pages.', 'dashicons-chart-line', admin_url( 'edit.php?post_type=emc_campaign' ), 'edit_posts' ),
-			array( 'Vacancies', 'Open positions and application information.', 'dashicons-businessperson', admin_url( 'edit.php?post_type=emc_vacancy' ), 'edit_posts' ),
+			array( 'Job Roles', 'Create paid positions shown in the job application form.', 'dashicons-businessperson', admin_url( 'edit.php?post_type=emc_vacancy' ), 'edit_posts' ),
+			array( 'Volunteer Roles', 'Create volunteering opportunities shown in the volunteer form.', 'dashicons-universal-access-alt', admin_url( 'edit.php?post_type=emc_volunteer_role' ), 'edit_posts' ),
 			array( 'Projects', 'Community projects and portfolio information.', 'dashicons-building', admin_url( 'edit.php?post_type=emc_portfolio' ), 'edit_posts' ),
 			array( 'Programmes', 'Courses, programmes, pricing and schedules.', 'dashicons-tickets-alt', admin_url( 'edit.php?post_type=emc_pricing' ), 'edit_posts' ),
 			array( 'Impact Stories', 'Case studies and evidence of community impact.', 'dashicons-star-filled', admin_url( 'edit.php?post_type=emc_case_study' ), 'edit_posts' ),
@@ -46,7 +47,8 @@ function emc_admin_workspace_cards() {
 			array( 'Donations & Payments', 'Payment history, recurring schedules, detailed records and CSV exports.', 'dashicons-money-alt', admin_url( 'options-general.php?page=emc-donations' ), 'manage_options' ),
 			array( 'Event Registrations', 'Attendee answers, ticket totals, payment status and exports.', 'dashicons-clipboard', admin_url( 'admin.php?page=emc-event-registrations' ), 'edit_posts' ),
 			array( 'Contact Messages', 'Messages submitted through the public contact form.', 'dashicons-email', admin_url( 'admin.php?page=emc-contact-messages' ), 'manage_options' ),
-			array( 'Volunteer Applications', 'Complete volunteer applications and applicant details.', 'dashicons-universal-access', admin_url( 'admin.php?page=emc-volunteer-applications' ), 'manage_options' ),
+			array( 'Job Applications', 'Complete job applications, CVs and applicant details.', 'dashicons-businessperson', admin_url( 'admin.php?page=emc-job-applications' ), 'manage_options' ),
+			array( 'Volunteer Applications', 'Volunteer interests, availability and applicant details.', 'dashicons-universal-access', admin_url( 'admin.php?page=emc-volunteer-applications' ), 'manage_options' ),
 			array( 'Gift Aid Declarations', 'Stored declarations, addresses and confirmation records.', 'dashicons-heart', admin_url( 'admin.php?page=emc-gift-aid-declarations' ), 'manage_options' ),
 			array( 'Newsletter Subscribers', 'Newsletter consent records and Mailchimp sync status.', 'dashicons-email-alt2', admin_url( 'admin.php?page=emc-newsletter' ), 'manage_options' ),
 		),
@@ -127,7 +129,8 @@ function emc_admin_content_page() {
 		array( 'Team departments', 'team_department', 'emc_team' ),
 		array( 'Testimonial categories', 'testimonial_category', 'emc_testimonial' ),
 		array( 'Project categories', 'portfolio_category', 'emc_portfolio' ),
-		array( 'Vacancy types', 'vacancy_type', 'emc_vacancy' ),
+		array( 'Job role types', 'vacancy_type', 'emc_vacancy' ),
+		array( 'Volunteer role types', 'volunteer_role_type', 'emc_volunteer_role' ),
 		array( 'Gallery categories', 'gallery_category', 'emc_gallery' ),
 	);
 	foreach ( $taxonomies as $taxonomy ) {
@@ -147,7 +150,8 @@ function emc_admin_responses_page() {
 			array( 'all', __( 'All Form Responses', 'emc-theme' ), 'manage_options' ),
 			array( 'event-registrations', __( 'Event Registrations', 'emc-theme' ), 'edit_posts' ),
 			array( 'contact-messages', __( 'Contact Messages', 'emc-theme' ), 'manage_options' ),
-			array( 'volunteer', __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),
+			array( 'volunteer', __( 'Job Applications', 'emc-theme' ), 'manage_options' ),
+			array( 'volunteer-signups', __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),
 			array( 'gift-aid', __( 'Gift Aid Declarations', 'emc-theme' ), 'manage_options' ),
 			array( 'newsletter', __( 'Newsletter Subscribers', 'emc-theme' ), 'manage_options' ),
 		);

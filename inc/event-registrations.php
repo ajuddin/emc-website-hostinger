@@ -46,6 +46,33 @@ function emc_event_registration_fields( $event_id ) {
 }
 
 /**
+ * Fields commonly used by event, class, and madrasa registrations.
+ *
+ * @return array<string,array>
+ */
+function emc_event_registration_field_presets() {
+    return array(
+        'first_name'       => array( 'label' => __( 'First name', 'emc-theme' ), 'type' => 'text', 'required' => true ),
+        'last_name'        => array( 'label' => __( 'Last name', 'emc-theme' ), 'type' => 'text', 'required' => true ),
+        'date_of_birth'    => array( 'label' => __( 'Student date of birth', 'emc-theme' ), 'type' => 'date', 'required' => true ),
+        'parent_name'      => array( 'label' => __( 'Parent / guardian name', 'emc-theme' ), 'type' => 'text', 'required' => true ),
+        'phone'            => array( 'label' => __( 'Contact number', 'emc-theme' ), 'type' => 'tel', 'required' => true ),
+        'street_address'   => array( 'label' => __( 'Street address', 'emc-theme' ), 'type' => 'text', 'required' => false ),
+        'postcode'         => array( 'label' => __( 'ZIP / postal code', 'emc-theme' ), 'type' => 'text', 'required' => false ),
+        'country'          => array( 'label' => __( 'Country', 'emc-theme' ), 'type' => 'select', 'required' => false, 'options' => array( 'United Kingdom', 'Ireland', 'Other' ) ),
+        'email'            => array( 'label' => __( 'Email address', 'emc-theme' ), 'type' => 'email', 'required' => true ),
+        'emergency_name'   => array( 'label' => __( 'Emergency contact name', 'emc-theme' ), 'type' => 'text', 'required' => true ),
+        'relationship'     => array( 'label' => __( 'Relationship', 'emc-theme' ), 'type' => 'text', 'required' => true ),
+        'emergency_phone'  => array( 'label' => __( 'Emergency contact number', 'emc-theme' ), 'type' => 'tel', 'required' => true ),
+        'medical_needs'    => array( 'label' => __( 'Food allergies, medical condition or special needs', 'emc-theme' ), 'type' => 'textarea', 'required' => false ),
+        'photo_permission' => array( 'label' => __( 'Photo or video permission', 'emc-theme' ), 'type' => 'radio', 'required' => true, 'options' => array( 'Yes', 'No' ) ),
+        'programmes'       => array( 'label' => __( 'Programme selection (tick all that apply)', 'emc-theme' ), 'type' => 'checkbox_group', 'required' => false, 'options' => array( 'Qur’an Beginners', 'Qur’an Recitation', 'Hifdh Programme', 'Islamic Studies' ) ),
+        'school_year'      => array( 'label' => __( 'Student school year group', 'emc-theme' ), 'type' => 'select', 'required' => false, 'options' => array( 'Reception', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12', 'Year 13' ) ),
+        'previous_study'   => array( 'label' => __( 'Previous Islamic education (if any)', 'emc-theme' ), 'type' => 'textarea', 'required' => false ),
+    );
+}
+
+/**
  * Return paid-registration configuration for an event.
  *
  * @param int $event_id Event post ID.
@@ -71,7 +98,7 @@ function emc_event_stripe_is_available() {
         return false;
     }
 
-    return ! function_exists( 'emc_payment_license_is_active' ) || emc_payment_license_is_active();
+    return function_exists( 'emc_payment_license_is_active' ) && emc_payment_license_is_active();
 }
 
 /**
@@ -90,6 +117,21 @@ function emc_event_registration_meta_box() {
 add_action( 'add_meta_boxes_emc_event', 'emc_event_registration_meta_box' );
 
 /**
+ * Load WordPress's bundled sortable library on event edit screens.
+ */
+function emc_event_registration_admin_assets( $hook_suffix ) {
+    if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) ) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if ( $screen && 'emc_event' === $screen->post_type ) {
+        wp_enqueue_script( 'jquery-ui-sortable' );
+    }
+}
+add_action( 'admin_enqueue_scripts', 'emc_event_registration_admin_assets' );
+
+/**
  * Render one form-builder row.
  *
  * @param int   $index Row index.
@@ -101,13 +143,17 @@ function emc_event_registration_builder_row( $index, $field ) {
         'email'    => __( 'Email', 'emc-theme' ),
         'tel'      => __( 'Telephone', 'emc-theme' ),
         'number'   => __( 'Number', 'emc-theme' ),
+        'date'     => __( 'Date', 'emc-theme' ),
         'textarea' => __( 'Long text', 'emc-theme' ),
         'select'   => __( 'Dropdown', 'emc-theme' ),
+        'radio'    => __( 'Radio choices', 'emc-theme' ),
+        'checkbox_group' => __( 'Checkbox choices', 'emc-theme' ),
         'checkbox' => __( 'Checkbox', 'emc-theme' ),
     );
     $options = ! empty( $field['options'] ) && is_array( $field['options'] ) ? implode( "\n", $field['options'] ) : '';
     ?>
     <tr class="emc-event-field-row">
+        <td class="emc-event-field-handle" title="<?php esc_attr_e( 'Drag to reorder', 'emc-theme' ); ?>"><span class="dashicons dashicons-move" aria-hidden="true"></span><span class="screen-reader-text"><?php esc_html_e( 'Drag to reorder', 'emc-theme' ); ?></span></td>
         <td>
             <input type="hidden" data-field="key" name="emc_event_form_fields[<?php echo esc_attr( $index ); ?>][key]" value="<?php echo esc_attr( $field['key'] ?? '' ); ?>">
             <input type="text" class="widefat" data-field="label" name="emc_event_form_fields[<?php echo esc_attr( $index ); ?>][label]" value="<?php echo esc_attr( $field['label'] ?? '' ); ?>" required>
@@ -119,7 +165,7 @@ function emc_event_registration_builder_row( $index, $field ) {
                 <?php endforeach; ?>
             </select>
         </td>
-        <td><textarea class="widefat" data-field="options" name="emc_event_form_fields[<?php echo esc_attr( $index ); ?>][options]" rows="2" placeholder="<?php esc_attr_e( 'One dropdown option per line', 'emc-theme' ); ?>"><?php echo esc_textarea( $options ); ?></textarea></td>
+        <td><textarea class="widefat" data-field="options" name="emc_event_form_fields[<?php echo esc_attr( $index ); ?>][options]" rows="2" placeholder="<?php esc_attr_e( 'One choice per line', 'emc-theme' ); ?>"><?php echo esc_textarea( $options ); ?></textarea></td>
         <td style="text-align:center"><input type="checkbox" data-field="required" name="emc_event_form_fields[<?php echo esc_attr( $index ); ?>][required]" value="1" <?php checked( ! empty( $field['required'] ) ); ?>></td>
         <td><button type="button" class="button-link-delete emc-remove-event-field"><?php esc_html_e( 'Remove', 'emc-theme' ); ?></button></td>
     </tr>
@@ -135,6 +181,7 @@ function emc_event_registration_meta_box_html( $post ) {
     wp_nonce_field( 'emc_event_registration_config_save', 'emc_event_registration_config_nonce' );
     $fields  = emc_event_registration_fields( $post->ID );
     $payment = emc_event_payment_config( $post->ID );
+    $presets = emc_event_registration_field_presets();
     ?>
     <h3><?php esc_html_e( 'Payment', 'emc-theme' ); ?></h3>
     <p>
@@ -157,12 +204,13 @@ function emc_event_registration_meta_box_html( $post ) {
 
     <hr>
     <h3><?php esc_html_e( 'Registration fields', 'emc-theme' ); ?></h3>
-    <p class="description"><?php esc_html_e( 'Edit labels and field types, mark fields required, or add and remove fields. Dropdown choices should be entered one per line.', 'emc-theme' ); ?></p>
+    <p class="description"><?php esc_html_e( 'Drag rows into any order. Add only the fields you need, mark them required, and enter dropdown, radio, or checkbox choices one per line.', 'emc-theme' ); ?></p>
     <table class="widefat striped" id="emc-event-form-builder">
         <thead><tr>
+            <th style="width:38px"><span class="screen-reader-text"><?php esc_html_e( 'Order', 'emc-theme' ); ?></span></th>
             <th><?php esc_html_e( 'Field name', 'emc-theme' ); ?></th>
             <th style="width:150px"><?php esc_html_e( 'Type', 'emc-theme' ); ?></th>
-            <th><?php esc_html_e( 'Dropdown options', 'emc-theme' ); ?></th>
+            <th><?php esc_html_e( 'Choices', 'emc-theme' ); ?></th>
             <th style="width:75px;text-align:center"><?php esc_html_e( 'Required', 'emc-theme' ); ?></th>
             <th style="width:70px"></th>
         </tr></thead>
@@ -170,11 +218,30 @@ function emc_event_registration_meta_box_html( $post ) {
             <?php foreach ( $fields as $index => $field ) { emc_event_registration_builder_row( $index, $field ); } ?>
         </tbody>
     </table>
-    <p><button type="button" class="button" id="emc-add-event-field"><?php esc_html_e( 'Add field', 'emc-theme' ); ?></button></p>
+    <p class="emc-event-builder-actions">
+        <select id="emc-event-field-preset">
+            <option value=""><?php esc_html_e( 'Choose a common field…', 'emc-theme' ); ?></option>
+            <?php foreach ( $presets as $key => $preset ) : ?>
+                <option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $preset['label'] ); ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button type="button" class="button button-secondary" id="emc-add-preset-event-field"><?php esc_html_e( 'Add selected field', 'emc-theme' ); ?></button>
+        <button type="button" class="button" id="emc-add-event-field"><?php esc_html_e( 'Add custom field', 'emc-theme' ); ?></button>
+    </p>
+    <style>
+        #emc-event-form-builder .emc-event-field-handle{cursor:move;text-align:center;vertical-align:middle;color:#646970}
+        #emc-event-form-builder .emc-event-field-handle:hover{color:#2271b1}
+        #emc-event-form-builder .ui-sortable-helper{display:table;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.16)}
+        #emc-event-form-builder .emc-event-field-placeholder{height:58px;background:#f0f6fc}
+        .emc-event-builder-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    </style>
     <script>
     (() => {
         const table = document.querySelector('#emc-event-form-builder tbody');
         const addButton = document.getElementById('emc-add-event-field');
+        const presetSelect = document.getElementById('emc-event-field-preset');
+        const presetButton = document.getElementById('emc-add-preset-event-field');
+        const presets = <?php echo wp_json_encode( $presets ); ?>;
         if (!table || !addButton) return;
 
         const reindex = () => {
@@ -190,20 +257,48 @@ function emc_event_registration_meta_box_html( $post ) {
         });
         table.querySelectorAll('tr').forEach(bindRemove);
 
-        addButton.addEventListener('click', () => {
+        const addRow = (field = {}) => {
             const row = document.createElement('tr');
             row.className = 'emc-event-field-row';
+            const key = field.key || `field_${Date.now()}`;
+            const label = field.label || '';
+            const type = field.type || 'text';
+            const options = Array.isArray(field.options) ? field.options.join('\n') : '';
             row.innerHTML = `
-                <td><input type="hidden" data-field="key" value="field_${Date.now()}"><input type="text" class="widefat" data-field="label" required></td>
-                <td><select class="widefat" data-field="type"><option value="text">Text</option><option value="email">Email</option><option value="tel">Telephone</option><option value="number">Number</option><option value="textarea">Long text</option><option value="select">Dropdown</option><option value="checkbox">Checkbox</option></select></td>
-                <td><textarea class="widefat" data-field="options" rows="2" placeholder="One dropdown option per line"></textarea></td>
+                <td class="emc-event-field-handle" title="Drag to reorder"><span class="dashicons dashicons-move" aria-hidden="true"></span><span class="screen-reader-text">Drag to reorder</span></td>
+                <td><input type="hidden" data-field="key"><input type="text" class="widefat" data-field="label" required></td>
+                <td><select class="widefat" data-field="type"><option value="text">Text</option><option value="email">Email</option><option value="tel">Telephone</option><option value="number">Number</option><option value="date">Date</option><option value="textarea">Long text</option><option value="select">Dropdown</option><option value="radio">Radio choices</option><option value="checkbox_group">Checkbox choices</option><option value="checkbox">Checkbox</option></select></td>
+                <td><textarea class="widefat" data-field="options" rows="2" placeholder="One choice per line"></textarea></td>
                 <td style="text-align:center"><input type="checkbox" data-field="required" value="1"></td>
                 <td><button type="button" class="button-link-delete emc-remove-event-field">Remove</button></td>`;
+            row.querySelector('[data-field="key"]').value = key;
+            row.querySelector('[data-field="label"]').value = label;
+            row.querySelector('[data-field="type"]').value = type;
+            row.querySelector('[data-field="options"]').value = options;
+            row.querySelector('[data-field="required"]').checked = Boolean(field.required);
             table.appendChild(row);
             bindRemove(row);
             reindex();
             row.querySelector('[data-field="label"]').focus();
+        };
+
+        addButton.addEventListener('click', () => addRow());
+        presetButton?.addEventListener('click', () => {
+            const key = presetSelect?.value;
+            if (!key || !presets[key]) return;
+            addRow({...presets[key], key});
+            presetSelect.value = '';
         });
+
+        if (window.jQuery?.fn?.sortable) {
+            window.jQuery(table).sortable({
+                axis: 'y',
+                handle: '.emc-event-field-handle',
+                placeholder: 'emc-event-field-placeholder',
+                forcePlaceholderSize: true,
+                update: reindex
+            });
+        }
     })();
     </script>
     <?php
@@ -222,7 +317,7 @@ function emc_save_event_registration_config( $post_id ) {
         return;
     }
 
-    $allowed_types = array( 'text', 'email', 'tel', 'number', 'textarea', 'select', 'checkbox' );
+    $allowed_types = array( 'text', 'email', 'tel', 'number', 'date', 'textarea', 'select', 'radio', 'checkbox_group', 'checkbox' );
     $submitted     = isset( $_POST['emc_event_form_fields'] ) && is_array( $_POST['emc_event_form_fields'] ) ? wp_unslash( $_POST['emc_event_form_fields'] ) : array();
     $fields        = array();
     $used_keys     = array();
@@ -240,7 +335,7 @@ function emc_save_event_registration_config( $post_id ) {
         $used_keys[ $key ] = true;
 
         $options = array();
-        if ( 'select' === $type ) {
+        if ( in_array( $type, array( 'select', 'radio', 'checkbox_group' ), true ) ) {
             $raw_options = preg_split( '/\r\n|\r|\n/', (string) ( $field['options'] ?? '' ) );
             foreach ( array_slice( $raw_options, 0, 50 ) as $option ) {
                 $option = sanitize_text_field( $option );
@@ -377,9 +472,26 @@ function emc_render_event_registration_form( $event_id ) {
                             continue;
                         }
                         $field_id = 'emc-event-' . $event_id . '-' . $key;
-                        $class    = in_array( $type, array( 'textarea', 'checkbox' ), true ) ? ' event-form-field-wide' : '';
+                        $class    = in_array( $type, array( 'textarea', 'checkbox', 'radio', 'checkbox_group' ), true ) ? ' event-form-field-wide' : '';
                         $class   .= 'checkbox' === $type ? ' event-form-field-checkbox' : '';
                     ?>
+                        <?php if ( in_array( $type, array( 'radio', 'checkbox_group' ), true ) ) : ?>
+                            <fieldset class="event-form-field event-form-choice-group<?php echo esc_attr( $class ); ?>" <?php echo $required && 'checkbox_group' === $type ? 'data-choice-required="1"' : ''; ?>>
+                                <legend><?php echo esc_html( $field['label'] ); ?><?php echo $required ? ' *' : ''; ?></legend>
+                                <div class="event-form-choices">
+                                    <?php foreach ( $field['options'] ?? array() as $option_index => $option ) :
+                                        $option_id = $field_id . '-' . $option_index;
+                                        $input_type = 'radio' === $type ? 'radio' : 'checkbox';
+                                        $input_name = 'radio' === $type ? "fields[{$key}]" : "fields[{$key}][]";
+                                    ?>
+                                        <label for="<?php echo esc_attr( $option_id ); ?>">
+                                            <input id="<?php echo esc_attr( $option_id ); ?>" type="<?php echo esc_attr( $input_type ); ?>" name="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $option ); ?>" <?php echo $required && 'radio' === $type && 0 === $option_index ? 'required' : ''; ?>>
+                                            <span><?php echo esc_html( $option ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </fieldset>
+                        <?php else : ?>
                         <label class="event-form-field<?php echo esc_attr( $class ); ?>" for="<?php echo esc_attr( $field_id ); ?>">
                             <?php if ( 'checkbox' === $type ) : ?>
                                 <input id="<?php echo esc_attr( $field_id ); ?>" type="checkbox" name="fields[<?php echo esc_attr( $key ); ?>]" value="1" <?php echo $required ? 'required' : ''; ?>>
@@ -403,6 +515,7 @@ function emc_render_event_registration_form( $event_id ) {
                                 <?php endif; ?>
                             <?php endif; ?>
                         </label>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
 
@@ -555,6 +668,11 @@ function emc_event_validate_registration_fields( $event_id, $submitted ) {
 
         if ( 'checkbox' === $type ) {
             $value = '1' === (string) $raw ? 'Yes' : '';
+        } elseif ( 'checkbox_group' === $type ) {
+            $selected = is_array( $raw ) ? $raw : array();
+            $selected = array_map( 'sanitize_text_field', array_slice( $selected, 0, 50 ) );
+            $selected = array_values( array_intersect( $field['options'] ?? array(), $selected ) );
+            $value    = implode( ', ', $selected );
         } elseif ( 'textarea' === $type ) {
             $value = sanitize_textarea_field( $raw );
         } elseif ( 'email' === $type ) {
@@ -564,10 +682,18 @@ function emc_event_validate_registration_fields( $event_id, $submitted ) {
             }
         } elseif ( 'number' === $type ) {
             $value = (string) absint( $raw );
-        } elseif ( 'select' === $type ) {
+        } elseif ( in_array( $type, array( 'select', 'radio' ), true ) ) {
             $value = sanitize_text_field( $raw );
             if ( '' !== $value && ! in_array( $value, $field['options'] ?? array(), true ) ) {
                 return new WP_Error( 'invalid_option', sprintf( __( 'Please select a valid option for “%s”.', 'emc-theme' ), $field['label'] ) );
+            }
+        } elseif ( 'date' === $type ) {
+            $value = sanitize_text_field( $raw );
+            if ( '' !== $value ) {
+                $parts = array_map( 'absint', explode( '-', $value ) );
+                if ( 3 !== count( $parts ) || ! checkdate( $parts[1], $parts[2], $parts[0] ) ) {
+                    return new WP_Error( 'invalid_date', sprintf( __( 'Please enter a valid date for "%s".', 'emc-theme' ), $field['label'] ) );
+                }
             }
         } else {
             $value = sanitize_text_field( $raw );
@@ -599,6 +725,10 @@ function emc_event_validate_registration_fields( $event_id, $submitted ) {
             $identity['attendees'] = min( 20, max( 1, absint( $value ) ) );
             $values[ $key ]['value'] = (string) $identity['attendees'];
         }
+    }
+
+    if ( ! $identity['name'] && ( ! empty( $values['first_name']['value'] ) || ! empty( $values['last_name']['value'] ) ) ) {
+        $identity['name'] = trim( ( $values['first_name']['value'] ?? '' ) . ' ' . ( $values['last_name']['value'] ?? '' ) );
     }
 
     if ( ! $identity['name'] ) {

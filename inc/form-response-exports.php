@@ -12,7 +12,8 @@ function emc_form_response_export_types() {
 		'all'                  => array( __( 'All Form Responses', 'emc-theme' ), 'manage_options' ),
 		'event-registrations'  => array( __( 'Event Registrations', 'emc-theme' ), 'edit_posts' ),
 		'contact-messages'     => array( __( 'Contact Messages', 'emc-theme' ), 'manage_options' ),
-		'volunteer'            => array( __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),
+		'volunteer'            => array( __( 'Job Applications', 'emc-theme' ), 'manage_options' ),
+		'volunteer-signups'    => array( __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),
 		'gift-aid'             => array( __( 'Gift Aid Declarations', 'emc-theme' ), 'manage_options' ),
 		'newsletter'           => array( __( 'Newsletter Subscribers', 'emc-theme' ), 'manage_options' ),
 	);
@@ -69,13 +70,39 @@ function emc_contact_export_data() {
 }
 
 function emc_volunteer_export_data() {
-	$fields = array( 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'phone' => 'Phone', 'postcode' => 'Postcode', 'over_18' => 'Over 18', 'interests' => 'Interests', 'interest_other' => 'Other Interest', 'availability' => 'Availability', 'availability_details' => 'Availability Details', 'skills' => 'Skills and Experience', 'motivation' => 'Reason for Volunteering', 'checks_consent' => 'Checks Consent', 'privacy_consent' => 'Privacy Consent', 'status' => 'Record Status', 'email_status' => 'Email Notification Status' );
-	$headers = array_merge( array( 'Record ID', 'Submitted' ), array_values( $fields ) );
+	$fields = array( 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'phone' => 'Phone', 'postcode' => 'Postcode', 'over_18' => 'Over 18', 'position' => 'Position Applied For', 'availability_details' => 'Notice Period / Availability', 'skills' => 'Skills and Experience', 'motivation' => 'Supporting Statement', 'checks_consent' => 'Checks Consent', 'privacy_consent' => 'Privacy Consent', 'status' => 'Record Status', 'email_status' => 'Email Notification Status' );
+	$ids = emc_form_response_ids( 'emc_volunteer' );
+	$dynamic = array();
+	foreach ( $ids as $id ) {
+		foreach ( (array) get_post_meta( $id, '_emc_volunteer_extra_fields', true ) as $key => $answer ) {
+			$key = sanitize_key( $key );
+			if ( $key ) $dynamic[ $key ] = sanitize_text_field( $answer['label'] ?? $key );
+		}
+	}
+	$headers = array_merge( array( 'Record ID', 'Submitted' ), array_values( $fields ), array( 'CV URL' ), array_values( $dynamic ) );
 	$rows = array();
-	foreach ( emc_form_response_ids( 'emc_volunteer' ) as $id ) {
+	foreach ( $ids as $id ) {
 		$row = array( $id, get_post_meta( $id, '_emc_volunteer_submitted_at', true ) ?: get_the_date( 'Y-m-d H:i:s', $id ) );
 		foreach ( $fields as $field => $label ) {
 			$value = get_post_meta( $id, '_emc_volunteer_' . $field, true );
+			$row[] = in_array( $field, array( 'checks_consent', 'privacy_consent' ), true ) ? ( '1' === $value ? 'Yes' : 'No' ) : $value;
+		}
+		$row[] = wp_get_attachment_url( absint( get_post_meta( $id, '_emc_volunteer_cv_attachment_id', true ) ) ) ?: '';
+		$answers = (array) get_post_meta( $id, '_emc_volunteer_extra_fields', true );
+		foreach ( $dynamic as $key => $label ) $row[] = $answers[ $key ]['value'] ?? '';
+		$rows[] = $row;
+	}
+	return array( $headers, $rows );
+}
+
+function emc_volunteer_signup_export_data() {
+	$fields = array( 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'phone' => 'Phone', 'postcode' => 'Postcode', 'over_18' => 'Over 18', 'role' => 'Volunteer Role', 'interests' => 'Interests', 'interest_other' => 'Other Interest', 'availability' => 'Availability', 'availability_details' => 'Availability Details', 'skills' => 'Skills and Experience', 'motivation' => 'Reason for Volunteering', 'checks_consent' => 'Checks Consent', 'privacy_consent' => 'Privacy Consent', 'status' => 'Record Status', 'email_status' => 'Email Notification Status' );
+	$headers = array_merge( array( 'Record ID', 'Submitted' ), array_values( $fields ) );
+	$rows = array();
+	foreach ( emc_form_response_ids( 'emc_volunteer_signup' ) as $id ) {
+		$row = array( $id, get_post_meta( $id, '_emc_volunteer_signup_submitted_at', true ) ?: get_the_date( 'Y-m-d H:i:s', $id ) );
+		foreach ( $fields as $field => $label ) {
+			$value = get_post_meta( $id, '_emc_volunteer_signup_' . $field, true );
 			$row[] = in_array( $field, array( 'checks_consent', 'privacy_consent' ), true ) ? ( '1' === $value ? 'Yes' : 'No' ) : $value;
 		}
 		$rows[] = $row;
@@ -128,7 +155,7 @@ function emc_giving_schedules_export_data() {
 }
 
 function emc_form_response_export_data( $type ) {
-	$callbacks = array( 'event-registrations' => 'emc_event_registration_export_data', 'contact-messages' => 'emc_contact_export_data', 'volunteer' => 'emc_volunteer_export_data', 'gift-aid' => 'emc_gift_aid_export_data', 'newsletter' => 'emc_newsletter_export_data' );
+	$callbacks = array( 'event-registrations' => 'emc_event_registration_export_data', 'contact-messages' => 'emc_contact_export_data', 'volunteer' => 'emc_volunteer_export_data', 'volunteer-signups' => 'emc_volunteer_signup_export_data', 'gift-aid' => 'emc_gift_aid_export_data', 'newsletter' => 'emc_newsletter_export_data' );
 	if ( 'all' !== $type ) return isset( $callbacks[ $type ] ) ? call_user_func( $callbacks[ $type ] ) : array( array(), array() );
 
 	$headers = array( 'Response Type', 'Record ID', 'Submitted', 'Name', 'Email', 'Phone', 'Related Form or Event', 'Status', 'Amount (GBP)', 'Complete Response Details' );
@@ -174,7 +201,7 @@ add_action( 'admin_post_emc_export_form_responses', 'emc_export_form_responses' 
 /** Download button on each individual response screen. */
 function emc_form_response_export_screen_action() {
 	$page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
-	$map = array( 'emc-event-registrations' => 'event-registrations', 'emc-contact-messages' => 'contact-messages', 'emc-volunteer-applications' => 'volunteer', 'emc-gift-aid-declarations' => 'gift-aid', 'emc-newsletter' => 'newsletter' );
+	$map = array( 'emc-event-registrations' => 'event-registrations', 'emc-contact-messages' => 'contact-messages', 'emc-job-applications' => 'volunteer', 'emc-volunteer-applications' => 'volunteer-signups', 'emc-gift-aid-declarations' => 'gift-aid', 'emc-newsletter' => 'newsletter' );
 	if ( ! isset( $map[ $page ] ) ) return;
 	$type = $map[ $page ]; $definition = emc_form_response_export_types()[ $type ];
 	if ( ! current_user_can( $definition[1] ) ) return;

@@ -193,6 +193,49 @@ html {
     line-height: 1.5;
 }
 
+.event-form-choice-group {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.event-form-choice-group legend {
+    margin-bottom: .55rem;
+    color: var(--deep-blue);
+    font-size: var(--step--1);
+    font-weight: 700;
+}
+
+.event-form-choices {
+    display: grid;
+    gap: .55rem;
+}
+
+.event-form-choices label {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    cursor: pointer;
+}
+
+.event-form-choices input[type="radio"],
+.event-form-choices input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin: .15rem 0 0;
+    accent-color: var(--primary-green);
+}
+
+.emc-event-registration-form .event-form-choices label > span {
+    display: inline;
+    margin: 0;
+    color: var(--text-color);
+    font-weight: 500;
+    line-height: 1.45;
+}
+
 .event-registration-price {
     display: flex;
     align-items: center;

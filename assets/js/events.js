@@ -181,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const attendees    = form.querySelector('[name="fields[attendees]"]');
         const totalDisplay = form.querySelector('[data-event-payment-total]');
         const cardErrors   = form.querySelector('.event-card-errors');
+        const requiredChoiceGroups = form.querySelectorAll('[data-choice-required="1"]');
         let stripe = null;
         let card = null;
         let paymentSession = null;
@@ -210,6 +211,17 @@ document.addEventListener('DOMContentLoaded', () => {
         attendees?.addEventListener('input', updateTotal);
         updateTotal();
 
+        const validateChoiceGroups = () => {
+            requiredChoiceGroups.forEach(group => {
+                const choices = group.querySelectorAll('input[type="checkbox"]');
+                const first = choices[0];
+                if (!first) return;
+                const hasSelection = Array.from(choices).some(choice => choice.checked);
+                first.setCustomValidity(hasSelection ? '' : 'Please select at least one option.');
+            });
+        };
+        requiredChoiceGroups.forEach(group => group.addEventListener('change', validateChoiceGroups));
+
         const postForm = async formData => {
             const response = await fetch(window.emcEventsConfig.ajaxUrl, {
                 method: 'POST',
@@ -226,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', async event => {
             event.preventDefault();
 
+            validateChoiceGroups();
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;

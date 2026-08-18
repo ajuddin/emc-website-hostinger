@@ -50,7 +50,7 @@ while ( have_posts() ) :
                     <h3><?php esc_html_e( 'How to Apply', 'emc-theme' ); ?></h3>
                     <p><?php esc_html_e( 'Complete the application form and our team will contact you about this role.', 'emc-theme' ); ?></p>
                     <p>
-                        <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-primary">
+                        <a href="<?php echo esc_url( emc_get_job_application_url( get_the_title() ) ); ?>" class="btn btn-primary">
                             <i class="fas fa-file-alt" aria-hidden="true"></i>
                             <?php esc_html_e( 'Open Application Form', 'emc-theme' ); ?>
                         </a>
@@ -100,7 +100,7 @@ while ( have_posts() ) :
                             </div>
                         </li>
                     </ul>
-                    <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-primary btn-block">
+                    <a href="<?php echo esc_url( emc_get_job_application_url( get_the_title() ) ); ?>" class="btn btn-primary btn-block">
                         <i class="fas fa-paper-plane" aria-hidden="true"></i>
                         <?php esc_html_e( 'Apply for This Role', 'emc-theme' ); ?>
                     </a>

@@ -16,7 +16,7 @@ get_header();
                 <?php esc_html_e( 'Join Our Team', 'emc-theme' ); ?>
             </span>
             <h1><?php esc_html_e( 'Vacancies', 'emc-theme' ); ?></h1>
-            <p><?php esc_html_e( 'Explore current opportunities to work or volunteer with Essex Muslim Centre.', 'emc-theme' ); ?></p>
+            <p><?php esc_html_e( 'Explore current opportunities to work with Essex Muslim Centre.', 'emc-theme' ); ?></p>
         </div>
     </div>
 </section>
@@ -92,7 +92,7 @@ if ( $vacancy_types && ! is_wp_error( $vacancy_types ) ) :
                         <?php esc_html_e( 'View Details', 'emc-theme' ); ?>
                         <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </a>
-                    <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>"
+                    <a href="<?php echo esc_url( emc_get_job_application_url( get_the_title() ) ); ?>"
                        class="btn btn-outline">
                         <i class="fas fa-file-alt" aria-hidden="true"></i>
                         <?php esc_html_e( 'Apply Now', 'emc-theme' ); ?>
@@ -126,14 +126,14 @@ if ( $vacancy_types && ! is_wp_error( $vacancy_types ) ) :
     <div class="container">
         <div class="vacancy-volunteer-cta glass-card">
             <div class="cta-icon" aria-hidden="true">
-                <i class="fas fa-hands-helping"></i>
+                <i class="fas fa-file-alt"></i>
             </div>
             <div class="cta-text">
-                <h2><?php esc_html_e( 'Interested in Volunteering?', 'emc-theme' ); ?></h2>
-                <p><?php esc_html_e( 'Even if you don\'t see a suitable paid role, we always welcome dedicated volunteers. Get in touch to find out how you can contribute.', 'emc-theme' ); ?></p>
+                <h2><?php esc_html_e( 'Interested in joining our team?', 'emc-theme' ); ?></h2>
+                <p><?php esc_html_e( 'If you do not see a suitable role, you can still send us a general job application for future opportunities.', 'emc-theme' ); ?></p>
             </div>
-            <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-primary">
-                <?php esc_html_e( 'Volunteer With Us', 'emc-theme' ); ?>
+            <a href="<?php echo esc_url( emc_get_job_application_url() ); ?>" class="btn btn-primary">
+                <?php esc_html_e( 'Submit a Job Application', 'emc-theme' ); ?>
             </a>
         </div>
     </div>

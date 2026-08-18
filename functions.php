@@ -254,9 +254,17 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             return;
         }
 
-        $slug = is_page_template( 'template-events.php' )
-            ? 'events'
-            : get_post_field( 'post_name', get_queried_object_id() );
+        if ( is_page_template( 'template-events.php' ) ) {
+            $slug = 'events';
+        } elseif ( is_page_template( 'page-volunteer.php' ) ) {
+            // The legacy template filename is retained for existing sites, while
+            // the public page is now the Job Application page.
+            $slug = 'job-application';
+        } elseif ( is_page_template( 'page-volunteer-registration.php' ) ) {
+            $slug = 'volunteer';
+        } else {
+            $slug = get_post_field( 'post_name', get_queried_object_id() );
+        }
 
         // Donate and Ramadan templates enqueue their own Stripe dependencies/config.
         if ( in_array( $slug, array( 'donate', 'ramadan' ), true ) ) {
@@ -272,7 +280,8 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             'about'         => array( 'css' => 'about.css',        'js' => 'about.js' ),
             'campaign'      => array( 'css' => 'campaign.css',     'js' => 'campaign.js' ),
             'gift-aid'      => array( 'css' => 'gift-aid.css',     'js' => 'gift-aid.js' ),
-            'volunteer'     => array( 'css' => 'volunteer.css',    'js' => 'volunteer.js' ),
+            'volunteer'       => array( 'css' => 'volunteer.css', 'js' => 'volunteer.js' ),
+            'job-application' => array( 'css' => 'volunteer.css', 'js' => 'volunteer.js' ),
         );
 
         if ( ! isset( $map[ $slug ] ) ) {
@@ -496,7 +505,8 @@ $emc_includes = array(
     '/inc/contact-submissions.php', // Contact form records and administrator inbox
     '/inc/newsletter.php',          // Mailchimp newsletter sync, submissions, and settings
     '/inc/gift-aid.php',            // Gift Aid declaration storage and admin records
-    '/inc/volunteers.php',          // Volunteer applications, notifications, and admin records
+    '/inc/volunteers.php',          // Job applications, CVs, dynamic fields, and admin records
+    '/inc/volunteer-signups.php',   // Separate volunteer applications and admin records
     '/inc/event-registrations.php', // Event forms, email notifications, submissions, and settings
     '/inc/elementor-compat.php',    // Elementor compatibility (locations, style fixes)
     '/inc/elementor-widgets.php',   // Custom Elementor widgets (donate, prayer, counter)

@@ -243,7 +243,7 @@ wp_enqueue_style( 'emc-page-about', EMC_ASSETS . '/css/about.css', array( 'emc-s
                 $vacancies_url  = $vacancies_page ? get_permalink( $vacancies_page ) : home_url( '/vacancies/' );
                 ?>
                 <a href="<?php echo esc_url( $vacancies_url ); ?>" class="btn btn-primary"><i class="fas fa-briefcase"></i> <?php esc_html_e( 'View All Roles', 'emc-theme' ); ?></a>
-                <a href="<?php echo esc_url( emc_get_volunteer_url() ); ?>" class="btn btn-outline" style="color:var(--white);border-color:rgba(255,255,255,0.5);"><?php esc_html_e( 'Volunteer With Us', 'emc-theme' ); ?></a>
+                <a href="<?php echo esc_url( get_post_type_archive_link( 'emc_volunteer_role' ) ); ?>" class="btn btn-outline" style="color:var(--white);border-color:rgba(255,255,255,0.5);"><?php esc_html_e( 'View Volunteer Opportunities', 'emc-theme' ); ?></a>
             </div>
         </div>
     </div>

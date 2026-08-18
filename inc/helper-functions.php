@@ -474,12 +474,13 @@ function emc_footer_community_links() {
  *
  * @param string $label  Button label.
  * @param string $class  Extra CSS classes.
+ * @param string $url    Optional custom destination URL.
  * @return string  HTML anchor.
  */
-function emc_donate_button( $label = '', $class = '' ) {
+function emc_donate_button( $label = '', $class = '', $url = '' ) {
     $label    = $label ?: __( 'Donate Now', 'emc-theme' );
-    $page     = get_page_by_path( 'donate' );
-    $page_url = $page ? get_permalink( $page ) : home_url( '/donate/' );
+    $page     = get_page_by_path( 'donations' );
+    $page_url = $url ?: ( $page ? get_permalink( $page ) : home_url( '/donations/' ) );
     return sprintf(
         '<a href="%s" class="btn btn-primary%s">%s</a>',
         esc_url( $page_url ),
