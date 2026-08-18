@@ -80,11 +80,73 @@ function emc_event_registration_field_presets() {
  */
 function emc_event_payment_config( $event_id ) {
     $price = round( (float) get_post_meta( $event_id, '_emc_event_registration_price', true ), 2 );
+    $saved_quantities = get_post_meta( $event_id, '_emc_event_ticket_quantities', true );
+    $quantities       = is_array( $saved_quantities ) ? $saved_quantities : preg_split( '/[^0-9]+/', (string) $saved_quantities );
+    $quantities       = array_values( array_unique( array_filter( array_map( 'absint', $quantities ), static function( $quantity ) {
+        return $quantity >= 1 && $quantity <= 100;
+    } ) ) );
+    sort( $quantities, SORT_NUMERIC );
+    if ( ! $quantities ) {
+        $quantities = array( 1, 2, 3, 4 );
+    }
+    $saved_rules = get_post_meta( $event_id, '_emc_event_discount_rules', true );
+    $rules       = array();
+
+    if ( is_array( $saved_rules ) ) {
+        foreach ( $saved_rules as $rule ) {
+            $minimum = min( 100, max( 2, absint( $rule['minimum'] ?? 0 ) ) );
+            $type    = in_array( $rule['type'] ?? '', array( 'fixed', 'percent' ), true ) ? $rule['type'] : 'fixed';
+            $value   = round( (float) ( $rule['value'] ?? 0 ), 2 );
+            if ( $value <= 0 || ( 'percent' === $type && $value > 100 ) ) {
+                continue;
+            }
+            $rules[] = array( 'minimum' => $minimum, 'type' => $type, 'value' => $value );
+        }
+        usort( $rules, static function( $a, $b ) { return $a['minimum'] <=> $b['minimum']; } );
+    }
 
     return array(
         'enabled' => '1' === get_post_meta( $event_id, '_emc_event_payment_enabled', true ) && $price >= 0.50,
         'price'   => $price,
         'pence'   => (int) round( $price * 100 ),
+        'quantities' => $quantities,
+        'discount_rules' => $rules,
+    );
+}
+
+/**
+ * Calculate the authoritative event total after the applicable quantity rule.
+ * The rule with the highest qualifying ticket threshold is used.
+ *
+ * @param array $payment   Event payment configuration.
+ * @param int   $attendees Number of tickets.
+ * @return array{subtotal:int,discount:int,total:int,rule:?array}
+ */
+function emc_event_calculate_payment_total( $payment, $attendees ) {
+    $attendees = min( 100, max( 1, absint( $attendees ) ) );
+    $subtotal  = absint( $payment['pence'] ?? 0 ) * $attendees;
+    $rule      = null;
+
+    foreach ( $payment['discount_rules'] ?? array() as $candidate ) {
+        if ( $attendees >= absint( $candidate['minimum'] ?? 0 ) ) {
+            $rule = $candidate;
+        }
+    }
+
+    $discount = 0;
+    if ( $rule ) {
+        $discount = 'percent' === $rule['type']
+            ? (int) round( $subtotal * (float) $rule['value'] / 100 )
+            : (int) round( (float) $rule['value'] * 100 );
+        // Stripe requires a positive payable amount for this payment flow.
+        $discount = min( max( 0, $discount ), max( 0, $subtotal - 50 ) );
+    }
+
+    return array(
+        'subtotal' => $subtotal,
+        'discount' => $discount,
+        'total'    => $subtotal - $discount,
+        'rule'     => $rule,
     );
 }
 
@@ -193,8 +255,36 @@ function emc_event_registration_meta_box_html( $post ) {
     <p>
         <label for="emc-event-registration-price"><strong><?php esc_html_e( 'Price per attendee (£)', 'emc-theme' ); ?></strong></label><br>
         <input type="number" id="emc-event-registration-price" name="emc_event_registration_price" value="<?php echo esc_attr( $payment['price'] ? number_format( $payment['price'], 2, '.', '' ) : '' ); ?>" min="0.50" max="10000" step="0.01" class="small-text" placeholder="10.00">
-        <span class="description"><?php esc_html_e( 'The final Stripe total is this price multiplied by the Number of attendees field. If that field is removed, one ticket is charged.', 'emc-theme' ); ?></span>
+        <span class="description"><?php esc_html_e( 'The final Stripe total is this price multiplied by the ticket quantity selected by the customer.', 'emc-theme' ); ?></span>
     </p>
+    <p>
+        <label for="emc-event-ticket-quantities"><strong><?php esc_html_e( 'Ticket quantity choices', 'emc-theme' ); ?></strong></label><br>
+        <input type="text" id="emc-event-ticket-quantities" name="emc_event_ticket_quantities" value="<?php echo esc_attr( implode( ',', $payment['quantities'] ) ); ?>" class="regular-text" placeholder="1,2,3,4">
+        <span class="description"><?php esc_html_e( 'Enter the quantities customers may select, separated by commas. Values can be from 1 to 100, for example: 1,2,3,4 or 1,3,5,10.', 'emc-theme' ); ?></span>
+    </p>
+    <div class="emc-event-discount-settings">
+        <h4><?php esc_html_e( 'Quantity discounts', 'emc-theme' ); ?></h4>
+        <p class="description"><?php esc_html_e( 'Optional. When several rules qualify, the rule with the highest minimum-ticket number is applied. Fixed discounts are deducted once from the complete order.', 'emc-theme' ); ?></p>
+        <table class="widefat striped" id="emc-event-discount-rules">
+            <thead><tr>
+                <th><?php esc_html_e( 'Minimum tickets', 'emc-theme' ); ?></th>
+                <th><?php esc_html_e( 'Discount type', 'emc-theme' ); ?></th>
+                <th><?php esc_html_e( 'Discount value', 'emc-theme' ); ?></th>
+                <th style="width:70px"></th>
+            </tr></thead>
+            <tbody>
+                <?php foreach ( $payment['discount_rules'] as $index => $rule ) : ?>
+                <tr>
+                    <td><input data-discount-field="minimum" name="emc_event_discount_rules[<?php echo esc_attr( $index ); ?>][minimum]" type="number" min="2" max="100" step="1" value="<?php echo esc_attr( $rule['minimum'] ); ?>" class="small-text"></td>
+                    <td><select data-discount-field="type" name="emc_event_discount_rules[<?php echo esc_attr( $index ); ?>][type]"><option value="fixed" <?php selected( $rule['type'], 'fixed' ); ?>><?php esc_html_e( 'Fixed amount off (£)', 'emc-theme' ); ?></option><option value="percent" <?php selected( $rule['type'], 'percent' ); ?>><?php esc_html_e( 'Percentage off (%)', 'emc-theme' ); ?></option></select></td>
+                    <td><input data-discount-field="value" name="emc_event_discount_rules[<?php echo esc_attr( $index ); ?>][value]" type="number" min="0.01" max="10000" step="0.01" value="<?php echo esc_attr( $rule['value'] ); ?>" class="small-text"></td>
+                    <td><button type="button" class="button-link-delete emc-remove-discount-rule"><?php esc_html_e( 'Remove', 'emc-theme' ); ?></button></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <p><button type="button" class="button" id="emc-add-discount-rule"><?php esc_html_e( 'Add discount rule', 'emc-theme' ); ?></button></p>
+    </div>
     <?php if ( '1' === get_post_meta( $post->ID, '_emc_event_payment_enabled', true ) && ! emc_event_stripe_is_available() ) : ?>
         <div class="notice notice-warning inline"><p><?php esc_html_e( 'Paid registration is enabled, but the EMC Payments Stripe connection is not currently available.', 'emc-theme' ); ?></p></div>
     <?php endif; ?>
@@ -234,6 +324,9 @@ function emc_event_registration_meta_box_html( $post ) {
         #emc-event-form-builder .ui-sortable-helper{display:table;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.16)}
         #emc-event-form-builder .emc-event-field-placeholder{height:58px;background:#f0f6fc}
         .emc-event-builder-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+        .emc-event-discount-settings{max-width:850px;margin:18px 0;padding:16px;border:1px solid #dcdcde;background:#f6f7f7}
+        .emc-event-discount-settings h4{margin:0 0 6px;font-size:14px}
+        #emc-event-discount-rules{margin-top:12px}
     </style>
     <script>
     (() => {
@@ -299,6 +392,33 @@ function emc_event_registration_meta_box_html( $post ) {
                 update: reindex
             });
         }
+
+        const discountTable = document.querySelector('#emc-event-discount-rules tbody');
+        const addDiscountButton = document.getElementById('emc-add-discount-rule');
+        const reindexDiscounts = () => {
+            discountTable?.querySelectorAll('tr').forEach((row, index) => {
+                row.querySelectorAll('[data-discount-field]').forEach(input => {
+                    input.name = `emc_event_discount_rules[${index}][${input.dataset.discountField}]`;
+                });
+            });
+        };
+        const bindDiscountRemove = row => row.querySelector('.emc-remove-discount-rule')?.addEventListener('click', () => {
+            row.remove();
+            reindexDiscounts();
+        });
+        discountTable?.querySelectorAll('tr').forEach(bindDiscountRemove);
+        addDiscountButton?.addEventListener('click', () => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input data-discount-field="minimum" type="number" min="2" max="100" step="1" value="3" class="small-text"></td>
+                <td><select data-discount-field="type"><option value="fixed">Fixed amount off (£)</option><option value="percent">Percentage off (%)</option></select></td>
+                <td><input data-discount-field="value" type="number" min="0.01" max="10000" step="0.01" value="5.00" class="small-text"></td>
+                <td><button type="button" class="button-link-delete emc-remove-discount-rule">Remove</button></td>`;
+            discountTable.appendChild(row);
+            bindDiscountRemove(row);
+            reindexDiscounts();
+            row.querySelector('[data-discount-field="minimum"]').focus();
+        });
     })();
     </script>
     <?php
@@ -358,6 +478,31 @@ function emc_save_event_registration_config( $post_id ) {
     update_post_meta( $post_id, '_emc_event_payment_enabled', isset( $_POST['emc_event_payment_enabled'] ) ? '1' : '' );
     $price = round( (float) wp_unslash( $_POST['emc_event_registration_price'] ?? 0 ), 2 );
     update_post_meta( $post_id, '_emc_event_registration_price', $price >= 0.50 && $price <= 10000 ? number_format( $price, 2, '.', '' ) : '' );
+
+    $raw_quantities = sanitize_text_field( wp_unslash( $_POST['emc_event_ticket_quantities'] ?? '' ) );
+    $quantities     = preg_split( '/[^0-9]+/', $raw_quantities );
+    $quantities     = array_values( array_unique( array_filter( array_map( 'absint', $quantities ), static function( $quantity ) {
+        return $quantity >= 1 && $quantity <= 100;
+    } ) ) );
+    sort( $quantities, SORT_NUMERIC );
+    update_post_meta( $post_id, '_emc_event_ticket_quantities', $quantities ?: array( 1 ) );
+
+    $submitted_discounts = isset( $_POST['emc_event_discount_rules'] ) && is_array( $_POST['emc_event_discount_rules'] )
+        ? wp_unslash( $_POST['emc_event_discount_rules'] )
+        : array();
+    $discount_rules = array();
+    foreach ( array_slice( $submitted_discounts, 0, 20 ) as $rule ) {
+        $minimum = absint( $rule['minimum'] ?? 0 );
+        $type    = sanitize_key( $rule['type'] ?? '' );
+        $value   = round( (float) ( $rule['value'] ?? 0 ), 2 );
+        if ( $minimum < 2 || $minimum > 100 || ! in_array( $type, array( 'fixed', 'percent' ), true ) || $value <= 0 ) {
+            continue;
+        }
+        $value = 'percent' === $type ? min( 100, $value ) : min( 10000, $value );
+        $discount_rules[ $minimum ] = array( 'minimum' => $minimum, 'type' => $type, 'value' => $value );
+    }
+    ksort( $discount_rules, SORT_NUMERIC );
+    update_post_meta( $post_id, '_emc_event_discount_rules', array_values( $discount_rules ) );
 }
 add_action( 'save_post_emc_event', 'emc_save_event_registration_config' );
 
@@ -407,9 +552,13 @@ function emc_render_event_registration_form( $event_id ) {
     $capacity   = absint( get_post_meta( $event_id, '_emc_event_capacity', true ) );
     $registered = emc_event_registered_places( $event_id );
     $remaining  = $capacity ? max( 0, $capacity - $registered ) : 0;
-    $is_full    = $capacity && $remaining < 1;
     $fields     = emc_event_registration_fields( $event_id );
     $payment    = emc_event_payment_config( $event_id );
+    $ticket_quantities = $payment['enabled'] && $capacity
+        ? array_values( array_filter( $payment['quantities'], static function( $quantity ) use ( $remaining ) { return $quantity <= $remaining; } ) )
+        : $payment['quantities'];
+    $is_full    = $capacity && $remaining < 1;
+    $quantity_unavailable = $payment['enabled'] && ! $ticket_quantities;
     $stripe_ok  = ! $payment['enabled'] || emc_event_stripe_is_available();
     ?>
     <section class="event-registration-card scroll-reveal" id="event-registration" aria-labelledby="event-registration-title">
@@ -436,10 +585,10 @@ function emc_render_event_registration_form( $event_id ) {
             </div>
         </div>
 
-        <?php if ( $is_full ) : ?>
+        <?php if ( $is_full || $quantity_unavailable ) : ?>
             <div class="event-registration-full" role="status">
                 <i class="fas fa-users" aria-hidden="true"></i>
-                <?php esc_html_e( 'This event is currently fully booked.', 'emc-theme' ); ?>
+                <?php echo esc_html( $is_full ? __( 'This event is currently fully booked.', 'emc-theme' ) : __( 'The remaining capacity is below the configured ticket quantities. Please contact the centre.', 'emc-theme' ) ); ?>
             </div>
         <?php else : ?>
             <?php if ( $capacity ) : ?>
@@ -451,12 +600,27 @@ function emc_render_event_registration_form( $event_id ) {
 
             <?php if ( $payment['enabled'] ) : ?>
                 <div class="event-registration-price">
-                    <span><?php esc_html_e( 'Ticket price', 'emc-theme' ); ?></span>
+                    <div>
+                        <span><?php esc_html_e( 'Ticket price', 'emc-theme' ); ?></span>
+                        <?php if ( $payment['discount_rules'] ) : ?>
+                            <small class="event-discount-offers">
+                                <?php foreach ( $payment['discount_rules'] as $rule ) : ?>
+                                    <span><?php
+                                        echo esc_html( sprintf(
+                                            'Buy %d+: %s off',
+                                            $rule['minimum'],
+                                            'percent' === $rule['type'] ? number_format_i18n( $rule['value'], 0 ) . '%' : '£' . number_format_i18n( $rule['value'], 2 )
+                                        ) );
+                                    ?></span>
+                                <?php endforeach; ?>
+                            </small>
+                        <?php endif; ?>
+                    </div>
                     <strong><?php echo esc_html( '£' . number_format( $payment['price'], 2 ) ); ?> <?php esc_html_e( 'per attendee', 'emc-theme' ); ?></strong>
                 </div>
             <?php endif; ?>
 
-            <form class="emc-event-registration-form" method="post" novalidate data-paid="<?php echo $payment['enabled'] ? '1' : '0'; ?>" data-ticket-price="<?php echo esc_attr( $payment['pence'] ); ?>" data-stripe-key="<?php echo esc_attr( $payment['enabled'] && $stripe_ok ? emc_stripe_pub_key() : '' ); ?>">
+            <form class="emc-event-registration-form" method="post" novalidate data-paid="<?php echo $payment['enabled'] ? '1' : '0'; ?>" data-ticket-price="<?php echo esc_attr( $payment['pence'] ); ?>" data-discount-rules="<?php echo esc_attr( wp_json_encode( $payment['discount_rules'] ) ); ?>" data-stripe-key="<?php echo esc_attr( $payment['enabled'] && $stripe_ok ? emc_stripe_pub_key() : '' ); ?>">
                 <input type="hidden" name="action" value="emc_event_register">
                 <input type="hidden" name="event_id" value="<?php echo esc_attr( $event_id ); ?>">
                 <div class="event-form-trap" aria-hidden="true">
@@ -468,7 +632,7 @@ function emc_render_event_registration_form( $event_id ) {
                         $key      = sanitize_key( $field['key'] ?? '' );
                         $type     = $field['type'] ?? 'text';
                         $required = ! empty( $field['required'] );
-                        if ( ! $key ) {
+                        if ( ! $key || ( $payment['enabled'] && 'attendees' === $key ) ) {
                             continue;
                         }
                         $field_id = 'emc-event-' . $event_id . '-' . $key;
@@ -511,7 +675,7 @@ function emc_render_event_registration_form( $event_id ) {
                                     $autocomplete = 'email' === $type ? 'email' : ( 'tel' === $type ? 'tel' : ( 'full_name' === $key ? 'name' : 'off' ) );
                                     $is_attendees = 'attendees' === $key && 'number' === $type;
                                 ?>
-                                    <input id="<?php echo esc_attr( $field_id ); ?>" type="<?php echo esc_attr( $type ); ?>" name="fields[<?php echo esc_attr( $key ); ?>]" autocomplete="<?php echo esc_attr( $autocomplete ); ?>" <?php echo $is_attendees ? 'value="1" min="1" max="' . esc_attr( $capacity ? max( 1, min( 20, $remaining ) ) : 20 ) . '"' : ''; ?> <?php echo $required ? 'required' : ''; ?>>
+                                    <input id="<?php echo esc_attr( $field_id ); ?>" type="<?php echo esc_attr( $type ); ?>" name="fields[<?php echo esc_attr( $key ); ?>]" autocomplete="<?php echo esc_attr( $autocomplete ); ?>" <?php echo $is_attendees ? 'value="1" min="1" max="' . esc_attr( $capacity ? max( 1, min( 100, $remaining ) ) : 100 ) . '"' : ''; ?> <?php echo $required ? 'required' : ''; ?>>
                                 <?php endif; ?>
                             <?php endif; ?>
                         </label>
@@ -519,8 +683,23 @@ function emc_render_event_registration_form( $event_id ) {
                     <?php endforeach; ?>
                 </div>
 
+                <?php if ( $payment['enabled'] ) : ?>
+                    <label class="event-form-field event-ticket-quantity" for="emc-event-ticket-quantity-<?php echo esc_attr( $event_id ); ?>">
+                        <span><?php esc_html_e( 'Number of tickets', 'emc-theme' ); ?> *</span>
+                        <select id="emc-event-ticket-quantity-<?php echo esc_attr( $event_id ); ?>" name="ticket_quantity" data-event-ticket-quantity required>
+                            <?php foreach ( $ticket_quantities as $quantity ) : ?>
+                                <option value="<?php echo esc_attr( $quantity ); ?>"><?php echo esc_html( sprintf( _n( '%d ticket', '%d tickets', $quantity, 'emc-theme' ), $quantity ) ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                <?php endif; ?>
+
                 <?php if ( $payment['enabled'] && $stripe_ok ) : ?>
                     <div class="event-payment-box">
+                        <div class="event-payment-discount" data-event-payment-discount hidden>
+                            <span><?php esc_html_e( 'Quantity discount', 'emc-theme' ); ?></span>
+                            <strong data-event-payment-discount-amount></strong>
+                        </div>
                         <div class="event-payment-total">
                             <span><?php esc_html_e( 'Total to pay', 'emc-theme' ); ?></span>
                             <strong data-event-payment-total><?php echo esc_html( '£' . number_format( $payment['price'], 2 ) ); ?></strong>
@@ -561,9 +740,30 @@ function emc_ajax_event_register() {
         wp_send_json_error( array( 'message' => __( 'Registration is not available for this event.', 'emc-theme' ) ), 400 );
     }
 
-    $validated = emc_event_validate_registration_fields( $event_id, $_POST['fields'] ?? array() );
+    $payment         = emc_event_payment_config( $event_id );
+    $submitted_fields = isset( $_POST['fields'] ) && is_array( $_POST['fields'] ) ? $_POST['fields'] : array();
+    if ( $payment['enabled'] ) {
+        $ticket_quantity = absint( $_POST['ticket_quantity'] ?? 0 );
+        if ( ! in_array( $ticket_quantity, $payment['quantities'], true ) ) {
+            wp_send_json_error( array( 'message' => __( 'Please select an available ticket quantity.', 'emc-theme' ) ), 400 );
+        }
+        // Preserve compatibility with existing attendee fields and stored records.
+        $submitted_fields['attendees'] = $ticket_quantity;
+    }
+
+    $validated = emc_event_validate_registration_fields( $event_id, $submitted_fields );
     if ( is_wp_error( $validated ) ) {
         wp_send_json_error( array( 'message' => $validated->get_error_message() ), 400 );
+    }
+    if ( $payment['enabled'] ) {
+        $validated['attendees'] = $ticket_quantity;
+        if ( empty( $validated['fields']['attendees'] ) ) {
+            $validated['fields']['attendees'] = array(
+                'label' => __( 'Number of tickets', 'emc-theme' ),
+                'type'  => 'number',
+                'value' => (string) $ticket_quantity,
+            );
+        }
     }
 
     $attendees = $validated['attendees'];
@@ -597,7 +797,6 @@ function emc_ajax_event_register() {
         'rate_key'      => $rate_key,
     );
 
-    $payment = emc_event_payment_config( $event_id );
     if ( ! $payment['enabled'] ) {
         set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
         $result = emc_event_store_completed_registration( $pending );
@@ -609,7 +808,8 @@ function emc_ajax_event_register() {
     }
 
     $token        = wp_generate_uuid4();
-    $amount_pence = $payment['pence'] * $attendees;
+    $calculation  = emc_event_calculate_payment_total( $payment, $attendees );
+    $amount_pence = $calculation['total'];
     $intent_body = array(
         'amount'                               => $amount_pence,
         'currency'                             => 'gbp',
@@ -619,6 +819,8 @@ function emc_ajax_event_register() {
         'metadata[event_id]'                   => $event_id,
         'metadata[registration_token]'         => $token,
         'metadata[attendees]'                  => $attendees,
+        'metadata[subtotal_pence]'             => $calculation['subtotal'],
+        'metadata[discount_pence]'             => $calculation['discount'],
     );
     if ( $validated['email'] ) {
         $intent_body['receipt_email'] = $validated['email'];
@@ -633,6 +835,8 @@ function emc_ajax_event_register() {
     $pending['token']             = $token;
     $pending['payment_intent']    = sanitize_text_field( $intent['id'] );
     $pending['amount_pence']      = $amount_pence;
+    $pending['subtotal_pence']    = $calculation['subtotal'];
+    $pending['discount_pence']    = $calculation['discount'];
     if ( ! set_transient( 'emc_evt_pending_' . $token, $pending, 30 * MINUTE_IN_SECONDS ) ) {
         wp_send_json_error( array( 'message' => __( 'The registration payment session could not be saved. No payment has been taken.', 'emc-theme' ) ), 500 );
     }
@@ -643,6 +847,7 @@ function emc_ajax_event_register() {
         'paymentIntent'   => $intent['id'],
         'token'           => $token,
         'amount'          => '£' . number_format( $amount_pence / 100, 2 ),
+        'discount'        => $calculation['discount'] ? '£' . number_format( $calculation['discount'] / 100, 2 ) : '',
     ) );
 }
 add_action( 'wp_ajax_emc_event_register', 'emc_ajax_event_register' );
@@ -722,7 +927,7 @@ function emc_event_validate_registration_fields( $event_id, $submitted ) {
             $identity['message'] = $value;
         }
         if ( 'attendees' === $key && 'number' === $type ) {
-            $identity['attendees'] = min( 20, max( 1, absint( $value ) ) );
+            $identity['attendees'] = min( 100, max( 1, absint( $value ) ) );
             $values[ $key ]['value'] = (string) $identity['attendees'];
         }
     }
@@ -772,11 +977,13 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
         'name'           => $name,
         'email'          => $email,
         'phone'          => sanitize_text_field( $pending['phone'] ?? '' ),
-        'attendees'      => min( 20, max( 1, absint( $pending['attendees'] ?? 1 ) ) ),
+        'attendees'      => min( 100, max( 1, absint( $pending['attendees'] ?? 1 ) ) ),
         'message'        => sanitize_textarea_field( $pending['message'] ?? '' ),
         'fields'         => is_array( $pending['fields'] ?? null ) ? $pending['fields'] : array(),
         'payment_status' => $payment_intent ? 'paid' : 'free',
         'payment_intent' => $payment_intent,
+        'subtotal'       => $payment_intent ? number_format( absint( $payment['subtotal_pence'] ?? $payment['amount_pence'] ?? 0 ) / 100, 2, '.', '' ) : '0.00',
+        'discount'       => $payment_intent ? number_format( absint( $payment['discount_pence'] ?? 0 ) / 100, 2, '.', '' ) : '0.00',
         'amount'         => $payment_intent ? number_format( absint( $payment['amount_pence'] ?? 0 ) / 100, 2, '.', '' ) : '0.00',
         'date'           => current_time( 'mysql' ),
     );
@@ -796,6 +1003,9 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
         $details[] = $field['label'] . ': ' . ( '' !== $field['value'] ? $field['value'] : 'Not supplied' );
     }
     $details[] = $payment_intent ? 'Payment: £' . $registration['amount'] . ' (paid)' : 'Payment: Free registration';
+    if ( $payment_intent && (float) $registration['discount'] > 0 ) {
+        $details[] = 'Quantity discount: £' . $registration['discount'] . ' (subtotal £' . $registration['subtotal'] . ')';
+    }
     if ( $payment_intent ) {
         $details[] = 'Stripe reference: ' . $payment_intent;
     }
@@ -822,6 +1032,9 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
         $confirmation .= "\n" . sprintf( _n( 'Attendees: %d', 'Attendees: %d', $registration['attendees'], 'emc-theme' ), $registration['attendees'] );
         if ( $payment_intent ) {
             $confirmation .= "\nPayment: £" . $registration['amount'] . "\nStripe reference: " . $payment_intent;
+            if ( (float) $registration['discount'] > 0 ) {
+                $confirmation .= "\nQuantity discount: £" . $registration['discount'];
+            }
         }
         $confirmation .= "\n\n" . __( 'If you need to change your registration, please reply to this email.', 'emc-theme' );
         $confirmation_sent = wp_mail( $email, sprintf( __( 'Registration confirmed: %s', 'emc-theme' ), get_the_title( $event_id ) ), $confirmation );
@@ -880,6 +1093,8 @@ function emc_ajax_event_confirm_registration() {
     $result = emc_event_store_completed_registration( $pending, array(
         'payment_intent' => $pi_id,
         'amount_pence'   => absint( $pending['amount_pence'] ),
+        'subtotal_pence' => absint( $pending['subtotal_pence'] ?? $pending['amount_pence'] ),
+        'discount_pence' => absint( $pending['discount_pence'] ?? 0 ),
     ) );
     delete_transient( 'emc_evt_pending_' . $token );
     wp_send_json_success( $result );
@@ -1002,6 +1217,9 @@ function emc_event_registrations_admin_page() {
                         <td>
                             <?php if ( 'paid' === ( $registration['payment_status'] ?? '' ) ) : ?>
                                 <strong><?php echo esc_html( '£' . ( $registration['amount'] ?? '0.00' ) ); ?></strong><br>
+                                <?php if ( (float) ( $registration['discount'] ?? 0 ) > 0 ) : ?>
+                                    <small><?php echo esc_html( sprintf( __( '£%1$s discount from £%2$s', 'emc-theme' ), $registration['discount'], $registration['subtotal'] ?? $registration['amount'] ) ); ?></small><br>
+                                <?php endif; ?>
                                 <code><?php echo esc_html( $registration['payment_intent'] ?? '' ); ?></code>
                             <?php else : ?>
                                 <?php esc_html_e( 'Free', 'emc-theme' ); ?>

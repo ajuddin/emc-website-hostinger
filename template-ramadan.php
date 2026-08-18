@@ -13,6 +13,8 @@
 $emc_payments_available = function_exists( 'emc_payments_is_available' ) && emc_payments_is_available();
 if ( $emc_payments_available ) {
     emc_payments_enqueue_assets( 'ramadan' );
+    $emc_success_js = EMC_DIR . '/assets/js/donation-success.js';
+    wp_enqueue_script( 'emc-donation-success', EMC_ASSETS . '/js/donation-success.js', array(), file_exists( $emc_success_js ) ? filemtime( $emc_success_js ) : EMC_VERSION, true );
 }
 
 get_header();

@@ -49,11 +49,11 @@ function emc_event_registration_export_data() {
 			if ( $key ) $dynamic[ $key ] = sanitize_text_field( $field['label'] ?? $key );
 		}
 	}
-	$headers = array_merge( array( 'Registration ID', 'Submitted', 'Event ID', 'Event', 'Name', 'Email', 'Phone', 'Attendees', 'Notes', 'Payment Status', 'Amount (GBP)', 'Stripe Payment Intent', 'Notification Status' ), array_values( $dynamic ) );
+	$headers = array_merge( array( 'Registration ID', 'Submitted', 'Event ID', 'Event', 'Name', 'Email', 'Phone', 'Attendees', 'Notes', 'Payment Status', 'Subtotal (GBP)', 'Discount (GBP)', 'Amount Paid (GBP)', 'Stripe Payment Intent', 'Notification Status' ), array_values( $dynamic ) );
 	$rows = array();
 	foreach ( $records as $record ) {
 		$event_id = absint( $record['event_id'] ?? 0 );
-		$row = array( $record['id'] ?? '', $record['date'] ?? '', $event_id, $event_id ? get_the_title( $event_id ) : 'Deleted event', $record['name'] ?? '', $record['email'] ?? '', $record['phone'] ?? '', $record['attendees'] ?? 1, $record['message'] ?? '', $record['payment_status'] ?? 'free', $record['amount'] ?? '0.00', $record['payment_intent'] ?? '', $record['notification_sent'] ?? '' );
+		$row = array( $record['id'] ?? '', $record['date'] ?? '', $event_id, $event_id ? get_the_title( $event_id ) : 'Deleted event', $record['name'] ?? '', $record['email'] ?? '', $record['phone'] ?? '', $record['attendees'] ?? 1, $record['message'] ?? '', $record['payment_status'] ?? 'free', $record['subtotal'] ?? $record['amount'] ?? '0.00', $record['discount'] ?? '0.00', $record['amount'] ?? '0.00', $record['payment_intent'] ?? '', $record['notification_sent'] ?? '' );
 		foreach ( $dynamic as $key => $label ) $row[] = $record['fields'][ $key ]['value'] ?? '';
 		$rows[] = $row;
 	}

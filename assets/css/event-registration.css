@@ -141,6 +141,15 @@ html {
     grid-column: 1 / -1;
 }
 
+.event-ticket-quantity {
+    display: block;
+    margin: 1rem 0 1.25rem;
+}
+
+.event-ticket-quantity select {
+    max-width: 260px;
+}
+
 .emc-event-registration-form label > span {
     display: block;
     margin-bottom: .45rem;
@@ -253,6 +262,21 @@ html {
     color: var(--primary-green);
 }
 
+.event-discount-offers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem .65rem;
+    margin-top: .3rem;
+    color: var(--text-muted);
+    font-size: var(--step--2);
+}
+
+.event-discount-offers span {
+    padding: .15rem .45rem;
+    border-radius: 999px;
+    background: rgba(42, 172, 160, .1);
+}
+
 .event-payment-box {
     margin: 1.25rem 0;
     padding: 1rem;
@@ -267,6 +291,24 @@ html {
     justify-content: space-between;
     margin-bottom: 1rem;
     color: var(--deep-blue);
+}
+
+.event-payment-discount {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .65rem;
+    color: var(--text-muted);
+    font-size: var(--step--1);
+}
+
+.event-payment-discount[hidden] {
+    display: none;
+}
+
+.event-payment-discount strong {
+    color: var(--primary-green);
 }
 
 .event-payment-total strong {

@@ -178,8 +178,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultLabel = buttonLabel?.textContent || 'Complete Registration';
         const isPaid       = form.dataset.paid === '1';
         const ticketPrice  = Number.parseInt(form.dataset.ticketPrice || '0', 10);
-        const attendees    = form.querySelector('[name="fields[attendees]"]');
+        let discountRules  = [];
+        try {
+            const parsedRules = JSON.parse(form.dataset.discountRules || '[]');
+            discountRules = Array.isArray(parsedRules) ? parsedRules : [];
+        } catch (error) {
+            discountRules = [];
+        }
+        const attendees    = form.querySelector('[data-event-ticket-quantity], [name="fields[attendees]"]');
         const totalDisplay = form.querySelector('[data-event-payment-total]');
+        const discountRow  = form.querySelector('[data-event-payment-discount]');
+        const discountDisplay = form.querySelector('[data-event-payment-discount-amount]');
         const cardErrors   = form.querySelector('.event-card-errors');
         const requiredChoiceGroups = form.querySelectorAll('[data-choice-required="1"]');
         let stripe = null;
@@ -202,13 +211,40 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const attendeeCount = () => Math.min(20, Math.max(1, Number.parseInt(attendees?.value || '1', 10) || 1));
+        const attendeeCount = () => Math.min(100, Math.max(1, Number.parseInt(attendees?.value || '1', 10) || 1));
+        const calculateTotal = () => {
+            const count = attendeeCount();
+            const subtotal = ticketPrice * count;
+            let appliedRule = null;
+            discountRules.forEach(rule => {
+                if (count >= Number.parseInt(rule.minimum || '0', 10)) appliedRule = rule;
+            });
+            let discount = 0;
+            if (appliedRule) {
+                discount = appliedRule.type === 'percent'
+                    ? Math.round(subtotal * Number.parseFloat(appliedRule.value || '0') / 100)
+                    : Math.round(Number.parseFloat(appliedRule.value || '0') * 100);
+                discount = Math.min(Math.max(0, discount), Math.max(0, subtotal - 50));
+            }
+            return {subtotal, discount, total: subtotal - discount};
+        };
         const updateTotal = () => {
             if (totalDisplay && ticketPrice > 0) {
-                totalDisplay.textContent = `£${((ticketPrice * attendeeCount()) / 100).toFixed(2)}`;
+                const calculation = calculateTotal();
+                totalDisplay.textContent = `£${(calculation.total / 100).toFixed(2)}`;
+                if (discountRow && discountDisplay) {
+                    discountRow.hidden = calculation.discount < 1;
+                    discountDisplay.textContent = calculation.discount ? `−£${(calculation.discount / 100).toFixed(2)}` : '';
+                }
             }
         };
-        attendees?.addEventListener('input', updateTotal);
+        const handleAttendeeChange = () => {
+            paymentSession = null;
+            completedPayment = null;
+            updateTotal();
+        };
+        attendees?.addEventListener('input', handleAttendeeChange);
+        attendees?.addEventListener('change', handleAttendeeChange);
         updateTotal();
 
         const validateChoiceGroups = () => {
