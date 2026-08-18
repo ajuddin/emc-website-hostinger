@@ -16,6 +16,110 @@ function emc_site_setting( $key, $default = '' ) {
 	return array_key_exists( $key, $values ) && '' !== $values[ $key ] ? $values[ $key ] : $default;
 }
 
+/**
+ * Return the administrator-defined 30-day Ramadan recurring-giving window.
+ *
+ * The end is deliberately calculated rather than editable so the public and
+ * server-side payment checks can never disagree about the window length.
+ */
+function emc_ramadan_giving_schedule() {
+	$timezone       = wp_timezone();
+	$legacy_date    = emc_site_setting( 'emc_ramadan_start_date', '2027-02-08' );
+	$start_value    = emc_site_setting( 'emc_ramadan_start_datetime', $legacy_date . 'T00:00' );
+	$start_datetime = DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i', $start_value, $timezone );
+	$parse_errors   = DateTimeImmutable::getLastErrors();
+
+	if ( ! $start_datetime || ( is_array( $parse_errors ) && ( $parse_errors['warning_count'] || $parse_errors['error_count'] ) ) ) {
+		$start_value    = '2027-02-08T00:00';
+		$start_datetime = DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i', $start_value, $timezone );
+	}
+
+	$end_datetime = $start_datetime->modify( '+30 days' );
+	$now          = new DateTimeImmutable( 'now', $timezone );
+	$payment_start = $now > $start_datetime ? $now : $start_datetime;
+	$status       = 'active';
+	if ( $now < $start_datetime ) {
+		$status = 'upcoming';
+	} elseif ( $now >= $end_datetime ) {
+		$status = 'closed';
+	}
+
+	return array(
+		'start'              => $start_datetime,
+		'end'                => $end_datetime,
+		'now'                => $now,
+		'status'             => $status,
+		'start_iso'          => $start_datetime->format( DATE_ATOM ),
+		'end_iso'            => $end_datetime->format( DATE_ATOM ),
+		'payment_start_date' => $payment_start->format( 'Y-m-d' ),
+		'timezone'           => wp_timezone_string() ?: 'UTC',
+	);
+}
+
+/** Prevent a direct AJAX request from creating a Ramadan plan outside the window. */
+function emc_guard_ramadan_recurring_payment_window() {
+	$frequency = sanitize_key( wp_unslash( $_POST['frequency'] ?? '' ) );
+	$fund      = sanitize_text_field( wp_unslash( $_POST['fund'] ?? '' ) );
+
+	if ( 'daily' !== $frequency || false === stripos( $fund, 'ramadan' ) ) {
+		return;
+	}
+
+	$schedule = emc_ramadan_giving_schedule();
+	if ( 'active' === $schedule['status'] ) {
+		$occurrences = absint( $_POST['occurrences'] ?? 0 );
+		if ( $occurrences < 1 || $occurrences > 30 ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'invalid_ramadan_schedule_length',
+					'message' => __( 'A Ramadan giving schedule must contain between 1 and 30 daily payments.', 'emc-theme' ),
+				),
+				400
+			);
+		}
+		$_POST['start_date'] = $schedule['payment_start_date'];
+		return;
+	}
+
+	if ( 'upcoming' === $schedule['status'] ) {
+		$message = sprintf(
+			/* translators: %s: configured Ramadan giving opening date and time. */
+			__( 'Ramadan recurring giving opens on %s.', 'emc-theme' ),
+			wp_date( 'j F Y \a\t g:i a', $schedule['start']->getTimestamp(), wp_timezone() )
+		);
+	} else {
+		$message = __( 'This Ramadan recurring giving window has closed.', 'emc-theme' );
+	}
+
+	wp_send_json_error(
+		array(
+			'code'    => 'ramadan_window_inactive',
+			'message' => $message,
+		),
+		403
+	);
+}
+add_action( 'wp_ajax_emc_stripe_create_subscription', 'emc_guard_ramadan_recurring_payment_window', 0 );
+add_action( 'wp_ajax_nopriv_emc_stripe_create_subscription', 'emc_guard_ramadan_recurring_payment_window', 0 );
+
+/** Zakat is accepted as a one-off donation, never as a recurring subscription. */
+function emc_guard_zakat_recurring_payment() {
+	$fund = sanitize_text_field( wp_unslash( $_POST['fund'] ?? '' ) );
+	if ( ! preg_match( '/\bzakat\b/i', $fund ) ) {
+		return;
+	}
+
+	wp_send_json_error(
+		array(
+			'code'    => 'zakat_recurring_not_allowed',
+			'message' => __( 'Zakat cannot be selected for a recurring donation. Please use the one-off Zakat donation option.', 'emc-theme' ),
+		),
+		400
+	);
+}
+add_action( 'wp_ajax_emc_stripe_create_subscription', 'emc_guard_zakat_recurring_payment', 1 );
+add_action( 'wp_ajax_nopriv_emc_stripe_create_subscription', 'emc_guard_zakat_recurring_payment', 1 );
+
 /** Return administrator-managed wording which is not passed through gettext. */
 function emc_content( $key, $default = '' ) {
 	$values = get_option( 'emc_site_content_copy', array() );
@@ -37,7 +141,12 @@ function emc_site_content_fields() {
 			'emc_donate_regular_amounts'=> array( 'Regular preset amounts (comma-separated)', 'text', '5,10,20,50' ),
 		),
 		'Ramadan giving' => array(
-			'emc_ramadan_start_date' => array( 'Ramadan start date', 'date', '2027-02-08' ),
+			'emc_ramadan_start_datetime' => array(
+				'Ramadan recurring giving opens',
+				'datetime-local',
+				emc_site_setting( 'emc_ramadan_start_date', '2027-02-08' ) . 'T00:00',
+				'The recurring-payment option opens at this date and time and closes automatically 30 days later. Times use the WordPress site timezone.',
+			),
 			'emc_ramadan_amounts'    => array( 'Daily preset amounts (comma-separated)', 'text', '1,2,3,5,10' ),
 			'emc_ramadan_default_amount' => array( 'Default daily amount', 'number', '3' ),
 			'emc_fitrana_rate'       => array( 'Fitrana rate per person', 'number', '7' ),
@@ -231,12 +340,17 @@ function emc_site_content_admin_page() {
 			<?php settings_fields( 'emc_site_content' ); ?>
 			<div class="emc-settings-groups">
 			<?php $group_index = 0; foreach ( emc_site_content_fields() as $section => $fields ) : ?>
-				<details class="emc-settings-group" <?php echo 0 === $group_index++ ? 'open' : ''; ?>><summary><?php echo esc_html( $section ); ?><span><?php echo esc_html( count( $fields ) ); ?> settings</span></summary><table class="form-table" role="presentation">
+				<details class="emc-settings-group" <?php echo 'Ramadan giving' === $section ? 'open' : ''; ?>><summary><?php echo esc_html( $section ); ?><span><?php echo esc_html( count( $fields ) ); ?> settings</span></summary><table class="form-table" role="presentation">
 				<?php foreach ( $fields as $key => $field ) : $value = $values[ $key ] ?? $field[2]; ?>
 				<tr><th><label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field[0] ); ?></label></th><td>
 				<?php if ( 'textarea' === $field[1] ) : ?><textarea class="large-text" rows="4" id="<?php echo esc_attr( $key ); ?>" name="emc_site_content_values[<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
 				<?php else : ?><input class="regular-text" type="<?php echo esc_attr( $field[1] ); ?>" id="<?php echo esc_attr( $key ); ?>" name="emc_site_content_values[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $value ); ?>">
-				<?php endif; ?></td></tr><?php endforeach; ?></table></details>
+				<?php endif; ?>
+				<?php if ( ! empty( $field[3] ) ) : ?><p class="description"><?php echo esc_html( $field[3] ); ?></p><?php endif; ?>
+				<?php if ( 'emc_ramadan_start_datetime' === $key ) : $ramadan_schedule = emc_ramadan_giving_schedule(); ?>
+					<p class="description"><strong>Calculated closing:</strong> <?php echo esc_html( wp_date( 'j F Y \a\t g:i a', $ramadan_schedule['end']->getTimestamp(), wp_timezone() ) ); ?> (<?php echo esc_html( $ramadan_schedule['timezone'] ); ?>). <strong>Current status:</strong> <?php echo esc_html( ucfirst( $ramadan_schedule['status'] ) ); ?>.</p>
+				<?php endif; ?>
+				</td></tr><?php endforeach; ?></table></details>
 			<?php endforeach; ?>
 			<details class="emc-settings-group"><summary>Contact directions<span><?php echo esc_html( count( emc_site_content_copy_fields() ) ); ?> settings</span></summary><table class="form-table" role="presentation">
 			<?php foreach ( emc_site_content_copy_fields() as $key => $field ) : ?><tr><th><label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field[0] ); ?></label></th><td><textarea class="large-text" rows="3" id="<?php echo esc_attr( $key ); ?>" name="emc_site_content_copy[<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $copy[ $key ] ?? $field[1] ); ?></textarea></td></tr><?php endforeach; ?></table></details>

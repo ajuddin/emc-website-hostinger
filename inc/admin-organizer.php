@@ -53,6 +53,7 @@ function emc_admin_workspace_cards() {
 			array( 'Newsletter Subscribers', 'Newsletter consent records and Mailchimp sync status.', 'dashicons-email-alt2', admin_url( 'admin.php?page=emc-newsletter' ), 'manage_options' ),
 		),
 		'settings' => array(
+			array( 'Ramadan Giving Schedule', 'Set the opening date and time for the fixed 30-day recurring-giving window.', 'dashicons-calendar-alt', admin_url( 'admin.php?page=emc-site-content#emc_ramadan_start_datetime' ), 'manage_options' ),
 			array( 'Website Content', 'Edit operational values and searchable website wording.', 'dashicons-edit-page', admin_url( 'admin.php?page=emc-site-content' ), 'manage_options' ),
 			array( 'Customizer', 'Logo, colours, fonts, header, footer and homepage section settings.', 'dashicons-admin-customizer', admin_url( 'customize.php' ), 'edit_theme_options' ),
 			array( 'Menus', 'Control the header, footer and community navigation links.', 'dashicons-menu', admin_url( 'nav-menus.php' ), 'edit_theme_options' ),

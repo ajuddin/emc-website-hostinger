@@ -123,6 +123,7 @@ get_header();
                         <section class="gift-aid-declaration" aria-labelledby="gift-aid-consent-title">
                             <div class="gift-aid-declaration-title">
                                 <span class="gift-aid-heart" aria-hidden="true"><i class="fas fa-heart"></i></span>
+                                <img class="gift-aid-logo gift-aid-logo-declaration" src="<?php echo esc_url( EMC_ASSETS . '/images/gift-aid.png' ); ?>" alt="<?php esc_attr_e( 'Gift Aid', 'emc-theme' ); ?>">
                                 <div>
                                     <span><?php esc_html_e( 'Gift Aid Consent', 'emc-theme' ); ?></span>
                                     <h3 id="gift-aid-consent-title"><?php esc_html_e( 'Your taxpayer declaration', 'emc-theme' ); ?></h3>

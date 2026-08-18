@@ -32,10 +32,10 @@ if ( ! emc_payment_license_is_active() ) {
 }
 
 $donate_url = get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' );
-$ramadan_start_date = emc_site_setting( 'emc_ramadan_start_date', emc_acf( 'ramadan_start_date', '2027-02-08' ) );
-if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $ramadan_start_date ) ) {
-    $ramadan_start_date = '2027-02-08';
-}
+$ramadan_schedule       = emc_ramadan_giving_schedule();
+$ramadan_window_active  = 'active' === $ramadan_schedule['status'];
+$ramadan_start_display  = wp_date( 'j F Y \a\t g:i a', $ramadan_schedule['start']->getTimestamp(), wp_timezone() );
+$ramadan_end_display    = wp_date( 'j F Y \a\t g:i a', $ramadan_schedule['end']->getTimestamp(), wp_timezone() );
 $ramadan_amounts        = array_values( array_filter( array_map( 'floatval', explode( ',', emc_site_setting( 'emc_ramadan_amounts', '1,2,3,5,10' ) ) ) ) );
 $ramadan_default_amount = (float) emc_site_setting( 'emc_ramadan_default_amount', 3 );
 $fitrana_rate           = (float) emc_site_setting( 'emc_fitrana_rate', 7 );
@@ -49,7 +49,14 @@ if ( ! in_array( $ramadan_default_amount, $ramadan_amounts, true ) ) {
 }
 
 wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
-    'startDate' => $ramadan_start_date,
+    // Keep startDate for compatibility with the payment plugin's scheduler.
+    'startDate'       => $ramadan_schedule['payment_start_date'],
+    'startDateTime'   => $ramadan_schedule['start_iso'],
+    'endDateTime'     => $ramadan_schedule['end_iso'],
+    'status'          => $ramadan_schedule['status'],
+    'activeLabel'     => __( 'Schedule My Ramadan Giving', 'emc-theme' ),
+    'upcomingLabel'   => __( 'Ramadan Giving Is Not Open Yet', 'emc-theme' ),
+    'closedLabel'     => __( 'Ramadan Giving Is Closed', 'emc-theme' ),
 ) );
 ?>
 
@@ -83,7 +90,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
 
         <!-- Live Countdown -->
         <div class="ramadan-countdown-hero">
-            <p class="countdown-label"><?php esc_html_e( 'Next Ramadan begins in:', 'emc-theme' ); ?></p>
+            <p class="countdown-label" id="ramadan-countdown-label"><?php echo 'active' === $ramadan_schedule['status'] ? esc_html__( 'Ramadan recurring giving closes in:', 'emc-theme' ) : esc_html__( 'Ramadan recurring giving opens in:', 'emc-theme' ); ?></p>
             <div class="countdown-grid-hero">
                 <div class="countdown-cell-hero"><span id="rmh-days">--</span><small><?php esc_html_e( 'Days', 'emc-theme' ); ?></small></div>
                 <div class="countdown-sep">:</div>
@@ -108,6 +115,22 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
             <div class="ramadan-form-col">
                 <div class="form-card glass-card">
                     <h2><?php esc_html_e( 'Schedule Your Ramadan Giving', 'emc-theme' ); ?></h2>
+                    <?php if ( 'upcoming' === $ramadan_schedule['status'] ) : ?>
+                        <div class="ramadan-window-notice is-upcoming" role="status">
+                            <i class="fas fa-clock" aria-hidden="true"></i>
+                            <div><strong><?php esc_html_e( 'Ramadan recurring giving is not open yet.', 'emc-theme' ); ?></strong><br><?php printf( esc_html__( 'It opens on %1$s and remains open for 30 days, until %2$s.', 'emc-theme' ), esc_html( $ramadan_start_display ), esc_html( $ramadan_end_display ) ); ?></div>
+                        </div>
+                    <?php elseif ( $ramadan_window_active ) : ?>
+                        <div class="ramadan-window-notice is-active" role="status">
+                            <i class="fas fa-check-circle" aria-hidden="true"></i>
+                            <div><strong><?php esc_html_e( 'Ramadan recurring giving is open.', 'emc-theme' ); ?></strong><br><?php printf( esc_html__( 'New schedules can be created until %s.', 'emc-theme' ), esc_html( $ramadan_end_display ) ); ?></div>
+                        </div>
+                    <?php else : ?>
+                        <div class="ramadan-window-notice is-closed" role="status">
+                            <i class="fas fa-calendar-times" aria-hidden="true"></i>
+                            <div><strong><?php esc_html_e( 'Ramadan recurring giving has closed.', 'emc-theme' ); ?></strong><br><?php printf( esc_html__( 'The configured 30-day window ended on %s.', 'emc-theme' ), esc_html( $ramadan_end_display ) ); ?></div>
+                        </div>
+                    <?php endif; ?>
                     <p class="form-desc"><?php esc_html_e( 'Set a daily amount and choose your giving period — your donation is automatically processed each day.', 'emc-theme' ); ?></p>
 
                     <!-- Daily Amount -->
@@ -193,6 +216,7 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                     <div class="gift-aid-box">
                         <label class="gift-aid-label">
                             <input type="checkbox" class="gift-aid-check" id="ramadan-giftaid">
+                            <img class="gift-aid-logo" src="<?php echo esc_url( EMC_ASSETS . '/images/gift-aid.png' ); ?>" alt="<?php esc_attr_e( 'Gift Aid', 'emc-theme' ); ?>">
                             <div class="gift-aid-content">
                                 <strong><?php esc_html_e( 'Claim Gift Aid', 'emc-theme' ); ?></strong>
                                 <p><?php esc_html_e( 'I am a UK taxpayer. EMC can reclaim 25p of tax on every £1 I give at no extra cost to me. Address line 1 and postcode are required to claim Gift Aid.', 'emc-theme' ); ?></p>
@@ -200,9 +224,17 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
                         </label>
                     </div>
 
-                    <button id="ramadan-submit" class="btn btn-primary donate-submit" style="background:linear-gradient(135deg,#1A2050,#0F3A25);">
+                    <button id="ramadan-submit" class="btn btn-primary donate-submit" style="background:linear-gradient(135deg,#1A2050,#0F3A25);" data-active-label="<?php esc_attr_e( 'Schedule My Ramadan Giving', 'emc-theme' ); ?>" <?php disabled( ! $ramadan_window_active ); ?> aria-disabled="<?php echo $ramadan_window_active ? 'false' : 'true'; ?>">
                         <i class="fas fa-moon" aria-hidden="true"></i>
-                        <?php esc_html_e( 'Schedule My Ramadan Giving', 'emc-theme' ); ?>
+                        <?php
+                        if ( 'upcoming' === $ramadan_schedule['status'] ) {
+                            esc_html_e( 'Ramadan Giving Is Not Open Yet', 'emc-theme' );
+                        } elseif ( 'closed' === $ramadan_schedule['status'] ) {
+                            esc_html_e( 'Ramadan Giving Is Closed', 'emc-theme' );
+                        } else {
+                            esc_html_e( 'Schedule My Ramadan Giving', 'emc-theme' );
+                        }
+                        ?>
                     </button>
                     <p class="secure-note"><i class="fas fa-lock"></i> <?php esc_html_e( 'Encrypted & secured. Donations are non-refundable.', 'emc-theme' ); ?></p>
                 </div>
@@ -292,15 +324,44 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
 
 <script>
 ( function() {
-    function ramadanCountdown() {
-        var configuredDate = window.emcRamadanConfig && window.emcRamadanConfig.startDate ? window.emcRamadanConfig.startDate : <?php echo wp_json_encode( $ramadan_start_date ); ?>;
-        var target = new Date( configuredDate + 'T00:00:00' );
-        if ( isNaN( target.getTime() ) ) {
-            target = new Date( <?php echo wp_json_encode( $ramadan_start_date . 'T00:00:00' ); ?> );
+    var scheduleConfig = window.emcRamadanConfig || {};
+    var scheduleStart  = new Date( scheduleConfig.startDateTime || <?php echo wp_json_encode( $ramadan_schedule['start_iso'] ); ?> );
+    var scheduleEnd    = new Date( scheduleConfig.endDateTime || <?php echo wp_json_encode( $ramadan_schedule['end_iso'] ); ?> );
+
+    function scheduleStatus( now ) {
+        if ( now < scheduleStart ) return 'upcoming';
+        if ( now >= scheduleEnd ) return 'closed';
+        return 'active';
+    }
+
+    function updateScheduleButton( status ) {
+        var button = document.getElementById( 'ramadan-submit' );
+        if ( ! button ) return;
+        var isActive = 'active' === status;
+        button.disabled = ! isActive;
+        button.setAttribute( 'aria-disabled', isActive ? 'false' : 'true' );
+        if ( ! isActive ) {
+            var label = 'upcoming' === status ? scheduleConfig.upcomingLabel : scheduleConfig.closedLabel;
+            button.innerHTML = '<i class="fas fa-moon" aria-hidden="true"></i> ' + ( label || '' );
+        } else if ( button.dataset.windowStatus !== 'active' ) {
+            button.innerHTML = '<i class="fas fa-moon" aria-hidden="true"></i> ' + ( scheduleConfig.activeLabel || button.dataset.activeLabel );
         }
+        button.dataset.windowStatus = status;
+    }
+
+    function ramadanCountdown() {
         var now    = new Date();
+        var status = scheduleStatus( now );
+        var target = 'upcoming' === status ? scheduleStart : scheduleEnd;
         var diff   = target - now;
-        if ( diff < 0 ) return;
+        var label  = document.getElementById( 'ramadan-countdown-label' );
+        updateScheduleButton( status );
+        if ( label ) {
+            label.textContent = 'upcoming' === status
+                ? <?php echo wp_json_encode( __( 'Ramadan recurring giving opens in:', 'emc-theme' ) ); ?>
+                : ( 'active' === status ? <?php echo wp_json_encode( __( 'Ramadan recurring giving closes in:', 'emc-theme' ) ); ?> : <?php echo wp_json_encode( __( 'Ramadan recurring giving is closed.', 'emc-theme' ) ); ?> );
+        }
+        if ( diff < 0 || 'closed' === status ) diff = 0;
         var d = Math.floor( diff / 86400000 );
         var h = Math.floor( ( diff % 86400000 ) / 3600000 );
         var m = Math.floor( ( diff % 3600000  ) / 60000   );
@@ -314,6 +375,16 @@ wp_localize_script( 'emc-page-ramadan', 'emcRamadanConfig', array(
     }
     ramadanCountdown();
     setInterval( ramadanCountdown, 1000 );
+
+    var ramadanSubmit = document.getElementById( 'ramadan-submit' );
+    if ( ramadanSubmit ) {
+        ramadanSubmit.addEventListener( 'click', function( event ) {
+            if ( 'active' !== scheduleStatus( new Date() ) ) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        }, true );
+    }
 
     // ── Giving scheduler totals are handled by ramadan.js ─────────────────
     // (amount buttons, period radios, and #rm-total updates live in ramadan.js)

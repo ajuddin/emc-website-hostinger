@@ -74,6 +74,17 @@ if ( $selected_campaign_id ) {
         }
     }
 }
+$regular_donation_campaigns = array_values( array_filter( $donation_campaigns, static function( $campaign ) {
+    $fund_name = emc_campaign_fund_name( $campaign->ID );
+    return ! preg_match( '/\bzakat\b/i', $fund_name . ' ' . get_the_title( $campaign ) );
+} ) );
+$regular_selected_campaign_id = 0;
+foreach ( $regular_donation_campaigns as $regular_campaign ) {
+    if ( $selected_campaign && $selected_campaign->ID === $regular_campaign->ID ) {
+        $regular_selected_campaign_id = $regular_campaign->ID;
+        break;
+    }
+}
 ?>
 
 <!-- Page Hero -->
@@ -166,6 +177,7 @@ if ( $selected_campaign_id ) {
                         <div class="gift-aid-box">
                             <label class="gift-aid-label">
                                 <input type="checkbox" id="gift-aid-one" class="gift-aid-check">
+                                <img class="gift-aid-logo" src="<?php echo esc_url( EMC_ASSETS . '/images/gift-aid.png' ); ?>" alt="<?php esc_attr_e( 'Gift Aid', 'emc-theme' ); ?>">
                                 <div class="gift-aid-content">
                                     <strong><?php echo esc_html( emc_acf( 'donate_giftaid_heading', 'Claim Gift Aid' ) ); ?></strong>
                                     <p><?php echo esc_html( emc_acf( 'donate_giftaid_text', 'I am a UK taxpayer and understand that if I pay less Income Tax / Capital Gains Tax than the amount of Gift Aid claimed on all my donations, it is my responsibility to pay any difference. EMC can reclaim 25p of tax on every £1 I give.' ) ); ?></p>
@@ -196,7 +208,16 @@ if ( $selected_campaign_id ) {
                             <div class="form-group"><label><?php esc_html_e( 'Frequency', 'emc-theme' ); ?></label><select class="form-control regular-frequency"><option value="daily"><?php esc_html_e( 'Daily', 'emc-theme' ); ?></option><option value="monthly" selected><?php esc_html_e( 'Monthly', 'emc-theme' ); ?></option><option value="weekly"><?php esc_html_e( 'Weekly', 'emc-theme' ); ?></option><option value="quarterly"><?php esc_html_e( 'Quarterly', 'emc-theme' ); ?></option><option value="annually"><?php esc_html_e( 'Annually', 'emc-theme' ); ?></option></select></div>
                             <div class="form-group"><label><?php esc_html_e( 'Start Date', 'emc-theme' ); ?></label><input type="date" class="form-control regular-start-date"></div>
                         </div>
-                        <div class="form-group"><label><?php esc_html_e( 'Donation Fund', 'emc-theme' ); ?></label><select class="form-control regular-fund"><?php foreach ( $donation_campaigns as $donation_campaign ) : ?><option value="<?php echo esc_attr( emc_campaign_fund_name( $donation_campaign->ID ) ); ?>" <?php selected( $selected_campaign && $selected_campaign->ID === $donation_campaign->ID ); ?>><?php echo esc_html( get_the_title( $donation_campaign ) ); ?></option><?php endforeach; ?><option value="General Fund" <?php selected( ! $selected_campaign ); ?>><?php esc_html_e( 'General Fund', 'emc-theme' ); ?></option><option value="Education"><?php esc_html_e( 'Education', 'emc-theme' ); ?></option><option value="Zakat"><?php esc_html_e( 'Zakat', 'emc-theme' ); ?></option></select></div>
+                        <div class="form-group">
+                            <label><?php esc_html_e( 'Donation Fund', 'emc-theme' ); ?></label>
+                            <select class="form-control regular-fund">
+                                <?php foreach ( $regular_donation_campaigns as $donation_campaign ) : ?>
+                                    <option value="<?php echo esc_attr( emc_campaign_fund_name( $donation_campaign->ID ) ); ?>" <?php selected( $regular_selected_campaign_id === $donation_campaign->ID ); ?>><?php echo esc_html( get_the_title( $donation_campaign ) ); ?></option>
+                                <?php endforeach; ?>
+                                <option value="General Fund" <?php selected( ! $regular_selected_campaign_id ); ?>><?php esc_html_e( 'General Fund', 'emc-theme' ); ?></option>
+                                <option value="Education"><?php esc_html_e( 'Education', 'emc-theme' ); ?></option>
+                            </select>
+                        </div>
                         <div class="donor-details-grid">
                             <div class="form-group">
                                 <label for="donor-name-regular"><?php esc_html_e( 'Full Name *', 'emc-theme' ); ?></label>
@@ -225,7 +246,13 @@ if ( $selected_campaign_id ) {
                                 <a class="payment-method-option" href="#other-ways-to-donate"><i class="fas fa-file-alt"></i> <?php esc_html_e( 'Standing Order', 'emc-theme' ); ?></a>
                             </div>
                         </div>
-                        <div class="gift-aid-box"><label class="gift-aid-label"><input type="checkbox" id="gift-aid-regular" class="gift-aid-check"><div class="gift-aid-content"><strong><?php echo esc_html( emc_acf( 'donate_giftaid_heading', 'Claim Gift Aid' ) ); ?></strong><p><?php echo esc_html( emc_acf( 'donate_regular_giftaid_text', 'I am a UK taxpayer. EMC can reclaim 25p of tax on every £1 I give at no extra cost to me.' ) ); ?></p></div></label></div>
+                        <div class="gift-aid-box">
+                            <label class="gift-aid-label">
+                                <input type="checkbox" id="gift-aid-regular" class="gift-aid-check">
+                                <img class="gift-aid-logo" src="<?php echo esc_url( EMC_ASSETS . '/images/gift-aid.png' ); ?>" alt="<?php esc_attr_e( 'Gift Aid', 'emc-theme' ); ?>">
+                                <div class="gift-aid-content"><strong><?php echo esc_html( emc_acf( 'donate_giftaid_heading', 'Claim Gift Aid' ) ); ?></strong><p><?php echo esc_html( emc_acf( 'donate_regular_giftaid_text', 'I am a UK taxpayer. EMC can reclaim 25p of tax on every £1 I give at no extra cost to me.' ) ); ?></p></div>
+                            </label>
+                        </div>
                         <button class="btn btn-primary donate-submit"><i class="fas fa-sync-alt"></i> <?php echo esc_html( emc_acf( 'donate_regular_btn', 'Set Up Monthly Giving' ) ); ?></button>
                         <?php
                         $portal_url  = emc_acf( 'donate_portal_url', '#' );

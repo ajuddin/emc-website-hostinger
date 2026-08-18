@@ -5996,3 +5996,92 @@ img[width][height] {
     .emc-donation-page-success { padding: 1rem; }
     .emc-donation-page-success-icon { flex-basis: 40px; width: 40px; height: 40px; }
 }
+/* Official Gift Aid mark used consistently across donation declarations. */
+.gift-aid-logo {
+    display: block;
+    flex: 0 0 auto;
+    width: 132px;
+    max-width: 32vw;
+    height: auto;
+    object-fit: contain;
+}
+
+.gift-aid-label,
+.campaign-gift-aid {
+    align-items: flex-start;
+}
+
+.gift-aid-label .gift-aid-logo,
+.campaign-gift-aid .gift-aid-logo {
+    margin-top: 1px;
+}
+
+.gift-aid-label .gift-aid-content,
+.campaign-gift-aid > span {
+    flex: 1 1 220px;
+}
+
+.gift-aid-logo-declaration {
+    width: 145px;
+    max-width: 35%;
+}
+
+@media (max-width: 560px) {
+    .gift-aid-label,
+    .campaign-gift-aid {
+        flex-wrap: wrap;
+    }
+
+    .gift-aid-logo {
+        width: 112px;
+        max-width: calc(100% - 42px);
+    }
+
+    .gift-aid-logo-declaration {
+        width: 120px;
+        max-width: 45%;
+    }
+}
+/* Ramadan recurring-giving availability window */
+.ramadan-window-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin: 1rem 0 1.35rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #d8e3ea;
+    border-radius: 12px;
+    background: #f7fafc;
+    color: #253746;
+    line-height: 1.55;
+}
+
+.ramadan-window-notice > i {
+    margin-top: 0.22rem;
+    font-size: 1.05rem;
+}
+
+.ramadan-window-notice.is-active {
+    border-color: #9bd7c8;
+    background: #effbf7;
+    color: #145f4c;
+}
+
+.ramadan-window-notice.is-upcoming {
+    border-color: #e6cf93;
+    background: #fffaf0;
+    color: #745516;
+}
+
+.ramadan-window-notice.is-closed {
+    border-color: #e1b6b6;
+    background: #fff5f5;
+    color: #7a3030;
+}
+
+#ramadan-submit:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+    opacity: 0.62;
+    box-shadow: none;
+}
