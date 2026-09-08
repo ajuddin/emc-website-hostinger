@@ -315,13 +315,11 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
         }
 
         if ( file_exists( $js_path ) ) {
-            $handle              = 'emc-page-' . $slug;
-            $script_dependencies = array( 'emc-script' );
-
+            $handle = 'emc-page-' . $slug;
             wp_enqueue_script(
                 $handle,
                 EMC_ASSETS . '/js/' . $assets['js'],
-                $script_dependencies,
+                array( 'emc-script' ),
                 filemtime( $js_path ),
                 true
             );
