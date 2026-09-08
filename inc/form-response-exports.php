@@ -15,6 +15,7 @@ function emc_form_response_export_types() {
 		'volunteer'            => array( __( 'Job Applications', 'emc-theme' ), 'manage_options' ),
 		'volunteer-signups'    => array( __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),
 		'gift-aid'             => array( __( 'Gift Aid Declarations', 'emc-theme' ), 'manage_options' ),
+		'memberships'          => array( __( 'Memberships', 'emc-theme' ), 'manage_options' ),
 		'newsletter'           => array( __( 'Newsletter Subscribers', 'emc-theme' ), 'manage_options' ),
 	);
 }
@@ -125,6 +126,21 @@ function emc_gift_aid_export_data() {
 	return array( $headers, $rows );
 }
 
+function emc_membership_export_data() {
+	$fields = array( 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'phone' => 'Phone', 'address_1' => 'Address Line 1', 'address_2' => 'Address Line 2', 'city' => 'Town/City', 'postcode' => 'Postcode', 'tier_name' => 'Membership Category', 'start_date' => 'Start Date', 'expiry_date' => 'Expiry Date', 'payment_status' => 'Payment Status', 'amount' => 'Amount (GBP)', 'payment_intent' => 'Stripe Reference', 'gift_aid' => 'Gift Aid', 'status' => 'Record Status', 'notes' => 'Notes' );
+	$headers = array_merge( array( 'Record ID', 'Submitted' ), array_values( $fields ) );
+	$rows = array();
+	foreach ( emc_form_response_ids( 'emc_membership' ) as $id ) {
+		$row = array( $id, get_post_meta( $id, '_emc_membership_submitted_at', true ) ?: get_the_date( 'Y-m-d H:i:s', $id ) );
+		foreach ( $fields as $field => $label ) {
+			$value = get_post_meta( $id, '_emc_membership_' . $field, true );
+			$row[] = 'gift_aid' === $field ? ( '1' === $value ? 'Yes' : 'No' ) : $value;
+		}
+		$rows[] = $row;
+	}
+	return array( $headers, $rows );
+}
+
 function emc_newsletter_export_data() {
 	$headers = array( 'Record ID', 'Submitted', 'Email', 'Consent', 'Mailchimp Status', 'Last Sync', 'Mailchimp Error' );
 	$rows = array();
@@ -155,7 +171,7 @@ function emc_giving_schedules_export_data() {
 }
 
 function emc_form_response_export_data( $type ) {
-	$callbacks = array( 'event-registrations' => 'emc_event_registration_export_data', 'contact-messages' => 'emc_contact_export_data', 'volunteer' => 'emc_volunteer_export_data', 'volunteer-signups' => 'emc_volunteer_signup_export_data', 'gift-aid' => 'emc_gift_aid_export_data', 'newsletter' => 'emc_newsletter_export_data' );
+	$callbacks = array( 'event-registrations' => 'emc_event_registration_export_data', 'contact-messages' => 'emc_contact_export_data', 'volunteer' => 'emc_volunteer_export_data', 'volunteer-signups' => 'emc_volunteer_signup_export_data', 'gift-aid' => 'emc_gift_aid_export_data', 'memberships' => 'emc_membership_export_data', 'newsletter' => 'emc_newsletter_export_data' );
 	if ( 'all' !== $type ) return isset( $callbacks[ $type ] ) ? call_user_func( $callbacks[ $type ] ) : array( array(), array() );
 
 	$headers = array( 'Response Type', 'Record ID', 'Submitted', 'Name', 'Email', 'Phone', 'Related Form or Event', 'Status', 'Amount (GBP)', 'Complete Response Details' );

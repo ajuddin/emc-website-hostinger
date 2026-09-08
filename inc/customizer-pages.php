@@ -331,8 +331,157 @@ function emc_register_page_content_sections( $wp_customize ) {
         'donate_trust_badge_ga'    => 'Gift Aid Registered',
     );
     emc_bulk_text_settings( $wp_customize, $donate, 'emc_pg_donate' );
+
+    /* ================================================================
+       MEMBERSHIP PAGE
+       ================================================================ */
+    $wp_customize->add_section( 'emc_pg_membership', array(
+        'title'       => __( 'Membership Page', 'emc-theme' ),
+        'panel'       => 'emc_pages',
+        'priority'    => $p++,
+        'description' => __( 'Wording, membership categories, and fees for the Membership page. Each category fee is charged securely through the existing Stripe connection.', 'emc-theme' ),
+    ) );
+
+    $membership = array(
+        'mem_hero_badge'        => 'Join Our Community',
+        'mem_hero_title'        => 'Become a Member',
+        'mem_hero_desc'         => 'Membership sustains the daily running of Essex Muslim Centre and gives you a voice in how your centre is run.',
+        'mem_tiers_subtitle'    => 'Choose Your Category',
+        'mem_tiers_heading'     => 'Membership Categories',
+        'mem_tiers_desc'        => 'Select the category that applies to you. Your membership runs for twelve months from the date of payment.',
+        'mem_benefits_heading'  => 'What Membership Gives You',
+        'mem_benefit_1_icon'    => 'fas fa-vote-yea',
+        'mem_benefit_1_title'   => 'A Voice',
+        'mem_benefit_1_desc'    => 'Vote at the Annual General Meeting and help shape the centre\'s direction.',
+        'mem_benefit_2_icon'    => 'fas fa-hands-helping',
+        'mem_benefit_2_title'   => 'Sustaining Support',
+        'mem_benefit_2_desc'    => 'Your fee funds prayers, education, and welfare across the whole year.',
+        'mem_benefit_3_icon'    => 'fas fa-envelope-open-text',
+        'mem_benefit_3_title'   => 'Stay Informed',
+        'mem_benefit_3_desc'    => 'Receive member updates, meeting notices, and early news of new programmes.',
+        'mem_benefit_4_icon'    => 'fas fa-users',
+        'mem_benefit_4_title'   => 'Community',
+        'mem_benefit_4_desc'    => 'Join a growing body of members committed to the centre\'s future.',
+        'mem_form_heading'      => 'Membership Application',
+        'mem_form_desc'         => 'Complete your details below and pay your membership fee securely by card.',
+        'mem_form_button'       => 'Join & Pay Securely',
+        'mem_secure_note'       => 'Encrypted and secured by Stripe. Your card details are never stored on our website.',
+        'mem_giftaid_text'      => 'I am a UK taxpayer and Essex Muslim Centre may treat eligible payments as Gift Aid donations.',
+        'mem_consent_text'      => 'I agree that Essex Muslim Centre may hold these details to administer my membership.',
+        'mem_terms_text'        => 'Membership is subject to the constitution of Essex Muslim Centre and runs for twelve months from the date of payment.',
+        'mem_contact_note'      => 'Prefer to join in person? Speak to a trustee after Jumu\'ah or contact the centre office.',
+    );
+    emc_bulk_text_settings( $wp_customize, $membership, 'emc_pg_membership' );
+
+    /*
+     * Membership categories. Names and copy are text; fees are validated numbers.
+     * Defaults live in inc/membership.php so the Customizer and the public page
+     * always agree on what an unsaved category contains.
+     */
+    foreach ( emc_membership_tier_defaults() as $i => $tier ) {
+        emc_add_checkbox_setting(
+            $wp_customize,
+            'mem_tier_' . $i . '_enabled',
+            $tier['enabled'],
+            'emc_pg_membership',
+            sprintf( __( 'Category %d — show on the page', 'emc-theme' ), $i )
+        );
+
+        $wp_customize->add_setting( 'mem_tier_' . $i . '_name', array(
+            'default'           => $tier['name'],
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( 'mem_tier_' . $i . '_name', array(
+            'label'   => sprintf( __( 'Category %d — name', 'emc-theme' ), $i ),
+            'section' => 'emc_pg_membership',
+            'type'    => 'text',
+        ) );
+
+        $wp_customize->add_setting( 'mem_tier_' . $i . '_price', array(
+            'default'           => $tier['price'],
+            'sanitize_callback' => 'emc_sanitize_membership_price',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( 'mem_tier_' . $i . '_price', array(
+            'label'       => sprintf( __( 'Category %d — fee (£)', 'emc-theme' ), $i ),
+            'description' => __( 'Minimum £0.50 for card payment. Enter 0 to collect the application without taking payment.', 'emc-theme' ),
+            'section'     => 'emc_pg_membership',
+            'type'        => 'number',
+            'input_attrs' => array( 'min' => 0, 'max' => 10000, 'step' => '0.01' ),
+        ) );
+
+        $wp_customize->add_setting( 'mem_tier_' . $i . '_period', array(
+            'default'           => $tier['period'],
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( 'mem_tier_' . $i . '_period', array(
+            'label'   => sprintf( __( 'Category %d — fee period label', 'emc-theme' ), $i ),
+            'section' => 'emc_pg_membership',
+            'type'    => 'text',
+        ) );
+
+        $wp_customize->add_setting( 'mem_tier_' . $i . '_badge', array(
+            'default'           => $tier['badge'],
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( 'mem_tier_' . $i . '_badge', array(
+            'label'       => sprintf( __( 'Category %d — highlight badge', 'emc-theme' ), $i ),
+            'description' => __( 'Optional. Leave empty for no badge.', 'emc-theme' ),
+            'section'     => 'emc_pg_membership',
+            'type'        => 'text',
+        ) );
+
+        $wp_customize->add_setting( 'mem_tier_' . $i . '_desc', array(
+            'default'           => $tier['desc'],
+            'sanitize_callback' => 'sanitize_text_field',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( 'mem_tier_' . $i . '_desc', array(
+            'label'   => sprintf( __( 'Category %d — short description', 'emc-theme' ), $i ),
+            'section' => 'emc_pg_membership',
+            'type'    => 'textarea',
+        ) );
+
+        $wp_customize->add_setting( 'mem_tier_' . $i . '_features', array(
+            'default'           => $tier['features'],
+            'sanitize_callback' => 'emc_sanitize_membership_features',
+            'transport'         => 'refresh',
+        ) );
+        $wp_customize->add_control( 'mem_tier_' . $i . '_features', array(
+            'label'       => sprintf( __( 'Category %d — included benefits', 'emc-theme' ), $i ),
+            'description' => __( 'One benefit per line.', 'emc-theme' ),
+            'section'     => 'emc_pg_membership',
+            'type'        => 'textarea',
+        ) );
+    }
 }
 add_action( 'customize_register', 'emc_register_page_content_sections' );
+
+/**
+ * Sanitize a membership fee entered in the Customizer.
+ *
+ * @param mixed $value Raw fee.
+ * @return float
+ */
+function emc_sanitize_membership_price( $value ) {
+    $price = round( (float) $value, 2 );
+    return $price > 0 ? min( 10000, $price ) : 0;
+}
+
+/**
+ * Sanitize the newline-separated benefits list for one membership category.
+ *
+ * @param mixed $value Raw textarea value.
+ * @return string
+ */
+function emc_sanitize_membership_features( $value ) {
+    $lines = preg_split( '/\r\n|\r|\n/', (string) $value );
+    $lines = array_filter( array_map( 'sanitize_text_field', $lines ), 'strlen' );
+    return implode( "\n", array_slice( $lines, 0, 12 ) );
+}
 
 /**
  * Apply the confirmed trustee roster once on existing installations.
