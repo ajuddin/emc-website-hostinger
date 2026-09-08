@@ -318,12 +318,6 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             $handle              = 'emc-page-' . $slug;
             $script_dependencies = array( 'emc-script' );
 
-            // Membership fees are monthly subscriptions, so the page always needs Stripe.js.
-            if ( 'membership' === $slug && function_exists( 'emc_membership_stripe_is_available' ) && emc_membership_stripe_is_available() ) {
-                wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
-                $script_dependencies[] = 'stripe-js';
-            }
-
             wp_enqueue_script(
                 $handle,
                 EMC_ASSETS . '/js/' . $assets['js'],

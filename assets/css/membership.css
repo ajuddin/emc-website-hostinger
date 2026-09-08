@@ -625,22 +625,9 @@
     font-weight: 800;
 }
 
-.mem-payment label {
-    display: block;
-    margin-bottom: .45rem;
-}
-
-.mem-card-element {
-    padding: .9rem;
-    border: 1px solid #d5d9d3;
-    border-radius: 8px;
-    background: #fff;
-}
-
-.mem-card-errors {
-    min-height: 1.2em;
-    margin: .5rem 0 0;
-    color: var(--mem-rust);
+.mem-payment-note {
+    margin: 0;
+    color: var(--mem-muted);
     font-size: .88rem;
 }
 

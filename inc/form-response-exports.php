@@ -127,7 +127,7 @@ function emc_gift_aid_export_data() {
 }
 
 function emc_membership_export_data() {
-	$fields = array( 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'phone' => 'Phone', 'address_1' => 'Address Line 1', 'address_2' => 'Address Line 2', 'city' => 'Town/City', 'postcode' => 'Postcode', 'level_name' => 'Membership Level', 'frequency' => 'Frequency', 'start_date' => 'Start Date', 'amount' => 'Amount (GBP)', 'subscription_id' => 'Stripe Subscription', 'customer_id' => 'Stripe Customer', 'gift_aid' => 'Gift Aid', 'status' => 'Status', 'notes' => 'Notes' );
+	$fields = array( 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'phone' => 'Phone', 'address_1' => 'Address Line 1', 'address_2' => 'Address Line 2', 'city' => 'Town/City', 'postcode' => 'Postcode', 'level_name' => 'Membership Level', 'frequency' => 'Frequency', 'start_date' => 'Start Date', 'amount' => 'Amount (GBP)', 'subscription_id' => 'Stripe Subscription', 'confirmed_at' => 'Payment Confirmed', 'gift_aid' => 'Gift Aid', 'status' => 'Status', 'notes' => 'Notes' );
 	$headers = array_merge( array( 'Record ID', 'Submitted' ), array_values( $fields ) );
 	$rows = array();
 	foreach ( emc_form_response_ids( 'emc_membership' ) as $id ) {

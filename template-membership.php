@@ -10,16 +10,26 @@
  * Membership Page. The benefits matrix, allocation chart and dome artwork are
  * part of the page design and live here.
  *
- * Membership fees are monthly Stripe subscriptions handled by inc/membership.php.
+ * Membership fees are monthly giving schedules created by the licensed EMC
+ * Payments plugin, which owns the card form and the Stripe subscription.
  *
  * @package emc-theme
  */
 
+/*
+ * Load the payment plugin's modal and its window.emcOpenStripeModal() bridge.
+ * The "campaign" context is used because, like this page, the campaign pages
+ * only need the bridge and the modal rather than the Donate page's own form.
+ */
+$emc_payments_available = emc_membership_payments_available();
+if ( $emc_payments_available && function_exists( 'emc_payments_enqueue_assets' ) ) {
+    emc_payments_enqueue_assets( 'campaign' );
+}
+
 get_header();
 
 $levels       = emc_membership_levels();
-$stripe_ready = emc_membership_stripe_is_available();
-$stripe_key   = $stripe_ready && function_exists( 'emc_stripe_pub_key' ) ? emc_stripe_pub_key() : '';
+$stripe_ready = $emc_payments_available;
 $contact_url  = get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' );
 
 /* Levels that can actually be charged: at or above Stripe's 50p minimum. */
@@ -331,7 +341,6 @@ $allocations = array(
                         class="mem-form"
                         method="post"
                         novalidate
-                        data-stripe-key="<?php echo esc_attr( $stripe_key ); ?>"
                         data-levels="<?php echo esc_attr( wp_json_encode( array_map( static function ( $level ) {
                             return array( 'key' => $level['key'], 'name' => $level['name'], 'pence' => $level['pence'] );
                         }, array_values( $available_levels ) ) ) ); ?>"
@@ -414,9 +423,9 @@ $allocations = array(
                                 <span><?php esc_html_e( 'Charged monthly', 'emc-theme' ); ?></span>
                                 <strong data-membership-total>&mdash;</strong>
                             </div>
-                            <label for="membership-card"><?php esc_html_e( 'Card details', 'emc-theme' ); ?></label>
-                            <div id="membership-card" class="mem-card-element"></div>
-                            <p class="mem-card-errors" role="alert"></p>
+                            <p class="mem-payment-note">
+                                <?php esc_html_e( 'Card details are entered in the secure payment window that opens next.', 'emc-theme' ); ?>
+                            </p>
                         </div>
 
                         <button type="submit" class="mem-btn mem-btn-primary mem-submit">
