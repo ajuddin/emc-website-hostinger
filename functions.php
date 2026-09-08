@@ -224,7 +224,8 @@ if ( ! function_exists( 'emc_enqueue_assets' ) ) :
         );
         // Pass the JSON data URL so the top bar JS can fetch it
         wp_localize_script( 'emc-prayer-topbar', 'emcPrayer', array(
-            'dataUrl' => emc_prayer_data_url(),
+            'dataUrl'  => emc_prayer_data_url(),
+            'timezone' => wp_timezone_string() ?: 'UTC',
         ) );
 
         // ── Localize script data ──────────────────────────────────────────

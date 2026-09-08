@@ -27,6 +27,7 @@ if ( file_exists( $prayer_js_path ) ) {
         'dataUrl'  => $prayer_data_url,
         'siteName' => get_bloginfo( 'name' ),
         'location' => emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ),
+        'timezone' => wp_timezone_string() ?: 'UTC',
     ) );
 }
 ?>
@@ -41,9 +42,9 @@ if ( file_exists( $prayer_js_path ) ) {
             <p><?php echo esc_html( emc_acf( 'prayer_hero_desc', __( 'Essex Muslim Centre, Chelmsford. All times are calculated for our location. Please check regularly as times change throughout the year.', 'emc-theme' ) ) ); ?></p>
             <div class="hijri-display">
                 <i class="fas fa-star-and-crescent"></i>
-                <span id="hijri-today"><?php echo esc_html( emc_acf( 'prayer_hijri_date', '12 Dhul-Qa\'dah 1447 AH' ) ); ?></span>
-                &nbsp;|&nbsp;
-                <span id="gregorian-today"><?php echo esc_html( date( 'j F Y' ) ); ?></span>
+                <span id="gregorian-today"><?php echo esc_html( wp_date( 'jS F Y' ) ); ?></span>
+                <span aria-hidden="true">&middot;</span>
+                <span id="hijri-today"><?php esc_html_e( 'Hijri date loading', 'emc-theme' ); ?></span>
             </div>
         </div>
 
@@ -148,14 +149,14 @@ if ( file_exists( $prayer_js_path ) ) {
     <div class="container">
         <div class="section-header">
             <span class="subtitle"><?php echo esc_html( emc_acf( 'prayer_timetable_subtitle', 'Monthly View' ) ); ?></span>
-            <h2 id="timetable-heading"><?php echo esc_html( date( 'F Y' ) ); ?> <?php esc_html_e( 'Timetable', 'emc-theme' ); ?></h2>
+            <h2 id="timetable-heading"><?php echo esc_html( wp_date( 'F Y' ) ); ?> <?php esc_html_e( 'Timetable', 'emc-theme' ); ?></h2>
         </div>
 
         <div class="timetable-toolbar">
             <div class="month-nav">
-                <button class="month-nav-btn" id="prev-month" type="button"><i class="fas fa-chevron-left"></i> <?php echo esc_html( date( 'F', strtotime( '-1 month' ) ) ); ?></button>
-                <span class="month-current"><?php echo esc_html( date( 'F Y' ) ); ?></span>
-                <button class="month-nav-btn" id="next-month" type="button"><?php echo esc_html( date( 'F', strtotime( '+1 month' ) ) ); ?> <i class="fas fa-chevron-right"></i></button>
+                <button class="month-nav-btn" id="prev-month" type="button"><i class="fas fa-chevron-left"></i> <?php echo esc_html( wp_date( 'F', strtotime( '-1 month' ) ) ); ?></button>
+                <span class="month-current"><?php echo esc_html( wp_date( 'F Y' ) ); ?></span>
+                <button class="month-nav-btn" id="next-month" type="button"><?php echo esc_html( wp_date( 'F', strtotime( '+1 month' ) ) ); ?> <i class="fas fa-chevron-right"></i></button>
             </div>
             <button class="timetable-download-btn" id="download-timetable-pdf" type="button" disabled>
                 <i class="fas fa-file-pdf" aria-hidden="true"></i>

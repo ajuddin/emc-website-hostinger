@@ -106,7 +106,7 @@ $cookie_decline = emc_option( 'emc_cookie_decline_label', __( 'Decline', 'emc-th
         <!-- Left: Date & Jumu'ah -->
         <div class="ptb-left">
             <div class="ptb-dates">
-                <span class="ptb-gregorian" id="ptb-gregorian"><?php echo esc_html( date_i18n( 'jS F Y' ) ); ?></span>
+                <span class="ptb-gregorian" id="ptb-gregorian"><?php echo esc_html( wp_date( 'jS F Y' ) ); ?></span>
                 <span class="ptb-sep" aria-hidden="true">·</span>
                 <span class="ptb-hijri" id="ptb-hijri"><?php esc_html_e( 'Hijri date loading', 'emc-theme' ); ?></span>
             </div>
