@@ -1,9 +1,20 @@
 <?php
 /**
- * Membership categories, applications, Stripe fee collection, and administration.
+ * Membership levels, applications, monthly Stripe subscriptions, and administration.
  *
- * Fees are taken through the same licensed EMC Payments Stripe connection used by
- * donations and paid event registrations. No card data ever reaches this theme.
+ * Membership fees are recurring monthly charges. They are created through the same
+ * licensed EMC Payments Stripe connection used by donations and paid event
+ * registrations, using only emc_stripe_request() so no plugin internals are relied on.
+ *
+ * The flow is deliberately SetupIntent-first:
+ *   1. Create (or reuse) a Stripe Customer for the applicant.
+ *   2. Create a SetupIntent and confirm the card in the browser. This is where any
+ *      3-D Secure challenge happens, and it stores a reusable mandate.
+ *   3. Verify the SetupIntent server-side, attach the payment method as the
+ *      customer's default, then create the monthly Subscription.
+ *
+ * Confirming the card before the subscription exists means a failed or abandoned
+ * card step can never leave a half-created subscription behind.
  *
  * @package emc-theme
  */
@@ -28,124 +39,86 @@ function emc_register_membership_type() {
 }
 add_action( 'init', 'emc_register_membership_type' );
 
+/* ==========================================================================
+   Membership levels
+   ========================================================================== */
+
 /**
- * Shipped membership categories.
+ * The three membership levels.
  *
- * These are the Customizer defaults and the values used until an administrator
- * saves their own. Both the Customizer controls and the public page read them
- * from here so the two can never drift apart.
+ * Keys are stable identifiers stored against every membership record and sent to
+ * Stripe as metadata, so they must not be renamed once the page is live. Names,
+ * monthly amounts and descriptions are Customizer-editable; the set of levels and
+ * their dome colours are fixed by the page design.
  *
- * @return array<int,array>
+ * @return array<string,array>
  */
-function emc_membership_tier_defaults() {
+function emc_membership_level_defaults() {
     return array(
-        1 => array(
-            'enabled'  => 1,
-            'name'     => __( 'Standard Membership', 'emc-theme' ),
-            'price'    => 50,
-            'period'   => __( 'per year', 'emc-theme' ),
-            'badge'    => '',
-            'desc'     => __( 'For adults aged 18 and over.', 'emc-theme' ),
-            'features' => __( "Full voting rights at the AGM\nMember updates and meeting notices\nSupports the daily running of the centre", 'emc-theme' ),
+        'supporters' => array(
+            'order'  => 1,
+            'name'   => __( 'Supporters', 'emc-theme' ),
+            'amount' => 10,
+            'colour' => '#5a9e8e',
+            'desc'   => __( 'For those who want to be part of keeping EMC open, welcoming and alive. Supporters help sustain the everyday essentials — the prayers that continue quietly, the doors that remain open, and the care that is always available. A simple but powerful way to share in the reward of maintaining the House of Allah.', 'emc-theme' ),
         ),
-        2 => array(
-            'enabled'  => 1,
-            'name'     => __( 'Family Membership', 'emc-theme' ),
-            'price'    => 80,
-            'period'   => __( 'per year', 'emc-theme' ),
-            'badge'    => __( 'Most Popular', 'emc-theme' ),
-            'desc'     => __( 'Two adults at the same address.', 'emc-theme' ),
-            'features' => __( "Two adult votes at the AGM\nMember updates and meeting notices\nBest value for households", 'emc-theme' ),
+        'companions' => array(
+            'order'  => 2,
+            'name'   => __( 'Companions', 'emc-theme' ),
+            'amount' => 30,
+            'colour' => '#2d7a6e',
+            'desc'   => __( 'For those who feel closely connected to EMC and want to walk alongside its work. Companions provide the stability that allows EMC to plan, deliver and serve with confidence. Through regular support, they help ensure that learning, pastoral care and community services are there not just when needed most, but all year round.', 'emc-theme' ),
         ),
-        3 => array(
-            'enabled'  => 1,
-            'name'     => __( 'Student & Senior', 'emc-theme' ),
-            'price'    => 25,
-            'period'   => __( 'per year', 'emc-theme' ),
-            'badge'    => '',
-            'desc'     => __( 'Students in full-time education and members aged 65 and over.', 'emc-theme' ),
-            'features' => __( "Full voting rights at the AGM\nMember updates and meeting notices\nReduced rate", 'emc-theme' ),
-        ),
-        4 => array(
-            'enabled'  => 0,
-            'name'     => __( 'Lifetime Membership', 'emc-theme' ),
-            'price'    => 500,
-            'period'   => __( 'one-off', 'emc-theme' ),
-            'badge'    => '',
-            'desc'     => __( 'A single payment with no annual renewal.', 'emc-theme' ),
-            'features' => __( "Permanent voting rights at the AGM\nRecognition as a lifetime member\nNo annual renewal required", 'emc-theme' ),
+        'custodians' => array(
+            'order'  => 3,
+            'name'   => __( 'Custodians', 'emc-theme' ),
+            'amount' => 100,
+            'colour' => '#1a3c2a',
+            'desc'   => __( 'For those who wish to carry a deeper responsibility for the future of EMC. Custodians help safeguard the long-term strength of the centre, ensuring it remains resilient in all circumstances. Their heartfelt support protects not only what exists today, but what EMC will offer to future generations.', 'emc-theme' ),
         ),
     );
 }
 
 /**
- * Return every enabled membership category with its validated fee.
+ * Membership levels with the administrator's saved names, amounts and copy applied.
  *
  * @return array<string,array>
  */
-function emc_membership_tiers() {
-    $tiers = array();
+function emc_membership_levels() {
+    $levels = array();
 
-    foreach ( emc_membership_tier_defaults() as $i => $default ) {
-        if ( ! absint( get_theme_mod( 'mem_tier_' . $i . '_enabled', $default['enabled'] ) ) ) {
-            continue;
-        }
+    foreach ( emc_membership_level_defaults() as $key => $default ) {
+        $amount = round( (float) get_theme_mod( 'mem_level_' . $key . '_amount', $default['amount'] ), 2 );
+        $amount = $amount > 0 ? min( 10000, $amount ) : 0;
 
-        $name = sanitize_text_field( emc_acf( 'mem_tier_' . $i . '_name', $default['name'] ) );
-        if ( '' === $name ) {
-            continue;
-        }
-
-        $price    = round( (float) get_theme_mod( 'mem_tier_' . $i . '_price', $default['price'] ), 2 );
-        $price    = $price > 0 ? min( 10000, $price ) : 0;
-        $features = preg_split( '/\r\n|\r|\n/', (string) emc_acf( 'mem_tier_' . $i . '_features', $default['features'] ) );
-        $features = array_values( array_filter( array_map( 'trim', $features ), 'strlen' ) );
-
-        $tiers[ 'tier_' . $i ] = array(
-            'key'      => 'tier_' . $i,
-            'name'     => $name,
-            'price'    => $price,
-            'pence'    => (int) round( $price * 100 ),
-            'paid'     => $price >= 0.50,
-            'period'   => sanitize_text_field( emc_acf( 'mem_tier_' . $i . '_period', $default['period'] ) ),
-            'badge'    => sanitize_text_field( emc_acf( 'mem_tier_' . $i . '_badge', $default['badge'] ) ),
-            'desc'     => sanitize_text_field( emc_acf( 'mem_tier_' . $i . '_desc', $default['desc'] ) ),
-            'features' => $features,
+        $levels[ $key ] = array(
+            'key'    => $key,
+            'order'  => $default['order'],
+            'colour' => $default['colour'],
+            'name'   => sanitize_text_field( emc_acf( 'mem_level_' . $key . '_name', $default['name'] ) ),
+            'amount' => $amount,
+            'pence'  => (int) round( $amount * 100 ),
+            'desc'   => sanitize_textarea_field( emc_acf( 'mem_level_' . $key . '_desc', $default['desc'] ) ),
         );
     }
 
-    return $tiers;
+    return $levels;
 }
 
 /**
- * Categories a visitor can complete online right now.
+ * Return one membership level by key, or null when the key is unknown.
  *
- * Paid categories disappear if the licensed Stripe connection is unavailable,
- * so the page can never present a fee it cannot take.
+ * A level with an amount below Stripe's 50p minimum cannot be charged monthly and
+ * is treated as unavailable rather than silently taking nothing.
  *
- * @return array<string,array>
- */
-function emc_membership_available_tiers() {
-    $tiers = emc_membership_tiers();
-
-    if ( emc_membership_stripe_is_available() ) {
-        return $tiers;
-    }
-
-    return array_filter( $tiers, static function ( $tier ) {
-        return ! $tier['paid'];
-    } );
-}
-
-/**
- * Return one membership category by key, or null when it is not offered.
- *
- * @param string $key Category key, for example tier_2.
+ * @param string $key Level key.
  * @return array|null
  */
-function emc_membership_tier( $key ) {
-    $tiers = emc_membership_tiers();
-    return $tiers[ $key ] ?? null;
+function emc_membership_level( $key ) {
+    $levels = emc_membership_levels();
+    $level  = $levels[ $key ] ?? null;
+
+    return $level && $level['pence'] >= 50 ? $level : null;
 }
 
 /**
@@ -160,6 +133,10 @@ function emc_membership_stripe_is_available() {
 
     return function_exists( 'emc_payment_license_is_active' ) && emc_payment_license_is_active();
 }
+
+/* ==========================================================================
+   The public page
+   ========================================================================== */
 
 /**
  * The public Membership page, whether or not it uses the default slug.
@@ -223,6 +200,51 @@ function emc_assign_membership_page_template() {
 add_action( 'after_setup_theme', 'emc_assign_membership_page_template', 20 );
 
 /* ==========================================================================
+   Stripe products and prices
+   ========================================================================== */
+
+/**
+ * Return a reusable monthly Stripe Price for one membership level.
+ *
+ * Prices are created once per level and amount, then cached, so changing a level's
+ * fee creates a new Price while existing members stay on the price they signed up
+ * to. Stripe Prices are immutable, which is what makes this safe.
+ *
+ * @param array $level Membership level.
+ * @return string|WP_Error Stripe Price ID.
+ */
+function emc_membership_stripe_price_id( $level ) {
+    $cache_key = $level['key'] . '_' . $level['pence'];
+    $cache     = get_option( 'emc_membership_stripe_prices', array() );
+    $cache     = is_array( $cache ) ? $cache : array();
+
+    if ( ! empty( $cache[ $cache_key ] ) ) {
+        return $cache[ $cache_key ];
+    }
+
+    $price = emc_stripe_request( 'POST', 'prices', array(
+        'currency'                => 'gbp',
+        'unit_amount'             => $level['pence'],
+        'recurring[interval]'     => 'month',
+        'product_data[name]'      => sprintf( 'EMC Membership — %s', $level['name'] ),
+        'metadata[source]'        => 'EMC Membership',
+        'metadata[level_key]'     => $level['key'],
+    ) );
+
+    if ( is_wp_error( $price ) ) {
+        return $price;
+    }
+    if ( empty( $price['id'] ) ) {
+        return new WP_Error( 'emc_membership_price', __( 'Stripe could not create the membership price.', 'emc-theme' ) );
+    }
+
+    $cache[ $cache_key ] = sanitize_text_field( $price['id'] );
+    update_option( 'emc_membership_stripe_prices', $cache, false );
+
+    return $cache[ $cache_key ];
+}
+
+/* ==========================================================================
    Application storage
    ========================================================================== */
 
@@ -234,33 +256,33 @@ add_action( 'after_setup_theme', 'emc_assign_membership_page_template', 20 );
 function emc_membership_record_fields() {
     return array(
         'first_name', 'last_name', 'email', 'phone', 'address_1', 'address_2',
-        'city', 'postcode', 'tier_key', 'tier_name', 'notes',
+        'city', 'postcode', 'level_key', 'level_name', 'notes',
     );
 }
 
 /**
- * Store a completed membership application.
+ * Store a confirmed membership and notify everyone who needs to know.
  *
- * @param array $pending Validated applicant data.
- * @param array $payment Optional Stripe payment details.
+ * @param array $pending      Validated applicant data.
+ * @param array $subscription Stripe subscription details.
  * @return array Front-end response payload.
  */
-function emc_store_membership_application( $pending, $payment = array() ) {
-    $payment_intent = sanitize_text_field( $payment['payment_intent'] ?? '' );
+function emc_store_membership( $pending, $subscription ) {
+    $subscription_id = sanitize_text_field( $subscription['subscription_id'] ?? '' );
 
-    // Never store the same Stripe payment twice.
-    if ( $payment_intent ) {
+    // Never store the same Stripe subscription twice.
+    if ( $subscription_id ) {
         $existing = get_posts( array(
             'post_type'      => 'emc_membership',
             'post_status'    => 'private',
-            'meta_key'       => '_emc_membership_payment_intent',
-            'meta_value'     => $payment_intent,
+            'meta_key'       => '_emc_membership_subscription_id',
+            'meta_value'     => $subscription_id,
             'posts_per_page' => 1,
             'fields'         => 'ids',
             'no_found_rows'  => true,
         ) );
         if ( $existing ) {
-            return array( 'message' => __( 'Thank you. Your payment and membership have already been confirmed.', 'emc-theme' ) );
+            return array( 'message' => __( 'Thank you. Your membership has already been set up.', 'emc-theme' ) );
         }
     }
 
@@ -272,56 +294,58 @@ function emc_store_membership_application( $pending, $payment = array() ) {
     ), true );
 
     if ( is_wp_error( $post_id ) ) {
-        return array( 'message' => __( 'Your membership could not be saved. Please contact the centre.', 'emc-theme' ) );
+        return array( 'message' => __( 'Your membership was set up with Stripe but could not be saved on the website. Please contact the centre.', 'emc-theme' ) );
     }
 
     foreach ( emc_membership_record_fields() as $field ) {
         update_post_meta( $post_id, '_emc_membership_' . $field, $pending[ $field ] ?? '' );
     }
 
-    $amount_pence = absint( $payment['amount_pence'] ?? 0 );
-    $starts       = current_time( 'Y-m-d' );
+    $amount_pence = absint( $subscription['amount_pence'] ?? 0 );
 
     update_post_meta( $post_id, '_emc_membership_gift_aid', ! empty( $pending['gift_aid'] ) ? '1' : '0' );
     update_post_meta( $post_id, '_emc_membership_consent', ! empty( $pending['consent'] ) ? '1' : '0' );
     update_post_meta( $post_id, '_emc_membership_submitted_at', current_time( 'mysql' ) );
-    update_post_meta( $post_id, '_emc_membership_status', 'active' );
-    update_post_meta( $post_id, '_emc_membership_start_date', $starts );
-    update_post_meta( $post_id, '_emc_membership_expiry_date', gmdate( 'Y-m-d', strtotime( $starts . ' +1 year' ) ) );
-    update_post_meta( $post_id, '_emc_membership_payment_status', $payment_intent ? 'paid' : 'unpaid' );
-    update_post_meta( $post_id, '_emc_membership_payment_intent', $payment_intent );
+    update_post_meta( $post_id, '_emc_membership_start_date', current_time( 'Y-m-d' ) );
+    update_post_meta( $post_id, '_emc_membership_frequency', 'monthly' );
     update_post_meta( $post_id, '_emc_membership_amount', number_format( $amount_pence / 100, 2, '.', '' ) );
+    update_post_meta( $post_id, '_emc_membership_subscription_id', $subscription_id );
+    update_post_meta( $post_id, '_emc_membership_customer_id', sanitize_text_field( $subscription['customer_id'] ?? '' ) );
+    update_post_meta( $post_id, '_emc_membership_status', sanitize_text_field( $subscription['status'] ?? 'active' ) );
 
-    emc_notify_membership_application( $pending, $payment_intent, $amount_pence );
-    $confirmed = emc_send_membership_confirmation( $pending, $payment_intent, $amount_pence );
+    emc_notify_membership_application( $pending, $subscription_id, $amount_pence );
+    $confirmed = emc_send_membership_confirmation( $pending, $subscription_id, $amount_pence );
 
     return array(
         'message' => $confirmed
-            ? __( 'Thank you. Your membership is confirmed and a confirmation has been sent to your email address.', 'emc-theme' )
-            : __( 'Thank you. Your membership has been confirmed.', 'emc-theme' ),
+            ? __( 'Thank you. Your monthly membership is set up and a confirmation has been sent to your email address.', 'emc-theme' )
+            : __( 'Thank you. Your monthly membership is now set up.', 'emc-theme' ),
     );
 }
 
 /**
  * Email the administrators about a new membership.
  *
- * @param array  $pending        Applicant data.
- * @param string $payment_intent Stripe reference, if paid.
- * @param int    $amount_pence   Amount charged.
+ * @param array  $pending         Applicant data.
+ * @param string $subscription_id Stripe subscription reference.
+ * @param int    $amount_pence    Monthly amount.
  */
-function emc_notify_membership_application( $pending, $payment_intent, $amount_pence ) {
+function emc_notify_membership_application( $pending, $subscription_id, $amount_pence ) {
     if ( ! function_exists( 'emc_send_form_notification' ) ) {
         return;
     }
+
+    $address = trim( implode( ', ', array_filter( array( $pending['address_1'], $pending['address_2'], $pending['city'], $pending['postcode'] ) ) ) );
 
     $lines = array(
         sprintf( __( 'Name: %s', 'emc-theme' ), trim( $pending['first_name'] . ' ' . $pending['last_name'] ) ),
         sprintf( __( 'Email: %s', 'emc-theme' ), $pending['email'] ),
         sprintf( __( 'Phone: %s', 'emc-theme' ), $pending['phone'] ?: '—' ),
-        sprintf( __( 'Category: %s', 'emc-theme' ), $pending['tier_name'] ),
-        sprintf( __( 'Address: %s', 'emc-theme' ), trim( implode( ', ', array_filter( array( $pending['address_1'], $pending['address_2'], $pending['city'], $pending['postcode'] ) ) ) ) ?: '—' ),
+        sprintf( __( 'Level: %s', 'emc-theme' ), $pending['level_name'] ),
+        sprintf( __( 'Monthly amount: £%s', 'emc-theme' ), number_format( $amount_pence / 100, 2 ) ),
+        sprintf( __( 'Address: %s', 'emc-theme' ), $address ?: '—' ),
         sprintf( __( 'Gift Aid: %s', 'emc-theme' ), ! empty( $pending['gift_aid'] ) ? __( 'Yes', 'emc-theme' ) : __( 'No', 'emc-theme' ) ),
-        sprintf( __( 'Payment: %s', 'emc-theme' ), $payment_intent ? '£' . number_format( $amount_pence / 100, 2 ) . ' (' . $payment_intent . ')' : __( 'No fee taken', 'emc-theme' ) ),
+        sprintf( __( 'Stripe subscription: %s', 'emc-theme' ), $subscription_id ),
     );
 
     if ( ! empty( $pending['notes'] ) ) {
@@ -330,7 +354,7 @@ function emc_notify_membership_application( $pending, $payment_intent, $amount_p
 
     emc_send_form_notification(
         'membership',
-        sprintf( __( 'New membership: %s', 'emc-theme' ), $pending['tier_name'] ),
+        sprintf( __( 'New membership: %s', 'emc-theme' ), $pending['level_name'] ),
         implode( "\n", $lines )
     );
 }
@@ -338,26 +362,22 @@ function emc_notify_membership_application( $pending, $payment_intent, $amount_p
 /**
  * Email the new member their confirmation.
  *
- * @param array  $pending        Applicant data.
- * @param string $payment_intent Stripe reference, if paid.
- * @param int    $amount_pence   Amount charged.
+ * @param array  $pending         Applicant data.
+ * @param string $subscription_id Stripe subscription reference.
+ * @param int    $amount_pence    Monthly amount.
  * @return bool Whether the confirmation was sent.
  */
-function emc_send_membership_confirmation( $pending, $payment_intent, $amount_pence ) {
+function emc_send_membership_confirmation( $pending, $subscription_id, $amount_pence ) {
     if ( ! is_email( $pending['email'] ?? '' ) ) {
         return false;
     }
 
-    $body  = sprintf( __( "Assalamu Alaikum %s,\n\nThank you for becoming a member of Essex Muslim Centre.", 'emc-theme' ), $pending['first_name'] ?: __( 'friend', 'emc-theme' ) );
-    $body .= "\n\n" . sprintf( __( 'Membership category: %s', 'emc-theme' ), $pending['tier_name'] );
-    $body .= "\n" . sprintf( __( 'Start date: %s', 'emc-theme' ), date_i18n( get_option( 'date_format' ) ) );
-
-    if ( $payment_intent ) {
-        $body .= "\n" . sprintf( __( 'Fee paid: £%s', 'emc-theme' ), number_format( $amount_pence / 100, 2 ) );
-        $body .= "\n" . sprintf( __( 'Stripe reference: %s', 'emc-theme' ), $payment_intent );
-    }
-
-    $body .= "\n\n" . __( 'If any of these details are wrong, please reply to this email and we will correct our records.', 'emc-theme' );
+    $body  = sprintf( __( "Assalamu Alaikum %s,\n\nJazak Allahu Khairan for becoming a member of Essex Muslim Centre.", 'emc-theme' ), $pending['first_name'] ?: __( 'friend', 'emc-theme' ) );
+    $body .= "\n\n" . sprintf( __( 'Membership level: %s', 'emc-theme' ), $pending['level_name'] );
+    $body .= "\n" . sprintf( __( 'Monthly amount: £%s', 'emc-theme' ), number_format( $amount_pence / 100, 2 ) );
+    $body .= "\n" . sprintf( __( 'First payment: %s', 'emc-theme' ), date_i18n( get_option( 'date_format' ) ) );
+    $body .= "\n" . sprintf( __( 'Stripe reference: %s', 'emc-theme' ), $subscription_id );
+    $body .= "\n\n" . __( 'Your membership renews automatically each month. To change the amount or cancel at any time, simply reply to this email and we will take care of it.', 'emc-theme' );
 
     return wp_mail(
         $pending['email'],
@@ -377,11 +397,11 @@ function emc_send_membership_confirmation( $pending, $payment_intent, $amount_pe
  * @return array|WP_Error
  */
 function emc_membership_validate_submission( $source ) {
-    $tier_key = sanitize_key( wp_unslash( $source['tier'] ?? '' ) );
-    $tier     = emc_membership_tier( $tier_key );
+    $level_key = sanitize_key( wp_unslash( $source['level'] ?? '' ) );
+    $level     = emc_membership_level( $level_key );
 
-    if ( ! $tier ) {
-        return new WP_Error( 'emc_membership_tier', __( 'Please choose an available membership category.', 'emc-theme' ) );
+    if ( ! $level ) {
+        return new WP_Error( 'emc_membership_level', __( 'Please choose an available membership level.', 'emc-theme' ) );
     }
 
     $data = array(
@@ -396,8 +416,8 @@ function emc_membership_validate_submission( $source ) {
         'notes'      => sanitize_textarea_field( wp_unslash( $source['notes'] ?? '' ) ),
         'gift_aid'   => ! empty( $source['gift_aid'] ),
         'consent'    => ! empty( $source['consent'] ),
-        'tier_key'   => $tier['key'],
-        'tier_name'  => $tier['name'],
+        'level_key'  => $level['key'],
+        'level_name' => $level['name'],
     );
 
     if ( '' === $data['first_name'] || '' === $data['last_name'] ) {
@@ -413,13 +433,14 @@ function emc_membership_validate_submission( $source ) {
         return new WP_Error( 'emc_membership_consent', __( 'Please confirm you agree to us holding these details.', 'emc-theme' ) );
     }
 
-    $data['tier'] = $tier;
+    $data['level'] = $level;
 
     return $data;
 }
 
 /**
- * Begin a membership application, preparing a Stripe payment when a fee applies.
+ * Step one: validate the application, create the Stripe Customer, and hand back a
+ * SetupIntent so the browser can collect and authenticate the card.
  */
 function emc_ajax_membership_join() {
     check_ajax_referer( 'emc_membership', 'nonce' );
@@ -433,105 +454,160 @@ function emc_ajax_membership_join() {
         wp_send_json_error( array( 'message' => $validated->get_error_message() ), 400 );
     }
 
-    $tier = $validated['tier'];
-    unset( $validated['tier'] );
+    $level = $validated['level'];
+    unset( $validated['level'] );
 
-    $rate_key = 'emc_mem_join_' . md5( $tier['key'] . '|' . strtolower( $validated['email'] ) );
+    if ( ! emc_membership_stripe_is_available() ) {
+        wp_send_json_error( array( 'message' => __( 'Monthly membership payments are temporarily unavailable. Please contact the centre to join.', 'emc-theme' ) ), 503 );
+    }
+
+    $rate_key = 'emc_mem_join_' . md5( $level['key'] . '|' . strtolower( $validated['email'] ) );
     if ( get_transient( $rate_key ) ) {
         wp_send_json_error( array( 'message' => __( 'An application was just submitted with these details. Please wait a moment before trying again.', 'emc-theme' ) ), 429 );
     }
 
-    $pending             = $validated;
-    $pending['rate_key'] = $rate_key;
+    $address = trim( implode( ', ', array_filter( array( $validated['address_1'], $validated['address_2'] ) ) ) );
 
-    if ( ! $tier['paid'] ) {
-        set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
-        wp_send_json_success( emc_store_membership_application( $pending ) );
-    }
+    $customer = emc_stripe_request( 'POST', 'customers', array(
+        'name'                   => trim( $validated['first_name'] . ' ' . $validated['last_name'] ),
+        'email'                  => $validated['email'],
+        'phone'                  => $validated['phone'],
+        'address[line1]'         => $validated['address_1'],
+        'address[line2]'         => $validated['address_2'],
+        'address[city]'          => $validated['city'],
+        'address[postal_code]'   => $validated['postcode'],
+        'address[country]'       => 'GB',
+        'description'            => sprintf( 'EMC member — %s', $level['name'] ),
+        'metadata[source]'       => 'EMC Membership',
+        'metadata[level_key]'    => $level['key'],
+        'metadata[gift_aid]'     => ! empty( $validated['gift_aid'] ) ? 'yes' : 'no',
+        'metadata[full_address]' => $address,
+    ) );
 
-    if ( ! emc_membership_stripe_is_available() ) {
-        wp_send_json_error( array( 'message' => __( 'Online payment is temporarily unavailable. Please contact the centre to join.', 'emc-theme' ) ), 503 );
-    }
-
-    $token       = wp_generate_uuid4();
-    $intent_body = array(
-        'amount'                             => $tier['pence'],
-        'currency'                           => 'gbp',
-        'automatic_payment_methods[enabled]' => 'true',
-        'description'                        => sprintf( 'EMC membership: %s', $tier['name'] ),
-        'metadata[source]'                   => 'EMC Membership',
-        'metadata[membership_token]'         => $token,
-        'metadata[tier_key]'                 => $tier['key'],
-        'metadata[tier_name]'                => $tier['name'],
-        'receipt_email'                      => $validated['email'],
-    );
-
-    $intent = emc_stripe_request( 'POST', 'payment_intents', $intent_body );
-
-    if ( is_wp_error( $intent ) || empty( $intent['client_secret'] ) || empty( $intent['id'] ) ) {
-        $message = is_wp_error( $intent ) ? $intent->get_error_message() : __( 'Stripe could not prepare this payment.', 'emc-theme' );
+    if ( is_wp_error( $customer ) || empty( $customer['id'] ) ) {
+        $message = is_wp_error( $customer ) ? $customer->get_error_message() : __( 'Stripe could not create your membership record.', 'emc-theme' );
         wp_send_json_error( array( 'message' => $message ), 502 );
     }
 
-    $pending['token']          = $token;
-    $pending['payment_intent'] = sanitize_text_field( $intent['id'] );
-    $pending['amount_pence']   = $tier['pence'];
+    $setup = emc_stripe_request( 'POST', 'setup_intents', array(
+        'customer'                     => $customer['id'],
+        'usage'                        => 'off_session',
+        'payment_method_types[]'       => 'card',
+        'metadata[source]'             => 'EMC Membership',
+        'metadata[level_key]'          => $level['key'],
+    ) );
+
+    if ( is_wp_error( $setup ) || empty( $setup['client_secret'] ) || empty( $setup['id'] ) ) {
+        $message = is_wp_error( $setup ) ? $setup->get_error_message() : __( 'Stripe could not prepare the card setup.', 'emc-theme' );
+        wp_send_json_error( array( 'message' => $message ), 502 );
+    }
+
+    $token               = wp_generate_uuid4();
+    $pending             = $validated;
+    $pending['rate_key'] = $rate_key;
+    $pending['token']    = $token;
+    $pending['level']    = $level;
+    $pending['customer'] = sanitize_text_field( $customer['id'] );
+    $pending['setup']    = sanitize_text_field( $setup['id'] );
 
     if ( ! set_transient( 'emc_mem_pending_' . $token, $pending, 30 * MINUTE_IN_SECONDS ) ) {
-        wp_send_json_error( array( 'message' => __( 'The membership payment session could not be saved. No payment has been taken.', 'emc-theme' ) ), 500 );
+        wp_send_json_error( array( 'message' => __( 'The membership session could not be saved. No payment has been taken.', 'emc-theme' ) ), 500 );
     }
 
     wp_send_json_success( array(
-        'requiresPayment' => true,
-        'clientSecret'    => $intent['client_secret'],
-        'paymentIntent'   => $intent['id'],
-        'token'           => $token,
-        'amount'          => '£' . number_format( $tier['pence'] / 100, 2 ),
+        'clientSecret' => $setup['client_secret'],
+        'token'        => $token,
+        'amount'       => '£' . number_format( $level['pence'] / 100, 2 ),
     ) );
 }
 add_action( 'wp_ajax_emc_membership_join', 'emc_ajax_membership_join' );
 add_action( 'wp_ajax_nopriv_emc_membership_join', 'emc_ajax_membership_join' );
 
 /**
- * Verify the Stripe payment and store the paid membership.
+ * Step two: verify the confirmed card, then create the monthly subscription.
  */
 function emc_ajax_membership_confirm() {
     check_ajax_referer( 'emc_membership', 'nonce' );
 
-    $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
-    $pi_id = sanitize_text_field( wp_unslash( $_POST['payment_intent'] ?? '' ) );
+    $token    = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
+    $setup_id = sanitize_text_field( wp_unslash( $_POST['setup_intent'] ?? '' ) );
 
-    if ( ! $token || ! $pi_id || ! emc_membership_stripe_is_available() ) {
-        wp_send_json_error( array( 'message' => __( 'The membership payment could not be verified.', 'emc-theme' ) ), 400 );
+    if ( ! $token || ! $setup_id || ! emc_membership_stripe_is_available() ) {
+        wp_send_json_error( array( 'message' => __( 'The membership could not be verified.', 'emc-theme' ) ), 400 );
     }
 
     $pending = get_transient( 'emc_mem_pending_' . $token );
-    if ( ! is_array( $pending ) || $pi_id !== ( $pending['payment_intent'] ?? '' ) ) {
-        wp_send_json_error( array( 'message' => __( 'This membership payment session has expired. Please contact the centre if a payment was taken.', 'emc-theme' ) ), 410 );
+    if ( ! is_array( $pending ) || $setup_id !== ( $pending['setup'] ?? '' ) ) {
+        wp_send_json_error( array( 'message' => __( 'This membership session has expired. Please start again, or contact the centre if a payment was taken.', 'emc-theme' ) ), 410 );
     }
 
-    $intent = emc_stripe_request( 'GET', 'payment_intents/' . rawurlencode( $pi_id ) );
-    if ( is_wp_error( $intent ) ) {
-        wp_send_json_error( array( 'message' => $intent->get_error_message() ), 502 );
+    // The card must be confirmed and saved against the customer we created.
+    $setup = emc_stripe_request( 'GET', 'setup_intents/' . rawurlencode( $setup_id ) );
+    if ( is_wp_error( $setup ) ) {
+        wp_send_json_error( array( 'message' => $setup->get_error_message() ), 502 );
     }
 
-    $metadata = is_array( $intent ) && is_array( $intent['metadata'] ?? null ) ? $intent['metadata'] : array();
-    $valid    = is_array( $intent )
-        && 'succeeded' === ( $intent['status'] ?? '' )
-        && 'gbp' === strtolower( $intent['currency'] ?? '' )
-        && absint( $intent['amount_received'] ?? $intent['amount'] ?? 0 ) === absint( $pending['amount_pence'] ?? 0 )
-        && $token === ( $metadata['membership_token'] ?? '' )
-        && ( $pending['tier_key'] ?? '' ) === ( $metadata['tier_key'] ?? '' );
+    $payment_method = is_array( $setup ) ? (string) ( $setup['payment_method'] ?? '' ) : '';
+    $valid          = is_array( $setup )
+        && 'succeeded' === ( $setup['status'] ?? '' )
+        && $payment_method
+        && ( $pending['customer'] ?? '' ) === (string) ( $setup['customer'] ?? '' );
 
     if ( ! $valid ) {
-        wp_send_json_error( array( 'message' => __( 'Stripe has not confirmed the expected payment. Please try again or contact the centre.', 'emc-theme' ) ), 409 );
+        wp_send_json_error( array( 'message' => __( 'Stripe has not confirmed your card. Please try again or contact the centre.', 'emc-theme' ) ), 409 );
+    }
+
+    $level = is_array( $pending['level'] ?? null ) ? $pending['level'] : null;
+    if ( ! $level ) {
+        wp_send_json_error( array( 'message' => __( 'This membership session is no longer valid. Please start again.', 'emc-theme' ) ), 410 );
+    }
+
+    $price_id = emc_membership_stripe_price_id( $level );
+    if ( is_wp_error( $price_id ) ) {
+        wp_send_json_error( array( 'message' => $price_id->get_error_message() ), 502 );
+    }
+
+    // Make the confirmed card the default for future invoices.
+    $customer_update = emc_stripe_request( 'POST', 'customers/' . rawurlencode( $pending['customer'] ), array(
+        'invoice_settings[default_payment_method]' => $payment_method,
+    ) );
+    if ( is_wp_error( $customer_update ) ) {
+        wp_send_json_error( array( 'message' => $customer_update->get_error_message() ), 502 );
+    }
+
+    /*
+     * error_if_incomplete makes Stripe reject the whole subscription if the first
+     * charge does not go through, rather than leaving an unpaid subscription that
+     * looks active on the website but is not collecting anything.
+     */
+    $subscription = emc_stripe_request( 'POST', 'subscriptions', array(
+        'customer'                  => $pending['customer'],
+        'items[0][price]'           => $price_id,
+        'default_payment_method'    => $payment_method,
+        'payment_behavior'          => 'error_if_incomplete',
+        'metadata[source]'          => 'EMC Membership',
+        'metadata[level_key]'       => $level['key'],
+        'metadata[level_name]'      => $level['name'],
+        'metadata[membership_token]'=> $token,
+        'metadata[gift_aid]'        => ! empty( $pending['gift_aid'] ) ? 'yes' : 'no',
+    ) );
+
+    if ( is_wp_error( $subscription ) ) {
+        wp_send_json_error( array( 'message' => $subscription->get_error_message() ), 502 );
+    }
+    if ( empty( $subscription['id'] ) || ! in_array( $subscription['status'] ?? '', array( 'active', 'trialing' ), true ) ) {
+        wp_send_json_error( array( 'message' => __( 'Your card was saved but the monthly membership could not be started. Please contact the centre before trying again.', 'emc-theme' ) ), 409 );
     }
 
     set_transient( $pending['rate_key'], 1, MINUTE_IN_SECONDS );
-    $result = emc_store_membership_application( $pending, array(
-        'payment_intent' => $pi_id,
-        'amount_pence'   => absint( $pending['amount_pence'] ),
+
+    $result = emc_store_membership( $pending, array(
+        'subscription_id' => $subscription['id'],
+        'customer_id'     => $pending['customer'],
+        'amount_pence'    => $level['pence'],
+        'status'          => $subscription['status'],
     ) );
+
     delete_transient( 'emc_mem_pending_' . $token );
 
     wp_send_json_success( $result );
@@ -559,6 +635,30 @@ function emc_membership_admin_menu() {
 add_action( 'admin_menu', 'emc_membership_admin_menu' );
 
 /**
+ * Monthly income currently committed through memberships.
+ *
+ * @return array{count:int,monthly:float}
+ */
+function emc_membership_totals() {
+    $ids     = get_posts( array(
+        'post_type'      => 'emc_membership',
+        'post_status'    => 'private',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'no_found_rows'  => true,
+    ) );
+    $monthly = 0.0;
+
+    foreach ( $ids as $id ) {
+        if ( in_array( get_post_meta( $id, '_emc_membership_status', true ), array( 'active', 'trialing' ), true ) ) {
+            $monthly += (float) get_post_meta( $id, '_emc_membership_amount', true );
+        }
+    }
+
+    return array( 'count' => count( $ids ), 'monthly' => $monthly );
+}
+
+/**
  * List every stored membership.
  */
 function emc_membership_admin_page() {
@@ -566,7 +666,8 @@ function emc_membership_admin_page() {
         return;
     }
 
-    $query = new WP_Query( array(
+    $totals = emc_membership_totals();
+    $query  = new WP_Query( array(
         'post_type'      => 'emc_membership',
         'post_status'    => 'private',
         'posts_per_page' => 200,
@@ -577,22 +678,30 @@ function emc_membership_admin_page() {
     <div class="wrap">
         <h1><?php esc_html_e( 'Memberships', 'emc-theme' ); ?></h1>
         <p>
-            <?php esc_html_e( 'Applications submitted through the public Membership page, including the fee taken through Stripe.', 'emc-theme' ); ?>
-            <a href="<?php echo esc_url( admin_url( 'customize.php?autofocus[section]=emc_pg_membership' ) ); ?>"><?php esc_html_e( 'Edit membership categories', 'emc-theme' ); ?></a>
+            <?php
+            printf(
+                /* translators: 1: number of membership records, 2: committed monthly total. */
+                esc_html__( '%1$d membership records, £%2$s committed each month.', 'emc-theme' ),
+                absint( $totals['count'] ),
+                esc_html( number_format( $totals['monthly'], 2 ) )
+            );
+            ?>
+            <a href="<?php echo esc_url( admin_url( 'customize.php?autofocus[section]=emc_pg_membership' ) ); ?>"><?php esc_html_e( 'Edit membership levels', 'emc-theme' ); ?></a>
         </p>
+        <p class="description"><?php esc_html_e( 'Memberships are monthly Stripe subscriptions. Cancel or change one in the Stripe dashboard using the subscription reference below.', 'emc-theme' ); ?></p>
 
         <?php if ( ! $query->have_posts() ) : ?>
-            <div class="notice notice-info inline"><p><?php esc_html_e( 'No memberships have been submitted yet.', 'emc-theme' ); ?></p></div>
+            <div class="notice notice-info inline"><p><?php esc_html_e( 'No memberships have been taken out yet.', 'emc-theme' ); ?></p></div>
         <?php else : ?>
             <table class="widefat fixed striped">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'Submitted', 'emc-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Joined', 'emc-theme' ); ?></th>
                         <th><?php esc_html_e( 'Member', 'emc-theme' ); ?></th>
                         <th><?php esc_html_e( 'Contact', 'emc-theme' ); ?></th>
-                        <th><?php esc_html_e( 'Category', 'emc-theme' ); ?></th>
-                        <th><?php esc_html_e( 'Period', 'emc-theme' ); ?></th>
-                        <th><?php esc_html_e( 'Payment', 'emc-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Level', 'emc-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Monthly', 'emc-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Subscription', 'emc-theme' ); ?></th>
                         <th><?php esc_html_e( 'Details', 'emc-theme' ); ?></th>
                     </tr>
                 </thead>
@@ -616,19 +725,11 @@ function emc_membership_admin_page() {
                             <a href="mailto:<?php echo esc_attr( $email ); ?>"><?php echo esc_html( $email ); ?></a><br>
                             <?php echo esc_html( get_post_meta( $id, '_emc_membership_phone', true ) ); ?>
                         </td>
-                        <td><?php echo esc_html( get_post_meta( $id, '_emc_membership_tier_name', true ) ); ?></td>
+                        <td><?php echo esc_html( get_post_meta( $id, '_emc_membership_level_name', true ) ); ?></td>
+                        <td><strong><?php echo esc_html( '£' . get_post_meta( $id, '_emc_membership_amount', true ) ); ?></strong></td>
                         <td>
-                            <?php echo esc_html( get_post_meta( $id, '_emc_membership_start_date', true ) ); ?>
-                            &rarr;
-                            <?php echo esc_html( get_post_meta( $id, '_emc_membership_expiry_date', true ) ); ?>
-                        </td>
-                        <td>
-                            <?php if ( 'paid' === get_post_meta( $id, '_emc_membership_payment_status', true ) ) : ?>
-                                <strong><?php echo esc_html( '£' . get_post_meta( $id, '_emc_membership_amount', true ) ); ?></strong><br>
-                                <code><?php echo esc_html( get_post_meta( $id, '_emc_membership_payment_intent', true ) ); ?></code>
-                            <?php else : ?>
-                                <?php esc_html_e( 'No fee taken', 'emc-theme' ); ?>
-                            <?php endif; ?>
+                            <code><?php echo esc_html( get_post_meta( $id, '_emc_membership_subscription_id', true ) ); ?></code><br>
+                            <small><?php echo esc_html( get_post_meta( $id, '_emc_membership_status', true ) ); ?></small>
                         </td>
                         <td>
                             <details>

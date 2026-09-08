@@ -1,89 +1,93 @@
 /**
- * EMC Membership page.
+ * EMC Membership page — monthly subscription signup.
  *
- * Collects the application, takes the category fee with Stripe Elements, then
- * asks the server to verify the payment before the membership is stored.
+ * Two server round-trips either side of one Stripe card confirmation:
+ *   1. emc_membership_join     → validates and returns a SetupIntent client secret
+ *   2. stripe.confirmCardSetup → collects and authenticates the card in the browser
+ *   3. emc_membership_confirm  → verifies the card and creates the monthly subscription
+ *
+ * The card is confirmed before the subscription exists, so an abandoned or failed
+ * card step cannot leave a half-created subscription behind.
  */
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('membership-form');
     if (!form) return;
 
-    const submitButton = form.querySelector('.membership-submit');
+    const submitButton = form.querySelector('.mem-submit');
     const buttonLabel = submitButton?.querySelector('span');
-    const defaultLabel = buttonLabel?.textContent || 'Join & Pay Securely';
-    const status = form.querySelector('.membership-form-status');
-    const tierSelect = form.querySelector('#membership-tier');
-    const paymentBlock = form.querySelector('[data-membership-payment]');
+    const defaultLabel = buttonLabel?.textContent || 'Set Up Monthly Membership';
+    const status = form.querySelector('.mem-form-status');
+    const levelSelect = form.querySelector('#membership-level');
     const totalDisplay = form.querySelector('[data-membership-total]');
-    const cardErrors = form.querySelector('.membership-card-errors');
+    const cardErrors = form.querySelector('.mem-card-errors');
     const cardMount = form.querySelector('#membership-card');
 
-    let tiers = [];
+    let levels = [];
     try {
-        const parsed = JSON.parse(form.dataset.tiers || '[]');
-        tiers = Array.isArray(parsed) ? parsed : [];
+        const parsed = JSON.parse(form.dataset.levels || '[]');
+        levels = Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-        tiers = [];
+        levels = [];
     }
 
     let stripe = null;
     let card = null;
-    let paymentSession = null;
-    let completedPayment = null;
+    let setupSession = null;      // SetupIntent handed back by step 1
+    let confirmedSetup = null;    // SetupIntent id once the card is authenticated
 
-    const currentTier = () => tiers.find(tier => tier.key === tierSelect?.value) || null;
+    const currentLevel = () => levels.find(level => level.key === levelSelect?.value) || null;
 
-    const mountCard = () => {
-        if (card || !form.dataset.stripeKey || typeof window.Stripe !== 'function' || !cardMount) return;
+    const money = pence => `£${(pence / 100).toFixed(pence % 100 === 0 ? 0 : 2)}`;
+
+    const setStatus = (message, state = '') => {
+        if (!status) return;
+        status.className = `mem-form-status${state ? ` ${state}` : ''}`;
+        status.textContent = message;
+        if (message) status.focus();
+    };
+
+    if (form.dataset.stripeKey && typeof window.Stripe === 'function' && cardMount) {
         stripe = window.Stripe(form.dataset.stripeKey);
         card = stripe.elements().create('card', {
             hidePostalCode: false,
             style: {
-                base: {color: '#102333', fontSize: '16px', fontFamily: 'inherit', '::placeholder': {color: '#8aa0ad'}},
-                invalid: {color: '#b42318'},
+                base: {color: '#1a3c2a', fontSize: '16px', fontFamily: 'inherit', '::placeholder': {color: '#8a9a91'}},
+                invalid: {color: '#a8442a'},
             },
         });
         card.mount(cardMount);
         card.on('change', event => {
             if (cardErrors) cardErrors.textContent = event.error?.message || '';
         });
-    };
+    }
 
-    const refreshTier = () => {
-        paymentSession = null;
-        completedPayment = null;
+    const refreshLevel = () => {
+        // Any change to the chosen level invalidates a prepared session.
+        setupSession = null;
+        confirmedSetup = null;
 
-        const tier = currentTier();
-        const isPaid = Boolean(tier?.paid);
-
-        if (paymentBlock) paymentBlock.hidden = !isPaid;
+        const level = currentLevel();
         if (totalDisplay) {
-            totalDisplay.textContent = tier
-                ? (isPaid ? `£${(tier.pence / 100).toFixed(2)}` : 'Free')
-                : '—';
+            totalDisplay.textContent = level ? `${money(level.pence)} / month` : '—';
         }
-        if (buttonLabel) {
-            buttonLabel.textContent = isPaid ? defaultLabel : 'Submit Application';
-        }
-        if (isPaid) mountCard();
     };
 
-    tierSelect?.addEventListener('change', refreshTier);
-    refreshTier();
+    levelSelect?.addEventListener('change', refreshLevel);
+    refreshLevel();
 
-    // Selecting a category card scrolls to the form with that category chosen.
-    form.ownerDocument.querySelectorAll('[data-select-tier]').forEach(button => {
+    // The dome cards scroll down to the form with that level pre-selected.
+    document.querySelectorAll('[data-select-level]').forEach(button => {
         button.addEventListener('click', () => {
-            if (tierSelect) {
-                tierSelect.value = button.dataset.selectTier;
-                refreshTier();
+            if (levelSelect) {
+                levelSelect.value = button.dataset.selectLevel;
+                refreshLevel();
             }
             document.getElementById('membership-application')?.scrollIntoView({behavior: 'smooth', block: 'start'});
             form.querySelector('#membership-first-name')?.focus({preventScroll: true});
         });
     });
 
-    const postForm = async formData => {
+    const post = async formData => {
         const response = await fetch(window.emcMembershipConfig.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
@@ -91,16 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const result = await response.json();
         if (!response.ok || !result.success) {
-            throw new Error(result?.data?.message || 'Your application could not be submitted.');
+            throw new Error(result?.data?.message || 'Your membership could not be set up.');
         }
         return result.data;
-    };
-
-    const setStatus = (message, state = '') => {
-        if (!status) return;
-        status.className = `membership-form-status${state ? ` ${state}` : ''}`;
-        status.textContent = message;
-        if (message) status.focus();
     };
 
     form.addEventListener('submit', async event => {
@@ -112,85 +109,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!window.emcMembershipConfig?.ajaxUrl || !window.emcMembershipConfig?.nonce) {
-            setStatus('Membership applications are temporarily unavailable. Please try again later.', 'is-error');
+            setStatus('Memberships are temporarily unavailable. Please try again later.', 'is-error');
             return;
         }
 
-        const tier = currentTier();
-        const isPaid = Boolean(tier?.paid);
-
         if (submitButton) submitButton.disabled = true;
-        if (buttonLabel) buttonLabel.textContent = isPaid ? 'Preparing payment…' : 'Submitting…';
         setStatus('');
 
         try {
-            if (isPaid && (!stripe || !card)) {
+            if (!stripe || !card) {
                 throw new Error('Secure card payment is temporarily unavailable. Please contact the centre.');
             }
 
-            if (!completedPayment) {
-                let prepared = paymentSession;
-                if (!prepared) {
+            // Step 1 — validate and get a SetupIntent. Skipped on retry.
+            if (!confirmedSetup) {
+                if (!setupSession) {
+                    if (buttonLabel) buttonLabel.textContent = 'Checking details…';
                     const formData = new FormData(form);
                     formData.set('nonce', window.emcMembershipConfig.nonce);
-                    prepared = await postForm(formData);
-                    if (prepared.requiresPayment) paymentSession = prepared;
+                    setupSession = await post(formData);
                 }
 
-                if (prepared.requiresPayment) {
-                    if (buttonLabel) buttonLabel.textContent = `Paying ${prepared.amount}…`;
-                    const confirmation = await stripe.confirmCardPayment(prepared.clientSecret, {
-                        payment_method: {
-                            card,
-                            billing_details: {
-                                name: `${form.querySelector('#membership-first-name')?.value || ''} ${form.querySelector('#membership-last-name')?.value || ''}`.trim() || undefined,
-                                email: form.querySelector('#membership-email')?.value || undefined,
-                                address: {
-                                    line1: form.querySelector('#membership-address-1')?.value || undefined,
-                                    line2: form.querySelector('#membership-address-2')?.value || undefined,
-                                    city: form.querySelector('#membership-city')?.value || undefined,
-                                    postal_code: form.querySelector('#membership-postcode')?.value || undefined,
-                                    country: 'GB',
-                                },
+                // Step 2 — confirm the card. Any 3-D Secure challenge happens here.
+                if (buttonLabel) buttonLabel.textContent = 'Confirming your card…';
+                const confirmation = await stripe.confirmCardSetup(setupSession.clientSecret, {
+                    payment_method: {
+                        card,
+                        billing_details: {
+                            name: `${form.querySelector('#membership-first-name')?.value || ''} ${form.querySelector('#membership-last-name')?.value || ''}`.trim() || undefined,
+                            email: form.querySelector('#membership-email')?.value || undefined,
+                            address: {
+                                line1: form.querySelector('#membership-address-1')?.value || undefined,
+                                line2: form.querySelector('#membership-address-2')?.value || undefined,
+                                city: form.querySelector('#membership-city')?.value || undefined,
+                                postal_code: form.querySelector('#membership-postcode')?.value || undefined,
+                                country: 'GB',
                             },
                         },
-                    });
-                    if (confirmation.error) {
-                        throw new Error(confirmation.error.message || 'Stripe could not complete the payment.');
-                    }
-                    if (confirmation.paymentIntent?.status !== 'succeeded') {
-                        throw new Error('Stripe has not confirmed the payment. Please try again.');
-                    }
-                    completedPayment = {
-                        token: prepared.token,
-                        paymentIntent: confirmation.paymentIntent.id,
-                    };
-                } else {
-                    completedPayment = {freeResult: prepared};
+                    },
+                });
+
+                if (confirmation.error) {
+                    throw new Error(confirmation.error.message || 'Stripe could not confirm your card.');
                 }
+                if (confirmation.setupIntent?.status !== 'succeeded') {
+                    throw new Error('Stripe has not confirmed your card. Please try again.');
+                }
+
+                confirmedSetup = confirmation.setupIntent.id;
             }
 
-            let finalResult = completedPayment.freeResult;
-            if (!finalResult) {
-                if (buttonLabel) buttonLabel.textContent = 'Confirming membership…';
-                const confirmationData = new FormData();
-                confirmationData.set('action', 'emc_membership_confirm');
-                confirmationData.set('nonce', window.emcMembershipConfig.nonce);
-                confirmationData.set('token', completedPayment.token);
-                confirmationData.set('payment_intent', completedPayment.paymentIntent);
-                finalResult = await postForm(confirmationData);
-            }
+            // Step 3 — create the monthly subscription.
+            if (buttonLabel) buttonLabel.textContent = 'Setting up your membership…';
+            const confirmData = new FormData();
+            confirmData.set('action', 'emc_membership_confirm');
+            confirmData.set('nonce', window.emcMembershipConfig.nonce);
+            confirmData.set('token', setupSession.token);
+            confirmData.set('setup_intent', confirmedSetup);
+            const result = await post(confirmData);
 
             form.reset();
-            card?.clear();
-            refreshTier();
-            setStatus(finalResult.message, 'is-success');
+            card.clear();
+            refreshLevel();
+            setStatus(result.message, 'is-success');
             if (submitButton) submitButton.hidden = true;
         } catch (error) {
-            setStatus(error.message || 'Your application could not be submitted. Please try again.', 'is-error');
+            setStatus(error.message || 'Your membership could not be set up. Please try again.', 'is-error');
         } finally {
-            if (submitButton && !submitButton.hidden) submitButton.disabled = false;
-            if (buttonLabel && !submitButton?.hidden) buttonLabel.textContent = currentTier()?.paid ? defaultLabel : 'Submit Application';
+            if (submitButton && !submitButton.hidden) {
+                submitButton.disabled = false;
+                if (buttonLabel) buttonLabel.textContent = defaultLabel;
+            }
         }
     });
 });

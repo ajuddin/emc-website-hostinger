@@ -339,148 +339,145 @@ function emc_register_page_content_sections( $wp_customize ) {
         'title'       => __( 'Membership Page', 'emc-theme' ),
         'panel'       => 'emc_pages',
         'priority'    => $p++,
-        'description' => __( 'Wording, membership categories, and fees for the Membership page. Each category fee is charged securely through the existing Stripe connection.', 'emc-theme' ),
+        'description' => __( 'Wording and monthly amounts for the Membership page. Fees are charged every month through the existing Stripe connection.', 'emc-theme' ),
     ) );
 
     $membership = array(
-        'mem_hero_badge'        => 'Join Our Community',
-        'mem_hero_title'        => 'Become a Member',
-        'mem_hero_desc'         => 'Membership sustains the daily running of Essex Muslim Centre and gives you a voice in how your centre is run.',
-        'mem_tiers_subtitle'    => 'Choose Your Category',
-        'mem_tiers_heading'     => 'Membership Categories',
-        'mem_tiers_desc'        => 'Select the category that applies to you. Your membership runs for twelve months from the date of payment.',
-        'mem_benefits_heading'  => 'What Membership Gives You',
-        'mem_benefit_1_icon'    => 'fas fa-vote-yea',
-        'mem_benefit_1_title'   => 'A Voice',
-        'mem_benefit_1_desc'    => 'Vote at the Annual General Meeting and help shape the centre\'s direction.',
-        'mem_benefit_2_icon'    => 'fas fa-hands-helping',
-        'mem_benefit_2_title'   => 'Sustaining Support',
-        'mem_benefit_2_desc'    => 'Your fee funds prayers, education, and welfare across the whole year.',
-        'mem_benefit_3_icon'    => 'fas fa-envelope-open-text',
-        'mem_benefit_3_title'   => 'Stay Informed',
-        'mem_benefit_3_desc'    => 'Receive member updates, meeting notices, and early news of new programmes.',
-        'mem_benefit_4_icon'    => 'fas fa-users',
-        'mem_benefit_4_title'   => 'Community',
-        'mem_benefit_4_desc'    => 'Join a growing body of members committed to the centre\'s future.',
-        'mem_form_heading'      => 'Membership Application',
-        'mem_form_desc'         => 'Complete your details below and pay your membership fee securely by card.',
-        'mem_form_button'       => 'Join & Pay Securely',
+        /* Qur'anic header banner */
+        'mem_ayah_arabic'       => 'إِنَّمَا يَعْمُرُ مَسَاجِدَ اللَّهِ مَنْ آمَنَ بِاللَّهِ وَالْيَوْمِ الْآخِرِ وَأَقَامَ الصَّلَاةَ وَآتَى الزَّكَاةَ وَلَمْ يَخْشَ إِلَّا اللَّهَ ۖ فَعَسَىٰ أُولَٰئِكَ أَن يَكُونُوا مِنَ الْمُهْتَدِينَ',
+        'mem_ayah_english'      => 'The mosques of Allah should only be maintained by those who believe in Allah and the Last Day, establish prayer, pay alms-tax, and fear none but Allah. It is right to hope that they will be among the truly guided.',
+        'mem_ayah_reference'    => 'Qur\'an · Surah At-Tawbah (9:18)',
+
+        /* Introduction */
+        'mem_intro_heading'     => 'Become a Member',
+        'mem_intro_body_1'      => 'Essex Muslim Centre serves our community every single day through prayer, learning and care. Memberships enable regular support that helps maintain the House of Allah and gives EMC the stability it needs to operate responsibly.',
+        'mem_intro_body_2'      => 'Supporting your mosque means sharing in the reward of everything that takes place within it — quietly, consistently, and often unseen.',
+        'mem_intro_note'        => 'To learn more about what your regular donations cover, please see Membership Levels and Why Memberships Exist below.',
+
+        /* Levels */
+        'mem_levels_heading'    => 'Membership Levels',
+        'mem_levels_intro'      => 'Choose the level of monthly support that feels right for you. Every level renews automatically each month and can be changed or cancelled at any time.',
+        'mem_benefits_heading'  => 'What Each Level Includes',
+
+        /* What your mosque delivers */
+        'mem_delivers_heading'  => 'What Your Mosque Delivers',
+        'mem_delivers_intro'    => 'Your regular support keeps all of this running, all year round.',
+
+        /* Why memberships exist */
+        'mem_why_heading'       => 'Why Memberships Exist',
+        'mem_why_body_1'        => 'Much of EMC\'s work takes place every day and requires reliable support. Daily prayers, education, pastoral care, building maintenance and welcoming the community all depend on consistent funding. Memberships exist to provide that stability, enabling an opportunity to support EMC in a regular and responsible way.',
+        'mem_why_body_2'        => 'It costs a substantial annual sum to operate and maintain Essex Muslim Centre at its present level. These core costs include facilities and utilities, systems, finance and administration, outreach, education and events, professional fees, and communication costs.',
+        'mem_why_body_3'        => 'Memberships are not about covering everything EMC does. They are about helping meet essential running costs so the centre remains stable and resilient.',
+
+        /* Allocation chart */
+        'mem_chart_heading'     => 'How Your Donations Are Used',
+        'mem_chart_note'        => 'Approximate allocation of membership income across core running costs.',
+
+        /* Progress bar */
+        'mem_progress_heading'  => 'Funds Raised To Date Via Memberships',
+
+        /* Stability and waqf */
+        'mem_waqf_heading'      => 'Stability, Waqf & The Future',
+        'mem_waqf_body_1'       => 'Once core running costs are covered, surplus funds allow EMC to plan responsibly for the future. This includes strengthening long-term sustainability through the development of a waqf, as well as supporting outreach and community projects as needs arise.',
+        'mem_waqf_body_2'       => 'Regular support provides the stability required not only to maintain EMC today, but to make careful, considered decisions about how it can continue to serve the community in the years ahead.',
+        'mem_waqf_closing'      => 'If Essex Muslim Centre matters to you, Memberships are a way to support it with consistency, care and intention.',
+
+        /* Application form */
+        'mem_form_heading'      => 'Join Today',
+        'mem_form_desc'         => 'Set up your monthly membership securely by card. It takes less than two minutes.',
+        'mem_form_button'       => 'Set Up Monthly Membership',
         'mem_secure_note'       => 'Encrypted and secured by Stripe. Your card details are never stored on our website.',
         'mem_giftaid_text'      => 'I am a UK taxpayer and Essex Muslim Centre may treat eligible payments as Gift Aid donations.',
         'mem_consent_text'      => 'I agree that Essex Muslim Centre may hold these details to administer my membership.',
-        'mem_terms_text'        => 'Membership is subject to the constitution of Essex Muslim Centre and runs for twelve months from the date of payment.',
+        'mem_terms_text'        => 'Your membership renews automatically each month. You can change the amount or cancel at any time by contacting the centre.',
         'mem_contact_note'      => 'Prefer to join in person? Speak to a trustee after Jumu\'ah or contact the centre office.',
     );
     emc_bulk_text_settings( $wp_customize, $membership, 'emc_pg_membership' );
 
     /*
-     * Membership categories. Names and copy are text; fees are validated numbers.
-     * Defaults live in inc/membership.php so the Customizer and the public page
-     * always agree on what an unsaved category contains.
+     * The three membership levels. The set of levels and their dome colours are
+     * fixed by the page design; names, monthly amounts and descriptions are
+     * editable here. Defaults live in inc/membership.php so the Customizer and
+     * the public page can never disagree about an unsaved level.
      */
-    foreach ( emc_membership_tier_defaults() as $i => $tier ) {
-        emc_add_checkbox_setting(
-            $wp_customize,
-            'mem_tier_' . $i . '_enabled',
-            $tier['enabled'],
-            'emc_pg_membership',
-            sprintf( __( 'Category %d — show on the page', 'emc-theme' ), $i )
-        );
-
-        $wp_customize->add_setting( 'mem_tier_' . $i . '_name', array(
-            'default'           => $tier['name'],
+    foreach ( emc_membership_level_defaults() as $key => $level ) {
+        $wp_customize->add_setting( 'mem_level_' . $key . '_name', array(
+            'default'           => $level['name'],
             'sanitize_callback' => 'sanitize_text_field',
             'transport'         => 'refresh',
         ) );
-        $wp_customize->add_control( 'mem_tier_' . $i . '_name', array(
-            'label'   => sprintf( __( 'Category %d — name', 'emc-theme' ), $i ),
+        $wp_customize->add_control( 'mem_level_' . $key . '_name', array(
+            /* translators: %s: membership level name. */
+            'label'   => sprintf( __( '%s — name', 'emc-theme' ), $level['name'] ),
             'section' => 'emc_pg_membership',
             'type'    => 'text',
         ) );
 
-        $wp_customize->add_setting( 'mem_tier_' . $i . '_price', array(
-            'default'           => $tier['price'],
-            'sanitize_callback' => 'emc_sanitize_membership_price',
+        $wp_customize->add_setting( 'mem_level_' . $key . '_amount', array(
+            'default'           => $level['amount'],
+            'sanitize_callback' => 'emc_sanitize_membership_amount',
             'transport'         => 'refresh',
         ) );
-        $wp_customize->add_control( 'mem_tier_' . $i . '_price', array(
-            'label'       => sprintf( __( 'Category %d — fee (£)', 'emc-theme' ), $i ),
-            'description' => __( 'Minimum £0.50 for card payment. Enter 0 to collect the application without taking payment.', 'emc-theme' ),
+        $wp_customize->add_control( 'mem_level_' . $key . '_amount', array(
+            /* translators: %s: membership level name. */
+            'label'       => sprintf( __( '%s — amount per month (£)', 'emc-theme' ), $level['name'] ),
+            'description' => __( 'Minimum £0.50. Changing this creates a new Stripe price; existing members stay on the amount they signed up to.', 'emc-theme' ),
             'section'     => 'emc_pg_membership',
             'type'        => 'number',
-            'input_attrs' => array( 'min' => 0, 'max' => 10000, 'step' => '0.01' ),
+            'input_attrs' => array( 'min' => '0.50', 'max' => 10000, 'step' => '0.01' ),
         ) );
 
-        $wp_customize->add_setting( 'mem_tier_' . $i . '_period', array(
-            'default'           => $tier['period'],
-            'sanitize_callback' => 'sanitize_text_field',
+        $wp_customize->add_setting( 'mem_level_' . $key . '_desc', array(
+            'default'           => $level['desc'],
+            'sanitize_callback' => 'sanitize_textarea_field',
             'transport'         => 'refresh',
         ) );
-        $wp_customize->add_control( 'mem_tier_' . $i . '_period', array(
-            'label'   => sprintf( __( 'Category %d — fee period label', 'emc-theme' ), $i ),
-            'section' => 'emc_pg_membership',
-            'type'    => 'text',
-        ) );
-
-        $wp_customize->add_setting( 'mem_tier_' . $i . '_badge', array(
-            'default'           => $tier['badge'],
-            'sanitize_callback' => 'sanitize_text_field',
-            'transport'         => 'refresh',
-        ) );
-        $wp_customize->add_control( 'mem_tier_' . $i . '_badge', array(
-            'label'       => sprintf( __( 'Category %d — highlight badge', 'emc-theme' ), $i ),
-            'description' => __( 'Optional. Leave empty for no badge.', 'emc-theme' ),
-            'section'     => 'emc_pg_membership',
-            'type'        => 'text',
-        ) );
-
-        $wp_customize->add_setting( 'mem_tier_' . $i . '_desc', array(
-            'default'           => $tier['desc'],
-            'sanitize_callback' => 'sanitize_text_field',
-            'transport'         => 'refresh',
-        ) );
-        $wp_customize->add_control( 'mem_tier_' . $i . '_desc', array(
-            'label'   => sprintf( __( 'Category %d — short description', 'emc-theme' ), $i ),
+        $wp_customize->add_control( 'mem_level_' . $key . '_desc', array(
+            /* translators: %s: membership level name. */
+            'label'   => sprintf( __( '%s — description', 'emc-theme' ), $level['name'] ),
             'section' => 'emc_pg_membership',
             'type'    => 'textarea',
         ) );
-
-        $wp_customize->add_setting( 'mem_tier_' . $i . '_features', array(
-            'default'           => $tier['features'],
-            'sanitize_callback' => 'emc_sanitize_membership_features',
-            'transport'         => 'refresh',
-        ) );
-        $wp_customize->add_control( 'mem_tier_' . $i . '_features', array(
-            'label'       => sprintf( __( 'Category %d — included benefits', 'emc-theme' ), $i ),
-            'description' => __( 'One benefit per line.', 'emc-theme' ),
-            'section'     => 'emc_pg_membership',
-            'type'        => 'textarea',
-        ) );
     }
+
+    /* Funds raised progress bar. */
+    $wp_customize->add_setting( 'mem_progress_raised', array(
+        'default'           => 0,
+        'sanitize_callback' => 'emc_sanitize_membership_amount',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'mem_progress_raised', array(
+        'label'       => __( 'Funds raised to date (£)', 'emc-theme' ),
+        'description' => __( 'Shown on the progress bar. Update this as membership income grows.', 'emc-theme' ),
+        'section'     => 'emc_pg_membership',
+        'type'        => 'number',
+        'input_attrs' => array( 'min' => 0, 'step' => '0.01' ),
+    ) );
+
+    $wp_customize->add_setting( 'mem_progress_goal', array(
+        'default'           => 0,
+        'sanitize_callback' => 'emc_sanitize_membership_amount',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'mem_progress_goal', array(
+        'label'       => __( 'Membership target (£)', 'emc-theme' ),
+        'description' => __( 'Leave at 0 to show the progress bar empty with no target.', 'emc-theme' ),
+        'section'     => 'emc_pg_membership',
+        'type'        => 'number',
+        'input_attrs' => array( 'min' => 0, 'step' => '0.01' ),
+    ) );
 }
 add_action( 'customize_register', 'emc_register_page_content_sections' );
 
 /**
- * Sanitize a membership fee entered in the Customizer.
+ * Sanitize a membership monetary amount entered in the Customizer.
  *
- * @param mixed $value Raw fee.
+ * @param mixed $value Raw amount.
  * @return float
  */
-function emc_sanitize_membership_price( $value ) {
-    $price = round( (float) $value, 2 );
-    return $price > 0 ? min( 10000, $price ) : 0;
-}
-
-/**
- * Sanitize the newline-separated benefits list for one membership category.
- *
- * @param mixed $value Raw textarea value.
- * @return string
- */
-function emc_sanitize_membership_features( $value ) {
-    $lines = preg_split( '/\r\n|\r|\n/', (string) $value );
-    $lines = array_filter( array_map( 'sanitize_text_field', $lines ), 'strlen' );
-    return implode( "\n", array_slice( $lines, 0, 12 ) );
+function emc_sanitize_membership_amount( $value ) {
+    $amount = round( (float) $value, 2 );
+    return $amount > 0 ? min( 1000000, $amount ) : 0;
 }
 
 /**
