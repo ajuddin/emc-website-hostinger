@@ -4,6 +4,10 @@
  */
 document.addEventListener('DOMContentLoaded', () => {
     const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    const HIJRI_MONTHS = ['Muharram', 'Safar', 'Rabi Al-Awwal', 'Rabi Al-Thani', 'Jumada Al-Awwal', 'Jumada Al-Thani', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhul-Qa\'dah', 'Dhul-Hijjah'];
+    const SITE_TIME_ZONE = (typeof emcPrayer !== 'undefined' && emcPrayer.timezone)
+        ? emcPrayer.timezone
+        : Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     function parseTime(str) {
         if (!str || !str.trim()) return null;
@@ -17,10 +21,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.trim().substring(0, 5);
     }
 
-    function dateKey(d) {
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        return `${dd}/${mm}/${d.getFullYear()}`;
+    function zonedParts(d) {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: SITE_TIME_ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23',
+        }).formatToParts(d);
+
+        const get = (type) => parts.find(part => part.type === type)?.value || '';
+        return {
+            year: parseInt(get('year'), 10),
+            month: parseInt(get('month'), 10),
+            day: parseInt(get('day'), 10),
+            hour: parseInt(get('hour'), 10),
+            minute: parseInt(get('minute'), 10),
+            second: parseInt(get('second'), 10),
+        };
+    }
+
+    function siteDateKey(d) {
+        const parts = zonedParts(d);
+        const dd = String(parts.day).padStart(2, '0');
+        const mm = String(parts.month).padStart(2, '0');
+        return `${dd}/${mm}/${parts.year}`;
     }
 
     function ordinal(n) {
@@ -36,8 +64,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatGregorian(d) {
-        const month = new Intl.DateTimeFormat('en-GB', { month: 'long' }).format(d);
-        return `${ordinal(d.getDate())} ${month} ${d.getFullYear()}`;
+        const parts = zonedParts(d);
+        const month = new Intl.DateTimeFormat('en-GB', { timeZone: SITE_TIME_ZONE, month: 'long' }).format(d);
+        return `${ordinal(parts.day)} ${month} ${parts.year}`;
+    }
+
+    function formatHijri(d) {
+        try {
+            const parts = new Intl.DateTimeFormat('en-GB-u-ca-islamic-umalqura', {
+                timeZone: SITE_TIME_ZONE,
+                day: 'numeric',
+                month: 'numeric',
+                year: 'numeric',
+            }).formatToParts(d);
+            const day = parts.find(part => part.type === 'day')?.value || '';
+            const monthNumber = parseInt(parts.find(part => part.type === 'month')?.value || '', 10);
+            const month = HIJRI_MONTHS[monthNumber - 1] || '';
+            const year = parts.find(part => part.type === 'year')?.value || '';
+            return `${day} ${month} ${year}`.trim();
+        } catch (_) {
+            return '';
+        }
     }
 
     function updateDisplayedDates(d) {
@@ -47,27 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const hijriEl = document.getElementById('ptb-hijri');
-        if (!hijriEl) return;
-
-        try {
-            const parts = new Intl.DateTimeFormat('en-GB-u-ca-islamic', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-            }).formatToParts(d);
-            const day = parts.find(part => part.type === 'day')?.value || '';
-            const month = parts.find(part => part.type === 'month')?.value || '';
-            const year = parts.find(part => part.type === 'year')?.value || '';
-            hijriEl.textContent = `${day} ${month} ${year}`.trim();
-        } catch (_) {
-            hijriEl.textContent = '';
+        if (hijriEl) {
+            hijriEl.textContent = formatHijri(d);
         }
-    }
-
-    function msUntilNextLocalDay() {
-        const now = new Date();
-        const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2);
-        return next.getTime() - now.getTime();
     }
 
     function clearPrayerColumns() {
@@ -97,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             function renderTopBar() {
                 const today = new Date();
-                const entry = dataMap[dateKey(today)];
+                const entry = dataMap[siteDateKey(today)];
 
                 updateDisplayedDates(today);
 
@@ -109,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearPrayerColumns();
                     return;
                 }
+
 
                 const adhan = entry.adhan || {};
                 const iqamah = entry.iqamah || {};
@@ -127,8 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 function highlightActive() {
-                    const now = new Date();
-                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    const nowParts = zonedParts(new Date());
+                    const nowMins = nowParts.hour * 60 + nowParts.minute;
                     let nextKey = null;
                     let minDiff = Infinity;
 
@@ -156,19 +186,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeHighlightTimer = setInterval(highlightActive, 60000);
             }
 
-            function scheduleDateSync() {
-                setTimeout(() => {
-                    renderTopBar();
-                    scheduleDateSync();
-                }, msUntilNextLocalDay());
-            }
-
             renderTopBar();
-            scheduleDateSync();
+            setInterval(renderTopBar, 60000);
         })
         .catch(err => {
             updateDisplayedDates(new Date());
-            setTimeout(() => updateDisplayedDates(new Date()), msUntilNextLocalDay());
+            setInterval(() => updateDisplayedDates(new Date()), 60000);
             console.warn('[EMC TopBar] Could not load prayer data:', err);
         });
 });

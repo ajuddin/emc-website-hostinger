@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const HIJRI_MONTHS = ['Muharram', 'Safar', 'Rabi Al-Awwal', 'Rabi Al-Thani', 'Jumada Al-Awwal', 'Jumada Al-Thani', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhul-Qa\'dah', 'Dhul-Hijjah'];
+    const SITE_TIME_ZONE = (typeof emcPrayer !== 'undefined' && emcPrayer.timezone)
+        ? emcPrayer.timezone
+        : Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     /* ------------------------------------------------------------------ */
     /*  Helpers                                                             */
@@ -43,11 +47,71 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
     }
 
-    /** Build a "DD/MM/YYYY" key from a Date object */
+    function zonedParts(d) {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: SITE_TIME_ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23',
+        }).formatToParts(d);
+
+        const get = (type) => parts.find(part => part.type === type)?.value || '';
+        return {
+            year: parseInt(get('year'), 10),
+            month: parseInt(get('month'), 10),
+            day: parseInt(get('day'), 10),
+            hour: parseInt(get('hour'), 10),
+            minute: parseInt(get('minute'), 10),
+            second: parseInt(get('second'), 10),
+        };
+    }
+
+    /** Build a "DD/MM/YYYY" key from the WordPress site timezone */
     function dateKey(d) {
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        return `${dd}/${mm}/${d.getFullYear()}`;
+        const parts = zonedParts(d);
+        const dd = String(parts.day).padStart(2, '0');
+        const mm = String(parts.month).padStart(2, '0');
+        return `${dd}/${mm}/${parts.year}`;
+    }
+
+    function ordinal(n) {
+        const mod100 = n % 100;
+        if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+        if (n % 10 === 1) return `${n}st`;
+        if (n % 10 === 2) return `${n}nd`;
+        if (n % 10 === 3) return `${n}rd`;
+        return `${n}th`;
+    }
+
+    function formatGregorian(d) {
+        const parts = zonedParts(d);
+        const month = new Intl.DateTimeFormat('en-GB', {
+            timeZone: SITE_TIME_ZONE,
+            month: 'long',
+        }).format(d);
+        return `${ordinal(parts.day)} ${month} ${parts.year}`;
+    }
+
+    function formatHijri(d) {
+        try {
+            const parts = new Intl.DateTimeFormat('en-GB-u-ca-islamic-umalqura', {
+                timeZone: SITE_TIME_ZONE,
+                day: 'numeric',
+                month: 'numeric',
+                year: 'numeric',
+            }).formatToParts(d);
+            const day = parts.find(part => part.type === 'day')?.value || '';
+            const monthNumber = parseInt(parts.find(part => part.type === 'month')?.value || '', 10);
+            const month = HIJRI_MONTHS[monthNumber - 1] || '';
+            const year = parts.find(part => part.type === 'year')?.value || '';
+            return `${day} ${month} ${year}`.trim();
+        } catch (_) {
+            return '';
+        }
     }
 
     /* ------------------------------------------------------------------ */
@@ -58,6 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataUrl = (typeof emcPrayer !== 'undefined' && emcPrayer.dataUrl)
         ? emcPrayer.dataUrl
         : '/wp-content/themes/emc-theme/assets/js/prayer-data.json'; // fallback
+
+    initDailyRefresh();
 
     fetch(dataUrl)
         .then(r => r.json())
@@ -76,6 +142,21 @@ document.addEventListener('DOMContentLoaded', () => {
             initScrollReveal();
         });
 
+    /**
+     * Reload at the first minute of a new day in the WordPress timezone.
+     * This keeps the date badge, prayer widget and timetable in sync.
+     */
+    function initDailyRefresh() {
+        let activeDateKey = dateKey(new Date());
+
+        setInterval(() => {
+            const latestDateKey = dateKey(new Date());
+            if (latestDateKey !== activeDateKey) {
+                activeDateKey = latestDateKey;
+                window.location.reload();
+            }
+        }, 60000);
+    }
     /* ------------------------------------------------------------------ */
     /*  Today's Widget                                                      */
     /* ------------------------------------------------------------------ */
@@ -85,28 +166,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const key      = dateKey(today);
         const entry    = dataMap[key];
 
-        if (!entry) return; // No data for today (e.g. next year)
+        const gregEl = document.getElementById('gregorian-today');
+        if (gregEl) gregEl.textContent = formatGregorian(today);
+
+        const hijriEl = document.getElementById('hijri-today');
+        if (hijriEl) hijriEl.textContent = formatHijri(today);
+
+        if (!entry) return; // No prayer-time data for today (e.g. next year)
 
         const adhan  = entry.adhan;
         const iqamah = entry.iqamah;
 
-        // ── Hijri date ────────────────────────────────────────────────
-        const hijriEl = document.getElementById('hijri-today');
-        if (hijriEl && entry.hijri) {
-            // Remove Arabic weekday prefix if present (keep date part only for cleanliness)
-            // Format from data: "الجمعة 13 رجب 1447" — show as is
-            hijriEl.textContent = entry.hijri;
-        }
-
-        // ── Gregorian date ────────────────────────────────────────────
-        const gregEl = document.getElementById('gregorian-today');
-        if (gregEl) {
-            gregEl.textContent = today.toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'long', year: 'numeric'
-            });
-        }
-
-        // ── Prayer rows in the widget ──────────────────────────────────
         // Ordered prayer list used by the widget (matches template PHP order)
         const WIDGET_PRAYERS = [
             { key: 'fajr',    label: 'Fajr',    hasIqamah: true  },
@@ -148,8 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function updateCountdown() {
             const now     = new Date();
-            const nowMins = now.getHours() * 60 + now.getMinutes();
-            const nowSecs = now.getSeconds();
+            const nowParts = zonedParts(now);
+            const nowMins = nowParts.hour * 60 + nowParts.minute;
+            const nowSecs = nowParts.second;
 
             // Find next prayer (first one that is still in the future)
             let next = prayerTimesMinutes.find(p => p.mins > nowMins);
@@ -193,8 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initMonthlyTimetable(dataMap) {
         const today = new Date();
-        let currentYear  = today.getFullYear();
-        let currentMonth = today.getMonth(); // 0-indexed
+        const todayParts = zonedParts(today);
+        let currentYear  = todayParts.year;
+        let currentMonth = todayParts.month - 1; // 0-indexed
         const downloadBtn = document.getElementById('download-timetable-pdf');
 
         // Update table headers to include Iqamah columns
@@ -232,8 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (nextBtn)  nextBtn.innerHTML = `${MONTHS[(month + 1) % 12]} <i class="fas fa-chevron-right"></i>`;
 
             const daysInMonth    = new Date(year, month + 1, 0).getDate();
-            const todayDate      = new Date();
-            const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === month;
+            const todayDate      = zonedParts(new Date());
+            const isCurrentMonth = todayDate.year === year && (todayDate.month - 1) === month;
 
             let html = '';
             let hasData = false;
@@ -241,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateObj  = new Date(year, month, d);
                 const dayName  = DAYS[dateObj.getDay()];
                 const isFriday = dateObj.getDay() === 5;
-                const isToday  = isCurrentMonth && todayDate.getDate() === d;
+                const isToday  = isCurrentMonth && todayDate.day === d;
 
                 const dd  = String(d).padStart(2, '0');
                 const mm  = String(month + 1).padStart(2, '0');
