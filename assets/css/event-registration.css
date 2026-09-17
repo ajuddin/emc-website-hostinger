@@ -371,6 +371,7 @@ html {
 
 .event-register-submit {
     min-width: 220px;
+    margin-top: .75rem;
 }
 
 .event-register-submit:disabled {

@@ -53,6 +53,37 @@ function emc_form_notification_recipients( $type ) {
 	return array_values( array_unique( $emails ) );
 }
 
+/**
+ * Use a sender on the website domain so shared hosts do not reject the mail.
+ * SMTP plugins can still replace this through WordPress's normal mail filters.
+ */
+function emc_form_notification_sender() {
+	$host        = wp_parse_url( home_url(), PHP_URL_HOST );
+	$host        = strtolower( preg_replace( '/^www\./i', '', (string) $host ) );
+	$admin_email = sanitize_email( get_option( 'admin_email' ) );
+
+	if ( $admin_email && $host ) {
+		$admin_domain = strtolower( substr( strrchr( $admin_email, '@' ), 1 ) );
+		if ( $admin_domain === $host || substr( $admin_domain, -strlen( '.' . $host ) ) === '.' . $host ) {
+			return $admin_email;
+		}
+	}
+
+	return $host ? sanitize_email( 'wordpress@' . $host ) : $admin_email;
+}
+
+/** Store the most recent transport failure for the notification settings page. */
+function emc_record_form_mail_failure( $error ) {
+	if ( ! is_wp_error( $error ) ) {
+		return;
+	}
+	update_option( 'emc_form_notification_last_error', array(
+		'time'    => current_time( 'mysql' ),
+		'message' => sanitize_text_field( $error->get_error_message() ),
+	), false );
+}
+add_action( 'wp_mail_failed', 'emc_record_form_mail_failure' );
+
 /** Send one administrator notification using the central controls. */
 function emc_send_form_notification( $type, $subject, $message, $headers = array() ) {
 	$setting = emc_form_notification_setting( $type );
@@ -61,9 +92,41 @@ function emc_send_form_notification( $type, $subject, $message, $headers = array
 	}
 	$recipients = emc_form_notification_recipients( $type );
 	if ( ! $recipients ) {
-		$recipients = array( sanitize_email( get_option( 'admin_email' ) ) );
+		$fallback   = sanitize_email( get_option( 'admin_email' ) );
+		$recipients = $fallback ? array( $fallback ) : array();
 	}
-	return wp_mail( $recipients, $subject, $message, $headers );
+	if ( ! $recipients ) {
+		update_option( 'emc_form_notification_last_error', array(
+			'time'    => current_time( 'mysql' ),
+			'message' => __( 'No valid notification recipient is configured.', 'emc-theme' ),
+		), false );
+		return false;
+	}
+
+	$headers  = is_array( $headers ) ? $headers : array( $headers );
+	$has_from = false;
+	foreach ( $headers as $header ) {
+		if ( 0 === stripos( trim( $header ), 'From:' ) ) {
+			$has_from = true;
+			break;
+		}
+	}
+	$sender = emc_form_notification_sender();
+	if ( ! $has_from && $sender ) {
+		$headers[] = sprintf( 'From: %s <%s>', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $sender );
+	}
+
+	$sent = wp_mail( $recipients, $subject, $message, $headers );
+	update_option( 'emc_form_notification_last_attempt', array(
+		'time'       => current_time( 'mysql' ),
+		'type'       => sanitize_key( $type ),
+		'recipients' => implode( ', ', $recipients ),
+		'sent'       => $sent ? '1' : '0',
+	), false );
+	if ( $sent ) {
+		delete_option( 'emc_form_notification_last_error' );
+	}
+	return $sent;
 }
 
 /** Build a safe HTML summary which includes every supplied form answer. */
@@ -186,6 +249,8 @@ function emc_notify_first_payment_log_records( $option, $value ) {
 add_action( 'added_option', 'emc_notify_first_payment_log_records', 20, 2 );
 
 function emc_form_notifications_admin_page() {
+	$last_attempt = get_option( 'emc_form_notification_last_attempt', array() );
+	$last_error   = get_option( 'emc_form_notification_last_error', array() );
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Form Notification Emails', 'emc-theme' ); ?></h1>
@@ -219,6 +284,12 @@ function emc_form_notifications_admin_page() {
 			<?php submit_button( __( 'Send Test Notification', 'emc-theme' ), 'secondary', 'submit', false ); ?>
 		</form>
 		<p><strong><?php esc_html_e( 'Delivery note:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'WordPress must be able to send email. For reliable delivery, configure an SMTP plugin and send a test email after deployment.', 'emc-theme' ); ?></p>
+		<?php if ( ! empty( $last_attempt['time'] ) ) : ?>
+			<p><strong><?php esc_html_e( 'Last notification attempt:', 'emc-theme' ); ?></strong> <?php echo esc_html( $last_attempt['time'] ); ?> &mdash; <?php echo ! empty( $last_attempt['sent'] ) ? esc_html__( 'accepted by the mail transport', 'emc-theme' ) : esc_html__( 'failed', 'emc-theme' ); ?><?php if ( ! empty( $last_attempt['recipients'] ) ) : ?> (<?php echo esc_html( $last_attempt['recipients'] ); ?>)<?php endif; ?></p>
+		<?php endif; ?>
+		<?php if ( ! empty( $last_error['message'] ) ) : ?>
+			<div class="notice notice-error inline"><p><strong><?php esc_html_e( 'Mail error:', 'emc-theme' ); ?></strong> <?php echo esc_html( $last_error['message'] ); ?></p></div>
+		<?php endif; ?>
 	</div>
 	<?php
 }

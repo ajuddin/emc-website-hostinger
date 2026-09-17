@@ -470,6 +470,23 @@ function emc_footer_community_links() {
    ========================================================================== */
 
 /**
+ * Return the canonical donation page URL.
+ *
+ * The live page uses the singular `donate` slug. Keep the old plural slug as
+ * a fallback for installations which have not renamed the page yet.
+ *
+ * @return string Donation page URL.
+ */
+function emc_get_donate_url() {
+    $page = get_page_by_path( 'donate' );
+    if ( ! $page ) {
+        $page = get_page_by_path( 'donations' );
+    }
+
+    return $page ? get_permalink( $page ) : home_url( '/donate/' );
+}
+
+/**
  * Output a Donate button linked to the donate page.
  *
  * @param string $label  Button label.
@@ -479,8 +496,7 @@ function emc_footer_community_links() {
  */
 function emc_donate_button( $label = '', $class = '', $url = '' ) {
     $label    = $label ?: __( 'Donate Now', 'emc-theme' );
-    $page     = get_page_by_path( 'donations' );
-    $page_url = $url ?: ( $page ? get_permalink( $page ) : home_url( '/donations/' ) );
+    $page_url = $url ?: emc_get_donate_url();
     return sprintf(
         '<a href="%s" class="btn btn-primary%s">%s</a>',
         esc_url( $page_url ),
