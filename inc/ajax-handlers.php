@@ -28,15 +28,14 @@ function emc_handle_gift_aid() {
         wp_send_json_error( array( 'message' => __( 'Please complete all required fields.', 'emc-theme' ) ) );
     }
 
-    $to      = get_theme_mod( 'emc_admin_email', get_option( 'admin_email' ) );
     $subject = 'New Gift Aid Declaration — ' . $first . ' ' . $last;
     $body    = '<h2>New Gift Aid Declaration</h2>'
         . '<p><strong>Name:</strong> ' . esc_html( $first . ' ' . $last ) . '</p>'
         . '<p><strong>Email:</strong> ' . esc_html( $email ) . '</p>'
         . '<p><strong>Address:</strong> ' . esc_html( $address ) . ', ' . esc_html( $postcode ) . '</p>'
         . '<p><strong>Date Submitted:</strong> ' . current_time( 'Y-m-d H:i:s' ) . '</p>';
-    $sent = wp_mail(
-        $to,
+    $sent = emc_send_form_notification(
+        'gift_aid',
         $subject,
         $body,
         array( 'Content-Type: text/html; charset=UTF-8' )

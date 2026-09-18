@@ -7,6 +7,103 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** Default SMTP values for Microsoft 365. The password is never kept in theme files. */
+function emc_smtp_defaults() {
+	return array(
+		'enabled'    => '0',
+		'host'       => 'smtp.office365.com',
+		'port'       => 587,
+		'encryption' => 'tls',
+		'username'   => 'info@essexmuslimcentre.org',
+		'password'   => '',
+		'from_email' => 'info@essexmuslimcentre.org',
+		'from_name'  => get_bloginfo( 'name' ),
+	);
+}
+
+/** Get the saved SMTP configuration with safe defaults. */
+function emc_smtp_settings() {
+	$saved = get_option( 'emc_smtp_settings', array() );
+	return wp_parse_args( is_array( $saved ) ? $saved : array(), emc_smtp_defaults() );
+}
+
+/** Sanitize SMTP settings while preserving a previously saved masked password. */
+function emc_sanitize_smtp_settings( $input ) {
+	$input    = is_array( $input ) ? $input : array();
+	$current  = emc_smtp_settings();
+	$password = isset( $input['password'] ) ? (string) wp_unslash( $input['password'] ) : '';
+	$password = str_replace( array( chr( 13 ), chr( 10 ), chr( 0 ) ), '', $password );
+	$host     = strtolower( sanitize_text_field( wp_unslash( $input['host'] ?? '' ) ) );
+	$host     = preg_replace( '/[^a-z0-9.-]/', '', $host );
+	$port     = absint( $input['port'] ?? 587 );
+	$security = sanitize_key( $input['encryption'] ?? 'tls' );
+
+	if ( ! in_array( $security, array( 'tls', 'ssl', 'none' ), true ) ) {
+		$security = 'tls';
+	}
+	if ( $port < 1 || $port > 65535 ) {
+		$port = 587;
+	}
+
+	$output = array(
+		'enabled'    => isset( $input['enabled'] ) ? '1' : '0',
+		'host'       => $host ?: 'smtp.office365.com',
+		'port'       => $port,
+		'encryption' => $security,
+		'username'   => sanitize_text_field( wp_unslash( $input['username'] ?? '' ) ),
+		'password'   => '' !== $password ? $password : (string) $current['password'],
+		'from_email' => sanitize_email( wp_unslash( $input['from_email'] ?? '' ) ),
+		'from_name'  => sanitize_text_field( wp_unslash( $input['from_name'] ?? '' ) ),
+	);
+
+	if ( '1' === $output['enabled'] && ( ! $output['username'] || ! $output['password'] || ! $output['from_email'] ) ) {
+		add_settings_error(
+			'emc_smtp_settings',
+			'emc_smtp_incomplete',
+			__( 'SMTP was enabled, but its username, password, or From email is missing. Complete all three fields before testing delivery.', 'emc-theme' ),
+			'error'
+		);
+	}
+
+	return $output;
+}
+
+/** Route all WordPress email through the configured SMTP server. */
+function emc_configure_phpmailer( $phpmailer ) {
+	$settings = emc_smtp_settings();
+	if ( '1' !== (string) $settings['enabled'] ) {
+		return;
+	}
+
+	$phpmailer->isSMTP();
+	$phpmailer->Host        = $settings['host'];
+	$phpmailer->Port        = (int) $settings['port'];
+	$phpmailer->SMTPAuth    = true;
+	$phpmailer->Username    = $settings['username'];
+	$phpmailer->Password    = $settings['password'];
+	$phpmailer->SMTPSecure  = 'none' === $settings['encryption'] ? '' : $settings['encryption'];
+	$phpmailer->SMTPAutoTLS = false;
+	$phpmailer->Timeout     = 20;
+
+	if ( $settings['from_email'] ) {
+		$phpmailer->Sender = $settings['from_email'];
+	}
+}
+add_action( 'phpmailer_init', 'emc_configure_phpmailer', 100 );
+
+/** Microsoft 365 requires the From address to match the authenticated mailbox. */
+function emc_smtp_from_email( $email ) {
+	$settings = emc_smtp_settings();
+	return '1' === (string) $settings['enabled'] && $settings['from_email'] ? $settings['from_email'] : $email;
+}
+add_filter( 'wp_mail_from', 'emc_smtp_from_email', 100 );
+
+function emc_smtp_from_name( $name ) {
+	$settings = emc_smtp_settings();
+	return '1' === (string) $settings['enabled'] && $settings['from_name'] ? $settings['from_name'] : $name;
+}
+add_filter( 'wp_mail_from_name', 'emc_smtp_from_name', 100 );
+
 /** Public response-producing forms managed by the theme. */
 function emc_form_notification_types() {
 	return array(
@@ -158,6 +255,7 @@ function emc_sanitize_form_notification_settings( $input ) {
 
 function emc_register_form_notification_settings() {
 	register_setting( 'emc_form_notifications', 'emc_form_notification_settings', array( 'sanitize_callback' => 'emc_sanitize_form_notification_settings' ) );
+	register_setting( 'emc_form_notifications', 'emc_smtp_settings', array( 'sanitize_callback' => 'emc_sanitize_smtp_settings' ) );
 }
 add_action( 'admin_init', 'emc_register_form_notification_settings' );
 
@@ -251,15 +349,61 @@ add_action( 'added_option', 'emc_notify_first_payment_log_records', 20, 2 );
 function emc_form_notifications_admin_page() {
 	$last_attempt = get_option( 'emc_form_notification_last_attempt', array() );
 	$last_error   = get_option( 'emc_form_notification_last_error', array() );
+	$smtp         = emc_smtp_settings();
+	$smtp_ready   = '1' === (string) $smtp['enabled'] && $smtp['host'] && $smtp['username'] && $smtp['password'] && $smtp['from_email'];
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Form Notification Emails', 'emc-theme' ); ?></h1>
+		<?php settings_errors( 'emc_smtp_settings' ); ?>
 		<?php if ( isset( $_GET['test'] ) ) : ?>
 			<div class="notice <?php echo 'sent' === sanitize_key( $_GET['test'] ) ? 'notice-success' : 'notice-error'; ?> is-dismissible"><p><?php echo 'sent' === sanitize_key( $_GET['test'] ) ? esc_html__( 'Test notification sent successfully.', 'emc-theme' ) : esc_html__( 'The test notification could not be sent. Check your WordPress SMTP configuration.', 'emc-theme' ); ?></p></div>
 		<?php endif; ?>
 		<p><?php esc_html_e( 'Every accepted form response is stored in WordPress and emailed to the recipients below. Separate multiple addresses with commas.', 'emc-theme' ); ?></p>
 		<form action="options.php" method="post">
 			<?php settings_fields( 'emc_form_notifications' ); ?>
+			<h2><?php esc_html_e( 'Email delivery (SMTP)', 'emc-theme' ); ?></h2>
+			<table class='form-table' role='presentation' style='max-width:980px'>
+				<tr>
+					<th scope='row'><?php esc_html_e( 'Enable SMTP', 'emc-theme' ); ?></th>
+					<td><label><input type='checkbox' name='emc_smtp_settings[enabled]' value='1' <?php checked( '1', $smtp['enabled'] ); ?>> <?php esc_html_e( 'Send all website email through this mail server', 'emc-theme' ); ?></label></td>
+				</tr>
+				<tr>
+					<th scope='row'><label for='emc-smtp-host'><?php esc_html_e( 'SMTP host', 'emc-theme' ); ?></label></th>
+					<td><input id='emc-smtp-host' type='text' class='regular-text' name='emc_smtp_settings[host]' value='<?php echo esc_attr( $smtp['host'] ); ?>' required></td>
+				</tr>
+				<tr>
+					<th scope='row'><label for='emc-smtp-port'><?php esc_html_e( 'Port and security', 'emc-theme' ); ?></label></th>
+					<td><input id='emc-smtp-port' type='number' min='1' max='65535' class='small-text' name='emc_smtp_settings[port]' value='<?php echo esc_attr( $smtp['port'] ); ?>' required>
+						<select name='emc_smtp_settings[encryption]' aria-label='<?php esc_attr_e( 'Encryption', 'emc-theme' ); ?>'>
+							<option value='tls' <?php selected( 'tls', $smtp['encryption'] ); ?>><?php esc_html_e( 'STARTTLS', 'emc-theme' ); ?></option>
+							<option value='ssl' <?php selected( 'ssl', $smtp['encryption'] ); ?>><?php esc_html_e( 'SSL/TLS', 'emc-theme' ); ?></option>
+							<option value='none' <?php selected( 'none', $smtp['encryption'] ); ?>><?php esc_html_e( 'None', 'emc-theme' ); ?></option>
+						</select>
+						<p class='description'><?php esc_html_e( 'Microsoft 365 normally uses port 587 with STARTTLS.', 'emc-theme' ); ?></p></td>
+				</tr>
+				<tr>
+					<th scope='row'><label for='emc-smtp-username'><?php esc_html_e( 'SMTP username', 'emc-theme' ); ?></label></th>
+					<td><input id='emc-smtp-username' type='text' class='regular-text' name='emc_smtp_settings[username]' value='<?php echo esc_attr( $smtp['username'] ); ?>' autocomplete='username' required></td>
+				</tr>
+				<tr>
+					<th scope='row'><label for='emc-smtp-password'><?php esc_html_e( 'SMTP password', 'emc-theme' ); ?></label></th>
+					<td><input id='emc-smtp-password' type='password' class='regular-text' name='emc_smtp_settings[password]' value='' autocomplete='new-password' placeholder='<?php echo esc_attr( $smtp['password'] ? __( 'Saved - leave blank to keep it', 'emc-theme' ) : __( 'Enter the mailbox password', 'emc-theme' ) ); ?>'>
+						<p class='description'><?php esc_html_e( 'The saved password is never displayed. Leaving this blank keeps the current password.', 'emc-theme' ); ?></p></td>
+				</tr>
+				<tr>
+					<th scope='row'><label for='emc-smtp-from-email'><?php esc_html_e( 'From email', 'emc-theme' ); ?></label></th>
+					<td><input id='emc-smtp-from-email' type='email' class='regular-text' name='emc_smtp_settings[from_email]' value='<?php echo esc_attr( $smtp['from_email'] ); ?>' required>
+						<p class='description'><?php esc_html_e( 'For Microsoft 365 this should match the SMTP username unless the mailbox has Send As permission.', 'emc-theme' ); ?></p></td>
+				</tr>
+				<tr>
+					<th scope='row'><label for='emc-smtp-from-name'><?php esc_html_e( 'From name', 'emc-theme' ); ?></label></th>
+					<td><input id='emc-smtp-from-name' type='text' class='regular-text' name='emc_smtp_settings[from_name]' value='<?php echo esc_attr( $smtp['from_name'] ); ?>'></td>
+				</tr>
+			</table>
+			<p><strong><?php esc_html_e( 'SMTP status:', 'emc-theme' ); ?></strong> <?php echo $smtp_ready ? esc_html__( 'Configured and enabled', 'emc-theme' ) : esc_html__( 'Not ready - enable SMTP and save all required credentials', 'emc-theme' ); ?></p>
+			<p class='description'><?php esc_html_e( 'Microsoft 365 must have Authenticated SMTP enabled for this mailbox. Password-based SMTP is scheduled to be disabled by default for existing tenants after December 2026, so plan a move to OAuth.', 'emc-theme' ); ?></p>
+
+			<h2><?php esc_html_e( 'Notification recipients', 'emc-theme' ); ?></h2>
 			<table class="widefat striped" style="max-width:980px">
 				<thead><tr><th><?php esc_html_e( 'Form', 'emc-theme' ); ?></th><th><?php esc_html_e( 'Send email', 'emc-theme' ); ?></th><th><?php esc_html_e( 'Notification recipients', 'emc-theme' ); ?></th></tr></thead>
 				<tbody>
@@ -272,7 +416,7 @@ function emc_form_notifications_admin_page() {
 				<?php endforeach; ?>
 				</tbody>
 			</table>
-			<?php submit_button( __( 'Save Form Notification Settings', 'emc-theme' ) ); ?>
+			<?php submit_button( __( 'Save Email Settings', 'emc-theme' ) ); ?>
 		</form>
 		<h2><?php esc_html_e( 'Test email delivery', 'emc-theme' ); ?></h2>
 		<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
@@ -283,7 +427,7 @@ function emc_form_notifications_admin_page() {
 			</select>
 			<?php submit_button( __( 'Send Test Notification', 'emc-theme' ), 'secondary', 'submit', false ); ?>
 		</form>
-		<p><strong><?php esc_html_e( 'Delivery note:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'WordPress must be able to send email. For reliable delivery, configure an SMTP plugin and send a test email after deployment.', 'emc-theme' ); ?></p>
+		<p><strong><?php esc_html_e( 'Delivery note:', 'emc-theme' ); ?></strong> <?php esc_html_e( 'Save SMTP and recipient changes before sending a test. A successful result means the SMTP server accepted the message; also check the recipient inbox and spam folder.', 'emc-theme' ); ?></p>
 		<?php if ( ! empty( $last_attempt['time'] ) ) : ?>
 			<p><strong><?php esc_html_e( 'Last notification attempt:', 'emc-theme' ); ?></strong> <?php echo esc_html( $last_attempt['time'] ); ?> &mdash; <?php echo ! empty( $last_attempt['sent'] ) ? esc_html__( 'accepted by the mail transport', 'emc-theme' ) : esc_html__( 'failed', 'emc-theme' ); ?><?php if ( ! empty( $last_attempt['recipients'] ) ) : ?> (<?php echo esc_html( $last_attempt['recipients'] ); ?>)<?php endif; ?></p>
 		<?php endif; ?>
