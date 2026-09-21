@@ -391,8 +391,26 @@ function emc_register_page_content_sections( $wp_customize ) {
         'mem_consent_text'      => 'I agree that Essex Muslim Centre may hold these details to administer my membership.',
         'mem_terms_text'        => 'Your membership renews automatically each month. You can change the amount or cancel at any time by contacting the centre.',
         'mem_contact_note'      => 'Prefer to join in person? Speak to a trustee after Jumu\'ah or contact the centre office.',
+        'mem_whatsapp_label'    => 'Join Via WhatsApp',
     );
     emc_bulk_text_settings( $wp_customize, $membership, 'emc_pg_membership' );
+
+    /*
+     * WhatsApp number in full international form, digits only (no +, spaces or
+     * dashes) because that is the format wa.me requires. Leaving this blank
+     * hides the WhatsApp button on the Membership page.
+     */
+    $wp_customize->add_setting( 'mem_whatsapp_number', array(
+        'default'           => '447399079436',
+        'sanitize_callback' => 'emc_sanitize_whatsapp_number',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'mem_whatsapp_number', array(
+        'label'       => __( 'WhatsApp number', 'emc-theme' ),
+        'description' => __( 'Full international number, digits only — for example 447399079436. Leave blank to hide the WhatsApp button.', 'emc-theme' ),
+        'section'     => 'emc_pg_membership',
+        'type'        => 'text',
+    ) );
 
     /*
      * The three membership levels. The set of levels and their dome colours are
@@ -478,6 +496,28 @@ add_action( 'customize_register', 'emc_register_page_content_sections' );
 function emc_sanitize_membership_amount( $value ) {
     $amount = round( (float) $value, 2 );
     return $amount > 0 ? min( 1000000, $amount ) : 0;
+}
+
+/**
+ * Reduce a WhatsApp number to the digits-only form wa.me expects.
+ *
+ * Editors reasonably paste "+44 7399 079436" or "07399 079436". The first is
+ * normalised by stripping punctuation; the second cannot be converted safely
+ * without guessing a country code, so a leading 0 is left for the editor to
+ * correct rather than silently assuming the UK.
+ *
+ * @param string $value Raw Customizer value.
+ * @return string Digits only, or an empty string to hide the button.
+ */
+function emc_sanitize_whatsapp_number( $value ) {
+    $digits = preg_replace( '/\D+/', '', (string) $value );
+
+    if ( '' === $digits ) {
+        return '';
+    }
+
+    /* wa.me rejects anything outside a plausible E.164 length. */
+    return ( strlen( $digits ) >= 8 && strlen( $digits ) <= 15 ) ? $digits : '';
 }
 
 /**
