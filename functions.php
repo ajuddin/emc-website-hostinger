@@ -263,6 +263,8 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             $slug = 'job-application';
         } elseif ( is_page_template( 'page-volunteer-registration.php' ) ) {
             $slug = 'volunteer';
+        } elseif ( is_page_template( 'template-membership.php' ) ) {
+            $slug = 'membership';
         } else {
             $slug = get_post_field( 'post_name', get_queried_object_id() );
         }
@@ -283,6 +285,7 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
             'gift-aid'      => array( 'css' => 'gift-aid.css',     'js' => 'gift-aid.js' ),
             'volunteer'       => array( 'css' => 'volunteer.css', 'js' => 'volunteer.js' ),
             'job-application' => array( 'css' => 'volunteer.css', 'js' => 'volunteer.js' ),
+            'membership'      => array( 'css' => 'membership.css', 'js' => 'membership.js' ),
         );
 
         if ( ! isset( $map[ $slug ] ) ) {
@@ -326,6 +329,13 @@ if ( ! function_exists( 'emc_enqueue_page_assets' ) ) :
                 wp_localize_script( $handle, 'emcEventsConfig', array(
                     'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                     'nonce'   => wp_create_nonce( 'emc_event_registration' ),
+                ) );
+            }
+
+            if ( 'membership' === $slug ) {
+                wp_localize_script( $handle, 'emcMembershipConfig', array(
+                    'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                    'nonce'   => wp_create_nonce( 'emc_membership' ),
                 ) );
             }
         }
@@ -509,6 +519,7 @@ $emc_includes = array(
     '/inc/volunteers.php',          // Job applications, CVs, dynamic fields, and admin records
     '/inc/volunteer-signups.php',   // Separate volunteer applications and admin records
     '/inc/event-registrations.php', // Event forms, email notifications, submissions, and settings
+    '/inc/membership.php',          // Membership categories, applications, Stripe fees, and admin records
     '/inc/elementor-compat.php',    // Elementor compatibility (locations, style fixes)
     '/inc/elementor-widgets.php',   // Custom Elementor widgets (donate, prayer, counter)
     // Phase 11 — Demo Import System
