@@ -37,6 +37,16 @@ $available_levels = array_filter( $levels, static function ( $level ) {
     return $level['pence'] >= 50;
 } );
 
+/*
+ * Highlight the middle tier so the three cards have a visual anchor rather than
+ * reading as three equal-weight options. Derived from position, not a hardcoded
+ * key, so renaming a level in the Customizer does not break the highlight.
+ */
+$level_keys   = array_values( wp_list_pluck( $levels, 'key' ) );
+$featured_key = count( $level_keys ) > 2
+    ? $level_keys[ (int) floor( ( count( $level_keys ) - 1 ) / 2 ) ]
+    : '';
+
 /* Progress bar. A goal of zero means "no target set", so the bar stays empty. */
 $raised   = (float) get_theme_mod( 'mem_progress_raised', 0 );
 $goal     = (float) get_theme_mod( 'mem_progress_goal', 0 );
@@ -120,7 +130,11 @@ $allocations = array(
 
             <div class="mem-domes">
                 <?php foreach ( $levels as $level ) : ?>
-                    <article class="mem-dome-card" id="level-<?php echo esc_attr( $level['key'] ); ?>">
+                    <?php $is_featured = ( $featured_key && $level['key'] === $featured_key ); ?>
+                    <article class="mem-dome-card<?php echo $is_featured ? ' is-featured' : ''; ?>" id="level-<?php echo esc_attr( $level['key'] ); ?>">
+                        <?php if ( $is_featured ) : ?>
+                            <p class="mem-dome-flag"><?php esc_html_e( 'Most chosen', 'emc-theme' ); ?></p>
+                        <?php endif; ?>
                         <div class="mem-dome-art" aria-hidden="true">
                             <svg viewBox="0 0 200 170" role="presentation" focusable="false">
                                 <!-- crescent finial -->
@@ -143,14 +157,26 @@ $allocations = array(
                         <p class="mem-dome-desc"><?php echo esc_html( $level['desc'] ); ?></p>
 
                         <?php if ( isset( $available_levels[ $level['key'] ] ) && $stripe_ready ) : ?>
-                            <button type="button" class="mem-btn mem-btn-outline" data-select-level="<?php echo esc_attr( $level['key'] ); ?>">
+                            <button type="button" class="mem-btn mem-btn-primary mem-dome-cta" data-select-level="<?php echo esc_attr( $level['key'] ); ?>">
                                 <?php
                                 /* translators: %s: membership level name. */
                                 echo esc_html( sprintf( __( 'Join as %s', 'emc-theme' ), $level['name'] ) );
                                 ?>
                             </button>
+                            <p class="mem-dome-cta-note">
+                                <?php
+                                /* translators: %s: formatted monthly amount, e.g. £10. */
+                                echo esc_html( sprintf( __( '%s each month · cancel any time', 'emc-theme' ), '£' . number_format( $level['amount'], ( floor( $level['amount'] ) === $level['amount'] ) ? 0 : 2 ) ) );
+                                ?>
+                            </p>
                         <?php else : ?>
-                            <a class="mem-btn mem-btn-outline" href="<?php echo esc_url( $contact_url ); ?>"><?php esc_html_e( 'Contact the centre', 'emc-theme' ); ?></a>
+                            <a class="mem-btn mem-btn-primary mem-dome-cta" href="<?php echo esc_url( $contact_url ); ?>">
+                                <?php
+                                /* translators: %s: membership level name. */
+                                echo esc_html( sprintf( __( 'Enquire about %s', 'emc-theme' ), $level['name'] ) );
+                                ?>
+                            </a>
+                            <p class="mem-dome-cta-note"><?php esc_html_e( 'Online sign-up is coming soon', 'emc-theme' ); ?></p>
                         <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
@@ -176,7 +202,8 @@ $allocations = array(
                                 <th scope="row"><?php echo esc_html( $benefit['label'] ); ?></th>
                                 <?php foreach ( $levels as $level ) : ?>
                                     <?php $included = in_array( $level['key'], $benefit['levels'], true ); ?>
-                                    <td class="<?php echo $included ? 'is-included' : 'is-excluded'; ?>">
+                                    <?php /* data-label drives the stacked mobile layout below 700px. */ ?>
+                                    <td class="<?php echo $included ? 'is-included' : 'is-excluded'; ?>" data-label="<?php echo esc_attr( $level['name'] ); ?>">
                                         <span aria-hidden="true"><?php echo $included ? '&#10003;' : '&mdash;'; ?></span>
                                         <span class="mem-visually-hidden">
                                             <?php echo $included ? esc_html__( 'Included', 'emc-theme' ) : esc_html__( 'Not included', 'emc-theme' ); ?>
@@ -284,10 +311,30 @@ $allocations = array(
         <div class="mem-container mem-narrow">
             <h2 id="mem-progress-title" class="mem-heading mem-heading-sm"><?php echo esc_html( emc_acf( 'mem_progress_heading', __( 'Funds Raised To Date Via Memberships', 'emc-theme' ) ) ); ?></h2>
 
-            <div class="mem-progress" role="img" aria-label="<?php echo esc_attr( sprintf( __( '%s per cent of the membership target raised so far', 'emc-theme' ), number_format( $progress, 0 ) ) ); ?>">
-                <div class="mem-progress-track">
-                    <div class="mem-progress-fill" style="width:<?php echo esc_attr( number_format( $progress, 2, '.', '' ) ); ?>%"></div>
-                    <span class="mem-progress-dome" style="left:<?php echo esc_attr( number_format( $progress, 2, '.', '' ) ); ?>%" aria-hidden="true">
+            <?php
+            /*
+             * The percentage is handed to CSS as a custom property rather than as
+             * an inline width/left. That lets the stylesheet clamp the dome so it
+             * stays inside the track at 0% and 100% instead of hanging over the
+             * edge, and keeps the empty state looking deliberate.
+             */
+            $progress_attr = number_format( $progress, 2, '.', '' );
+
+            $progress_label = $goal > 0
+                ? sprintf(
+                    /* translators: 1: percentage raised, 2: amount raised, 3: target amount. */
+                    __( '%1$s per cent of the membership target raised so far — £%2$s of £%3$s', 'emc-theme' ),
+                    number_format( $progress, 0 ),
+                    number_format( $raised, 0 ),
+                    number_format( $goal, 0 )
+                )
+                : __( 'Membership target not yet published', 'emc-theme' );
+            ?>
+
+            <div class="mem-progress<?php echo $progress <= 0 ? ' is-empty' : ''; ?>" style="--mem-pct:<?php echo esc_attr( $progress_attr ); ?>">
+                <div class="mem-progress-track" role="img" aria-label="<?php echo esc_attr( $progress_label ); ?>">
+                    <div class="mem-progress-fill"></div>
+                    <span class="mem-progress-dome" aria-hidden="true">
                         <svg viewBox="0 0 40 34" focusable="false"><path d="M20 2 C29 8 33 15 33 22 L33 28 L7 28 L7 22 C7 15 11 8 20 2 Z" fill="#1a3c2a"/><rect x="4" y="28" width="32" height="4" rx="2" fill="#1a3c2a"/></svg>
                     </span>
                 </div>
@@ -298,6 +345,8 @@ $allocations = array(
                     <strong><?php echo esc_html( number_format( $progress, 0 ) . '%' ); ?></strong>
                     <?php if ( $goal > 0 ) : ?>
                         <span><?php echo esc_html( sprintf( __( '£%1$s raised of £%2$s', 'emc-theme' ), number_format( $raised, 0 ), number_format( $goal, 0 ) ) ); ?></span>
+                    <?php else : ?>
+                        <span><?php echo esc_html( sprintf( __( '£%s raised so far', 'emc-theme' ), number_format( $raised, 0 ) ) ); ?></span>
                     <?php endif; ?>
                 </p>
             </div>
@@ -319,20 +368,33 @@ $allocations = array(
     <!-- ============================================================
          9. APPLICATION FORM
          ============================================================ -->
-    <section class="mem-section mem-form-section" id="membership-application" aria-labelledby="mem-form-title">
+    <?php
+    /*
+     * With card payments switched off the form collapses to a short notice. Left
+     * inside the full-height card and section padding that leaves a large band of
+     * dead space above the footer, so the whole section is rendered compact.
+     */
+    $form_is_compact = ( ! $stripe_ready || ! $available_levels );
+    ?>
+    <section class="mem-section mem-form-section<?php echo $form_is_compact ? ' is-compact' : ''; ?>" id="membership-application" aria-labelledby="mem-form-title">
         <div class="mem-container">
-            <article class="mem-form-card">
+            <article class="mem-form-card<?php echo $form_is_compact ? ' is-compact' : ''; ?>">
                 <header class="mem-form-head">
                     <h2 id="mem-form-title" class="mem-heading mem-heading-sm"><?php echo esc_html( emc_acf( 'mem_form_heading', __( 'Join Today', 'emc-theme' ) ) ); ?></h2>
-                    <p><?php echo esc_html( emc_acf( 'mem_form_desc', __( 'Set up your monthly membership securely by card.', 'emc-theme' ) ) ); ?></p>
+                    <p>
+                        <?php if ( $form_is_compact ) : ?>
+                            <?php esc_html_e( 'Online card sign-up is not switched on yet, so memberships are being set up by the centre directly.', 'emc-theme' ); ?>
+                        <?php else : ?>
+                            <?php echo esc_html( emc_acf( 'mem_form_desc', __( 'Set up your monthly membership securely by card.', 'emc-theme' ) ) ); ?>
+                        <?php endif; ?>
+                    </p>
                 </header>
 
-                <?php if ( ! $stripe_ready || ! $available_levels ) : ?>
+                <?php if ( $form_is_compact ) : ?>
 
-                    <div class="mem-notice" role="status">
-                        <?php esc_html_e( 'Monthly card payments are temporarily unavailable, so memberships cannot be set up online right now.', 'emc-theme' ); ?>
-                        <a href="<?php echo esc_url( $contact_url ); ?>"><?php esc_html_e( 'Contact the centre to join', 'emc-theme' ); ?></a>
-                    </div>
+                    <a class="mem-btn mem-btn-primary mem-compact-cta" href="<?php echo esc_url( $contact_url ); ?>">
+                        <?php esc_html_e( 'Contact the centre to join', 'emc-theme' ); ?>
+                    </a>
 
                 <?php else : ?>
 
