@@ -97,10 +97,16 @@
 
 /* ── 1. Qur'anic banner ───────────────────────────────────────────────── */
 
+/*
+ * This is the first section on the page and the header stack (prayer bar +
+ * main header) is fixed, so a plain padding-top leaves the Arabic line sitting
+ * underneath it. --header-stack-h is measured and set by script.js; the
+ * fallback matches what the theme uses elsewhere for the same reason.
+ */
 .mem-ayah {
     position: relative;
     overflow: hidden;
-    padding: clamp(3.5rem, 8vw, 6rem) 0;
+    padding: calc(var(--header-stack-h, 170px) + clamp(2rem, 4vw, 3.5rem)) 0 clamp(3.5rem, 8vw, 6rem);
     background: var(--mem-green-dark);
     color: #fff;
     text-align: center;
@@ -158,6 +164,19 @@
 }
 
 /* ── 2. Introduction ──────────────────────────────────────────────────── */
+
+/*
+ * The intro and the levels grid are one continuous thought, but each carried a
+ * full .mem-section pad, stacking ~176px of blank cream between the intro copy
+ * and the "Membership Levels" heading. Halve it at the junction only.
+ */
+.mem-intro {
+    padding-bottom: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.mem-intro + .mem-levels {
+    padding-top: clamp(1.75rem, 3.5vw, 2.75rem);
+}
 
 .mem-intro .mem-note {
     margin-top: 1.75rem;
@@ -854,6 +873,32 @@
     margin-bottom: 0;
 }
 
+/* WhatsApp green, not the page palette, so the channel is recognisable. */
+.mem-whatsapp {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    margin-top: 1rem;
+    padding: .7rem 1.25rem;
+    border-radius: 8px;
+    background: #25d366;
+    color: #06301a;
+    font-size: .95rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background .2s ease, color .2s ease;
+}
+
+.mem-whatsapp:hover,
+.mem-whatsapp:focus-visible {
+    background: #1da851;
+    color: #fff;
+}
+
+.mem-whatsapp-icon {
+    flex-shrink: 0;
+}
+
 .mem-notice {
     padding: 1.1rem 1.3rem;
     border-radius: 10px;
@@ -883,6 +928,13 @@
         order: -1;
         max-width: 300px;
         margin-inline: auto;
+    }
+}
+
+/* The prayer bar is hidden below 768px, so the header stack is much shorter. */
+@media (max-width: 768px) {
+    .mem-ayah {
+        padding-top: calc(var(--header-stack-h, 80px) + clamp(1.5rem, 4vw, 2.5rem));
     }
 }
 
