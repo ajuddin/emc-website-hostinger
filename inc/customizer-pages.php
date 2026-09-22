@@ -371,7 +371,7 @@ function emc_register_page_content_sections( $wp_customize ) {
 
         /* Allocation chart */
         'mem_chart_heading'     => 'How Your Donations Are Used',
-        'mem_chart_note'        => 'Approximate allocation of membership income across core running costs.',
+        'mem_chart_note'        => 'Approximate allocation of membership income across core running costs and education.',
 
         /* Progress bar */
         'mem_progress_heading'  => 'Funds Raised To Date Via Memberships',

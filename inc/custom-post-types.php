@@ -226,14 +226,25 @@ function emc_register_taxonomies() {
 }
 add_action( 'init', 'emc_register_taxonomies' );
 
-/** Refresh permalinks once when the theme's public content routes change. */
+/**
+ * Refresh permalinks once when the theme's public content routes change.
+ *
+ * The marker records the host alongside the schema version. A database copied
+ * between servers carries the option with it, so a version-only check is
+ * satisfied on the destination and the flush never runs there — which leaves
+ * single CPT URLs 404ing after a migration while archives keep working.
+ * Including the host forces exactly one flush per site.
+ */
 function emc_maybe_refresh_content_rewrites() {
-    $schema_version = '2026-08-volunteer-roles-2';
-    if ( $schema_version === get_option( 'emc_content_rewrite_schema' ) ) {
+    $schema_version = '2026-09-recurring-events';
+    $marker         = $schema_version . '|' . wp_parse_url( home_url(), PHP_URL_HOST );
+
+    if ( $marker === get_option( 'emc_content_rewrite_schema' ) ) {
         return;
     }
+
     flush_rewrite_rules( false );
-    update_option( 'emc_content_rewrite_schema', $schema_version, false );
+    update_option( 'emc_content_rewrite_schema', $marker, false );
 }
 add_action( 'init', 'emc_maybe_refresh_content_rewrites', 99 );
 

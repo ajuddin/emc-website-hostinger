@@ -80,8 +80,11 @@ if ( file_exists( $events_js_path ) ) {
                         : ( get_post_meta( get_the_ID(), '_emc_event_category', true ) ?: 'community' );
                     $event_spots    = get_post_meta( get_the_ID(), '_emc_event_capacity', true );
                     $flyer_url      = has_post_thumbnail() ? get_the_post_thumbnail_url( get_the_ID(), 'full' ) : EMC_ASSETS . '/gallery/Community Support Services/New-Muslim-600x338.jpeg';
-                    $day   = $event_date ? strtoupper( date_i18n( 'D', strtotime( $event_date ) ) ) : '—';
-                    $weekday = emc_get_event_display_day( get_the_ID() );
+                    /* Recurring events resolve to their next occurrence, so the
+                       badge follows the day the event actually runs. */
+                    $display_ts = emc_get_event_display_timestamp( get_the_ID() );
+                    $day        = $display_ts ? strtoupper( date_i18n( 'D', $display_ts ) ) : '—';
+                    $weekday    = emc_get_event_display_day( get_the_ID() );
                     $registration_open = emc_event_registration_is_open( get_the_ID() );
                     $details_url       = get_permalink();
                     $registration_url  = $details_url . '#event-registration';

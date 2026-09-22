@@ -6,7 +6,7 @@
  * @package emc-theme
  */
 
-$email           = emc_option( 'emc_admin_email',           'admin@essexmuslimcentre.org' );
+$email           = emc_option( 'emc_admin_email',           'info@essexmuslimcentre.org' );
 $phone           = emc_option( 'emc_phone',                 '' );
 $charity         = emc_option( 'emc_charity_number',        '1209815' );
 $about_text      = emc_option( 'emc_footer_about_text',     __( 'Advancing Islamic faith, education, and community welfare in Chelmsford, Essex.', 'emc-theme' ) );

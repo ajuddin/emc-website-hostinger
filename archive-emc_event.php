@@ -68,7 +68,9 @@ if ( $event_cats && ! is_wp_error( $event_cats ) ) :
         while ( have_posts() ) :
             the_post();
             $ev_date = get_post_meta( get_the_ID(), '_emc_event_date', true );
-            if ( ! $ev_date || $ev_date >= $today ) {
+            /* A weekly event always has a next occurrence, so it never expires
+               into "past" on the strength of a stale start date. */
+            if ( emc_event_is_recurring( get_the_ID() ) || ! $ev_date || $ev_date >= $today ) {
                 $upcoming_posts[] = get_the_ID();
             } else {
                 $past_posts[] = get_the_ID();

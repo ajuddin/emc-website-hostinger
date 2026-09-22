@@ -261,7 +261,7 @@ function emc_demo_get_theme_mods() {
         'emc_address_line1'    => 'Cuton Hall Lane',
         'emc_address_city'     => '',
         'emc_address_postcode' => 'CM2 6PB',
-        'emc_admin_email'      => 'admin@essexmuslimcentre.org',
+        'emc_admin_email'      => 'info@essexmuslimcentre.org',
         'emc_charity_number'   => '1209815',
 
         /* ── Footer ───────────────────────────────────────────── */
@@ -304,7 +304,7 @@ function emc_demo_privacy_content() {
 <h3>Cookie Policy</h3>
 <p>We use essential cookies to improve your experience. No personal data is sold to third parties.</p>
 <h3>Contact</h3>
-<p>For data requests, email: <a href="mailto:admin@essexmuslimcentre.org">admin@essexmuslimcentre.org</a></p>';
+<p>For data requests, email: <a href="mailto:info@essexmuslimcentre.org">info@essexmuslimcentre.org</a></p>';
 }
 
 
