@@ -53,39 +53,128 @@ function emc_option( $option, $default = '' ) {
  * @return string Localized weekday, or an empty string when none is configured.
  */
 function emc_get_event_display_day( $post_id ) {
+    /*
+     * The recurring day wins over the stored date. A weekly event's date field
+     * records when it was first entered, which drifts out of step with the day
+     * it actually runs — that is why Friday Prayer was rendering as Saturday.
+     */
+    $timestamp = emc_get_event_display_timestamp( $post_id );
+
+    return $timestamp ? date_i18n( 'l', $timestamp ) : '';
+}
+
+/**
+ * Map the stored recurring-day slug to its PHP weekday index.
+ *
+ * @return array<string,int> Lowercase day slug => 0 (Sunday) to 6 (Saturday).
+ */
+function emc_event_weekday_map() {
+    return array(
+        'sunday'    => 0,
+        'monday'    => 1,
+        'tuesday'   => 2,
+        'wednesday' => 3,
+        'thursday'  => 4,
+        'friday'    => 5,
+        'saturday'  => 6,
+    );
+}
+
+/**
+ * Return the timestamp an event should be displayed against.
+ *
+ * Recurring events resolve to their next upcoming occurrence, so a weekly
+ * event never shows a date in the past and never needs re-entering. Dated
+ * events return their stored date unchanged.
+ *
+ * Computed in the WordPress site timezone rather than the server's, matching
+ * how the prayer-time code treats "today".
+ *
+ * @param int $post_id Event post ID.
+ * @return int|false Unix timestamp, or false when the event has neither.
+ */
+function emc_get_event_display_timestamp( $post_id ) {
+    $day_slug = strtolower( (string) get_post_meta( $post_id, '_emc_event_day', true ) );
+    $weekdays = emc_event_weekday_map();
+
+    if ( isset( $weekdays[ $day_slug ] ) ) {
+        $tz    = wp_timezone();
+        $today = new DateTimeImmutable( 'today', $tz );
+        $ahead = ( $weekdays[ $day_slug ] - (int) $today->format( 'w' ) + 7 ) % 7;
+
+        return $today->modify( sprintf( '+%d days', $ahead ) )->getTimestamp();
+    }
+
     $event_date = get_post_meta( $post_id, '_emc_event_date', true );
 
-    if ( $event_date ) {
-        return date_i18n( 'l', strtotime( $event_date ) );
-    }
-
-    $event_day = strtolower( get_post_meta( $post_id, '_emc_event_day', true ) );
-    $weekdays  = array(
-        'monday'    => __( 'Monday', 'emc-theme' ),
-        'tuesday'   => __( 'Tuesday', 'emc-theme' ),
-        'wednesday' => __( 'Wednesday', 'emc-theme' ),
-        'thursday'  => __( 'Thursday', 'emc-theme' ),
-        'friday'    => __( 'Friday', 'emc-theme' ),
-        'saturday'  => __( 'Saturday', 'emc-theme' ),
-        'sunday'    => __( 'Sunday', 'emc-theme' ),
-    );
-
-    if ( isset( $weekdays[ $event_day ] ) ) {
-        return $weekdays[ $event_day ];
-    }
-
-    // Preserve the schedules shown on the existing recurring-event flyers.
-    $existing_schedules = array(
-        'quranic-arabic-language-course' => 'wednesday',
-        'dawn-of-reflection'              => 'sunday',
-        'tajweed-workshop'                => 'friday',
-    );
-    $event_slug = sanitize_title( get_the_title( $post_id ) );
-
-    return isset( $existing_schedules[ $event_slug ] )
-        ? $weekdays[ $existing_schedules[ $event_slug ] ]
-        : '';
+    return $event_date ? strtotime( $event_date ) : false;
 }
+
+/**
+ * Whether an event repeats weekly rather than happening on one fixed date.
+ *
+ * @param int $post_id Event post ID.
+ * @return bool
+ */
+function emc_event_is_recurring( $post_id ) {
+    $day_slug = strtolower( (string) get_post_meta( $post_id, '_emc_event_day', true ) );
+
+    return isset( emc_event_weekday_map()[ $day_slug ] );
+}
+
+/**
+ * Seed the recurring day for the weekly events that predate the meta field.
+ *
+ * These schedules were previously hardcoded in a slug lookup, which meant
+ * editors could not correct them. Writing them to post meta once moves the
+ * schedule into Event Details, where it can be changed from the admin UI.
+ * Only empty values are written, so an editor's own choice is never replaced.
+ */
+function emc_migrate_recurring_event_days() {
+    $version = '2026-09-recurring-days';
+    if ( $version === get_option( 'emc_recurring_event_days_version' ) ) {
+        return;
+    }
+    update_option( 'emc_recurring_event_days_version', $version, false );
+
+    $schedules = array(
+        'friday-prayer-jumuah'           => 'friday',
+        'quranic-arabic-language-course' => 'wednesday',
+        'dawn-of-reflection'             => 'sunday',
+        'tajweed-workshop'               => 'friday',
+    );
+
+    foreach ( $schedules as $slug => $day ) {
+        $event = get_page_by_path( $slug, OBJECT, 'emc_event' );
+        if ( ! $event ) {
+            continue;
+        }
+
+        if ( '' === (string) get_post_meta( $event->ID, '_emc_event_day', true ) ) {
+            update_post_meta( $event->ID, '_emc_event_day', $day );
+        }
+    }
+}
+add_action( 'after_setup_theme', 'emc_migrate_recurring_event_days', 25 );
+
+/**
+ * Move the saved contact address from the old admin@ mailbox to info@.
+ *
+ * Runs once, and only when the stored value is still the superseded address,
+ * so a site that has deliberately set something else keeps it.
+ */
+function emc_migrate_contact_email() {
+    $version = '2026-09-info-mailbox';
+    if ( $version === get_option( 'emc_contact_email_version' ) ) {
+        return;
+    }
+    update_option( 'emc_contact_email_version', $version, false );
+
+    if ( 'admin@essexmuslimcentre.org' === get_theme_mod( 'emc_admin_email' ) ) {
+        set_theme_mod( 'emc_admin_email', 'info@essexmuslimcentre.org' );
+    }
+}
+add_action( 'after_setup_theme', 'emc_migrate_contact_email', 26 );
 
 /**
  * Return the shared Badr Wall levels and their current availability.

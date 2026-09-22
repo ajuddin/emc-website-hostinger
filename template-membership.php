@@ -100,9 +100,20 @@ $allocations = array(
         <div class="mem-ayah-pattern" aria-hidden="true"></div>
         <div class="mem-container mem-ayah-inner">
             <h2 id="mem-ayah-title" class="mem-visually-hidden"><?php esc_html_e( 'Qur\'anic reminder', 'emc-theme' ); ?></h2>
-            <p class="mem-ayah-arabic" lang="ar" dir="rtl"><?php echo esc_html( emc_acf( 'mem_ayah_arabic', 'إِنَّمَا يَعْمُرُ مَسَاجِدَ اللَّهِ مَنْ آمَنَ بِاللَّهِ وَالْيَوْمِ الْآخِرِ' ) ); ?></p>
-            <p class="mem-ayah-english"><?php echo esc_html( emc_acf( 'mem_ayah_english', __( 'The mosques of Allah should only be maintained by those who believe in Allah and the Last Day, establish prayer, pay alms-tax, and fear none but Allah. It is right to hope that they will be among the truly guided.', 'emc-theme' ) ) ); ?></p>
-            <p class="mem-ayah-ref"><?php echo esc_html( emc_acf( 'mem_ayah_reference', __( 'Qur\'an · Surah At-Tawbah (9:18)', 'emc-theme' ) ) ); ?></p>
+
+            <?php
+            /*
+             * All three lines share one centred column so the Arabic, the
+             * translation and the reference stack on a common axis. Without the
+             * wrapper the translation's auto side margins lose to the broader
+             * ".emc-membership p" rule and it drifts flush left.
+             */
+            ?>
+            <div class="mem-ayah-stack">
+                <p class="mem-ayah-arabic" lang="ar" dir="rtl"><?php echo esc_html( emc_acf( 'mem_ayah_arabic', 'إِنَّمَا يَعْمُرُ مَسَاجِدَ اللَّهِ مَنْ آمَنَ بِاللَّهِ وَالْيَوْمِ الْآخِرِ' ) ); ?></p>
+                <p class="mem-ayah-english"><?php echo esc_html( emc_acf( 'mem_ayah_english', __( 'The mosques of Allah should only be maintained by those who believe in Allah and the Last Day, establish prayer, pay alms-tax, and fear none but Allah. It is right to hope that they will be among the truly guided.', 'emc-theme' ) ) ); ?></p>
+                <p class="mem-ayah-ref"><?php echo esc_html( emc_acf( 'mem_ayah_reference', __( 'Qur\'an · Surah At-Tawbah (9:18)', 'emc-theme' ) ) ); ?></p>
+            </div>
         </div>
     </section>
 
@@ -254,7 +265,7 @@ $allocations = array(
         <div class="mem-container">
             <header class="mem-section-head">
                 <h2 id="mem-chart-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_chart_heading', __( 'How Your Donations Are Used', 'emc-theme' ) ) ); ?></h2>
-                <p><?php echo esc_html( emc_acf( 'mem_chart_note', __( 'Approximate allocation of membership income across core running costs.', 'emc-theme' ) ) ); ?></p>
+                <p><?php echo esc_html( emc_acf( 'mem_chart_note', __( 'Approximate allocation of membership income across core running costs and education.', 'emc-theme' ) ) ); ?></p>
             </header>
 
             <div class="mem-chart-layout">
@@ -279,7 +290,7 @@ $allocations = array(
                 ?>
                 <div class="mem-chart">
                     <svg viewBox="0 0 200 200" role="img" aria-labelledby="mem-chart-desc">
-                        <title id="mem-chart-desc"><?php esc_html_e( 'Allocation of membership income across core running costs', 'emc-theme' ); ?></title>
+                        <title id="mem-chart-desc"><?php esc_html_e( 'Allocation of membership income across core running costs and education', 'emc-theme' ); ?></title>
                         <g transform="rotate(-90 100 100)">
                             <?php foreach ( $allocations as $slice ) : ?>
                                 <?php

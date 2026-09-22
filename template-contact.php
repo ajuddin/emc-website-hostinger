@@ -118,7 +118,7 @@ if ( file_exists( $contact_js_path ) ) {
                         <div class="info-icon"><i class="fas fa-envelope"></i></div>
                         <div>
                             <h3><?php echo esc_html( emc_acf( 'contact_email_heading', __( 'Email Us', 'emc-theme' ) ) ); ?></h3>
-                            <?php $admin_email = emc_option( 'emc_admin_email', 'admin@essexmuslimcentre.org' ); ?>
+                            <?php $admin_email = emc_option( 'emc_admin_email', 'info@essexmuslimcentre.org' ); ?>
                             <p><a href="mailto:<?php echo esc_attr( $admin_email ); ?>"><?php echo esc_html( $admin_email ); ?></a></p>
                             <small><?php echo esc_html( emc_acf( 'contact_email_hours', __( 'Monitored Monday–Friday, 9am–5pm', 'emc-theme' ) ) ); ?></small>
                         </div>

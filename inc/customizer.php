@@ -212,7 +212,7 @@ function emc_customize_register( $wp_customize ) {
     emc_add_text_setting( $wp_customize, 'emc_charity_number', '1209815',
         'emc_identity', __( 'Charity Registration Number', 'emc-theme' ) );
 
-    emc_add_text_setting( $wp_customize, 'emc_admin_email', 'admin@essexmuslimcentre.org',
+    emc_add_text_setting( $wp_customize, 'emc_admin_email', 'info@essexmuslimcentre.org',
         'emc_identity', __( 'Admin / Contact Email', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_phone', '',
