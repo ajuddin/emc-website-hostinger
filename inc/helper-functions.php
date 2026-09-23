@@ -53,14 +53,25 @@ function emc_option( $option, $default = '' ) {
  * @return string Localized weekday, or an empty string when none is configured.
  */
 function emc_get_event_display_day( $post_id ) {
-    /*
-     * The recurring day wins over the stored date. A weekly event's date field
-     * records when it was first entered, which drifts out of step with the day
-     * it actually runs — that is why Friday Prayer was rendering as Saturday.
-     */
+    $custom_day = trim( (string) get_post_meta( $post_id, '_emc_event_custom_day', true ) );
+    if ( '' !== $custom_day ) {
+        return $custom_day;
+    }
+
+    $day_slug = emc_get_event_recurring_day_slug( $post_id );
+    $labels   = emc_event_weekday_labels();
+
+    if ( $day_slug && isset( $labels[ $day_slug ] ) ) {
+        return $labels[ $day_slug ];
+    }
+
     $timestamp = emc_get_event_display_timestamp( $post_id );
 
-    return $timestamp ? date_i18n( 'l', $timestamp ) : '';
+    if ( ! $timestamp ) {
+        return '';
+    }
+
+    return function_exists( 'wp_date' ) ? wp_date( 'l', $timestamp ) : date_i18n( 'l', $timestamp );
 }
 
 /**
@@ -81,25 +92,84 @@ function emc_event_weekday_map() {
 }
 
 /**
+ * Map recurring-day slug to translated weekday name.
+ *
+ * @return array<string,string>
+ */
+function emc_event_weekday_labels() {
+    return array(
+        'sunday'    => __( 'Sunday', 'emc-theme' ),
+        'monday'    => __( 'Monday', 'emc-theme' ),
+        'tuesday'   => __( 'Tuesday', 'emc-theme' ),
+        'wednesday' => __( 'Wednesday', 'emc-theme' ),
+        'thursday'  => __( 'Thursday', 'emc-theme' ),
+        'friday'    => __( 'Friday', 'emc-theme' ),
+        'saturday'  => __( 'Saturday', 'emc-theme' ),
+    );
+}
+
+/**
+ * Return recurring day slug for an event, checking post meta and fallback schedules.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Lowercase day slug or empty string.
+ */
+function emc_get_event_recurring_day_slug( $post_id ) {
+    $day_slug = strtolower( trim( (string) get_post_meta( $post_id, '_emc_event_day', true ) ) );
+
+    if ( 'none' === $day_slug ) {
+        return '';
+    }
+
+    $weekdays = emc_event_weekday_map();
+
+    if ( $day_slug && isset( $weekdays[ $day_slug ] ) ) {
+        return $day_slug;
+    }
+
+    // Preserve the schedules shown on existing recurring-event flyers if meta is not yet set
+    $schedules = array(
+        'friday-prayer-jumuah'           => 'friday',
+        'quranic-arabic-language-course' => 'wednesday',
+        'dawn-of-reflection'             => 'sunday',
+        'tajweed-workshop'               => 'friday',
+    );
+
+    $post = get_post( $post_id );
+    if ( $post ) {
+        $slug = $post->post_name;
+        if ( isset( $schedules[ $slug ] ) ) {
+            return $schedules[ $slug ];
+        }
+        $title_slug = sanitize_title( $post->post_title );
+        if ( isset( $schedules[ $title_slug ] ) ) {
+            return $schedules[ $title_slug ];
+        }
+    }
+
+    return '';
+}
+
+/**
  * Return the timestamp an event should be displayed against.
  *
  * Recurring events resolve to their next upcoming occurrence, so a weekly
  * event never shows a date in the past and never needs re-entering. Dated
  * events return their stored date unchanged.
  *
- * Computed in the WordPress site timezone rather than the server's, matching
- * how the prayer-time code treats "today".
+ * Computed at 12:00:00 (noon) in the WordPress site timezone so UTC epoch
+ * conversions and DST offsets never cross midnight into the previous or next day.
  *
  * @param int $post_id Event post ID.
  * @return int|false Unix timestamp, or false when the event has neither.
  */
 function emc_get_event_display_timestamp( $post_id ) {
-    $day_slug = strtolower( (string) get_post_meta( $post_id, '_emc_event_day', true ) );
+    $day_slug = emc_get_event_recurring_day_slug( $post_id );
     $weekdays = emc_event_weekday_map();
 
-    if ( isset( $weekdays[ $day_slug ] ) ) {
-        $tz    = wp_timezone();
-        $today = new DateTimeImmutable( 'today', $tz );
+    if ( $day_slug && isset( $weekdays[ $day_slug ] ) ) {
+        $tz    = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
+        $today = new DateTimeImmutable( 'today 12:00:00', $tz );
         $ahead = ( $weekdays[ $day_slug ] - (int) $today->format( 'w' ) + 7 ) % 7;
 
         return $today->modify( sprintf( '+%d days', $ahead ) )->getTimestamp();
@@ -107,7 +177,7 @@ function emc_get_event_display_timestamp( $post_id ) {
 
     $event_date = get_post_meta( $post_id, '_emc_event_date', true );
 
-    return $event_date ? strtotime( $event_date ) : false;
+    return $event_date ? strtotime( $event_date . ' 12:00:00' ) : false;
 }
 
 /**
@@ -117,9 +187,7 @@ function emc_get_event_display_timestamp( $post_id ) {
  * @return bool
  */
 function emc_event_is_recurring( $post_id ) {
-    $day_slug = strtolower( (string) get_post_meta( $post_id, '_emc_event_day', true ) );
-
-    return isset( emc_event_weekday_map()[ $day_slug ] );
+    return '' !== emc_get_event_recurring_day_slug( $post_id );
 }
 
 /**
@@ -131,7 +199,7 @@ function emc_event_is_recurring( $post_id ) {
  * Only empty values are written, so an editor's own choice is never replaced.
  */
 function emc_migrate_recurring_event_days() {
-    $version = '2026-09-recurring-days';
+    $version = '2026-09-recurring-days-v2';
     if ( $version === get_option( 'emc_recurring_event_days_version' ) ) {
         return;
     }
@@ -146,6 +214,17 @@ function emc_migrate_recurring_event_days() {
 
     foreach ( $schedules as $slug => $day ) {
         $event = get_page_by_path( $slug, OBJECT, 'emc_event' );
+        if ( ! $event ) {
+            $found = get_posts( array(
+                'post_type'   => 'emc_event',
+                'name'        => $slug,
+                'numberposts' => 1,
+                'post_status' => 'any',
+            ) );
+            if ( ! empty( $found ) ) {
+                $event = $found[0];
+            }
+        }
         if ( ! $event ) {
             continue;
         }

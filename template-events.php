@@ -83,7 +83,7 @@ if ( file_exists( $events_js_path ) ) {
                     /* Recurring events resolve to their next occurrence, so the
                        badge follows the day the event actually runs. */
                     $display_ts = emc_get_event_display_timestamp( get_the_ID() );
-                    $day        = $display_ts ? strtoupper( date_i18n( 'D', $display_ts ) ) : '—';
+                    $day        = $display_ts ? strtoupper( function_exists( 'wp_date' ) ? wp_date( 'D', $display_ts ) : date_i18n( 'D', $display_ts ) ) : '—';
                     $weekday    = emc_get_event_display_day( get_the_ID() );
                     $registration_open = emc_event_registration_is_open( get_the_ID() );
                     $details_url       = get_permalink();

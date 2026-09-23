@@ -43,12 +43,14 @@ while ( have_posts() ) :
     $cats     = get_the_terms( $post_id, 'event_category' );
     $cat_name = ( $cats && ! is_wp_error( $cats ) ) ? $cats[0]->name : ucfirst( $ev_cat );
 
-    $day          = $date ? date( 'd', strtotime( $date ) ) : '';
-    $month        = $date ? strtoupper( date( 'M', strtotime( $date ) ) ) : '';
-    $year         = $date ? date( 'Y', strtotime( $date ) ) : '';
+    $display_ts   = emc_get_event_display_timestamp( $post_id );
+    $format_ts    = $display_ts ?: ( $date ? strtotime( $date . ' 12:00:00' ) : false );
+    $day          = $format_ts ? ( function_exists( 'wp_date' ) ? wp_date( 'd', $format_ts ) : date_i18n( 'd', $format_ts ) ) : '';
+    $month        = $format_ts ? strtoupper( function_exists( 'wp_date' ) ? wp_date( 'M', $format_ts ) : date_i18n( 'M', $format_ts ) ) : '';
+    $year         = $format_ts ? ( function_exists( 'wp_date' ) ? wp_date( 'Y', $format_ts ) : date_i18n( 'Y', $format_ts ) ) : '';
     $weekday      = emc_get_event_display_day( $post_id );
-    $fmt_date     = $date ? date_i18n( 'l, j F Y', strtotime( $date ) ) : '';
-    $fmt_end      = $end_date ? date_i18n( 'l, j F Y', strtotime( $end_date ) ) : '';
+    $fmt_date     = $format_ts ? ( function_exists( 'wp_date' ) ? wp_date( 'l, j F Y', $format_ts ) : date_i18n( 'l, j F Y', $format_ts ) ) : '';
+    $fmt_end      = $end_date ? ( function_exists( 'wp_date' ) ? wp_date( 'l, j F Y', strtotime( $end_date . ' 12:00:00' ) ) : date_i18n( 'l, j F Y', strtotime( $end_date . ' 12:00:00' ) ) ) : '';
 
     // ── ACF fields ──────────────────────────────────────────────────────────
     $intro        = $has_acf ? get_field( 'evt_single_intro' )              : '';
@@ -331,8 +333,10 @@ if ( $related->have_posts() ) : ?>
                 $r_time  = get_post_meta( get_the_ID(), '_emc_event_time',  true );
                 $r_venue = get_post_meta( get_the_ID(), '_emc_event_venue', true );
                 $r_cat   = get_post_meta( get_the_ID(), '_emc_event_category', true );
-                $r_day   = $r_date ? date( 'd', strtotime( $r_date ) ) : '—';
-                $r_month = $r_date ? strtoupper( date( 'M', strtotime( $r_date ) ) ) : '';
+                $r_ts      = emc_get_event_display_timestamp( get_the_ID() );
+                $r_format  = $r_ts ?: ( $r_date ? strtotime( $r_date . ' 12:00:00' ) : false );
+                $r_day     = $r_format ? ( function_exists( 'wp_date' ) ? wp_date( 'd', $r_format ) : date_i18n( 'd', $r_format ) ) : '—';
+                $r_month   = $r_format ? strtoupper( function_exists( 'wp_date' ) ? wp_date( 'M', $r_format ) : date_i18n( 'M', $r_format ) ) : '';
                 $r_weekday = emc_get_event_display_day( get_the_ID() );
                 $r_registration_url = get_permalink() . ( emc_event_registration_is_open( get_the_ID() ) ? '#event-registration' : '' );
             ?>
