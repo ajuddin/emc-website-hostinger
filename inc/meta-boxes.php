@@ -196,55 +196,72 @@ function emc_testimonial_meta_cb( $post ) {
 /** Event meta box */
 function emc_event_meta_cb( $post ) {
     wp_nonce_field( 'emc_event_meta_save', 'emc_event_meta_nonce' );
-    $date     = get_post_meta( $post->ID, '_emc_event_date',       true );
-    $day      = get_post_meta( $post->ID, '_emc_event_day',        true );
-    $end_date = get_post_meta( $post->ID, '_emc_event_end_date',   true );
-    $time     = get_post_meta( $post->ID, '_emc_event_time',       true );
-    $venue    = get_post_meta( $post->ID, '_emc_event_venue',      true );
-    $link     = get_post_meta( $post->ID, '_emc_event_reg_link',   true );
-    $capacity = get_post_meta( $post->ID, '_emc_event_capacity',   true );
-    $featured = get_post_meta( $post->ID, '_emc_event_featured',   true );
+    $date       = get_post_meta( $post->ID, '_emc_event_date',       true );
+    $day        = get_post_meta( $post->ID, '_emc_event_day',        true );
+    if ( '' === $day && function_exists( 'emc_get_event_recurring_day_slug' ) ) {
+        $day = emc_get_event_recurring_day_slug( $post->ID );
+    }
+    $custom_day = get_post_meta( $post->ID, '_emc_event_custom_day',  true );
+    $end_date   = get_post_meta( $post->ID, '_emc_event_end_date',   true );
+    $time       = get_post_meta( $post->ID, '_emc_event_time',       true );
+    $venue      = get_post_meta( $post->ID, '_emc_event_venue',      true );
+    $link       = get_post_meta( $post->ID, '_emc_event_reg_link',   true );
+    $capacity   = get_post_meta( $post->ID, '_emc_event_capacity',   true );
+    $featured   = get_post_meta( $post->ID, '_emc_event_featured',   true );
     $registration_disabled = get_post_meta( $post->ID, '_emc_event_registration_disabled', true );
     ?>
     <table class="form-table" style="margin:0">
         <tr>
-            <th><label for="emc_event_date"><?php esc_html_e( 'Start Date', 'emc-theme' ); ?></label></th>
-            <td><input type="date" id="emc_event_date" name="emc_event_date"
-                       value="<?php echo esc_attr( $date ); ?>" class="regular-text"></td>
-        </tr>
-        <tr>
             <th><label for="emc_event_day"><?php esc_html_e( 'Recurring Day', 'emc-theme' ); ?></label></th>
             <td>
-                <select id="emc_event_day" name="emc_event_day">
-                    <option value=""><?php esc_html_e( 'Select a day', 'emc-theme' ); ?></option>
+                <select id="emc_event_day" name="emc_event_day" style="min-width:220px;">
+                    <option value=""><?php esc_html_e( '— Select a day —', 'emc-theme' ); ?></option>
+                    <option value="none" <?php selected( $day, 'none' ); ?>><?php esc_html_e( 'None (One-time event / Use date)', 'emc-theme' ); ?></option>
                     <?php
                     $event_days = array(
-                        'monday'    => __( 'Monday', 'emc-theme' ),
-                        'tuesday'   => __( 'Tuesday', 'emc-theme' ),
-                        'wednesday' => __( 'Wednesday', 'emc-theme' ),
-                        'thursday'  => __( 'Thursday', 'emc-theme' ),
-                        'friday'    => __( 'Friday', 'emc-theme' ),
-                        'saturday'  => __( 'Saturday', 'emc-theme' ),
-                        'sunday'    => __( 'Sunday', 'emc-theme' ),
+                        'monday'    => __( 'Every Monday', 'emc-theme' ),
+                        'tuesday'   => __( 'Every Tuesday', 'emc-theme' ),
+                        'wednesday' => __( 'Every Wednesday', 'emc-theme' ),
+                        'thursday'  => __( 'Every Thursday', 'emc-theme' ),
+                        'friday'    => __( 'Every Friday', 'emc-theme' ),
+                        'saturday'  => __( 'Every Saturday', 'emc-theme' ),
+                        'sunday'    => __( 'Every Sunday', 'emc-theme' ),
                     );
                     foreach ( $event_days as $day_value => $day_label ) :
                     ?>
                     <option value="<?php echo esc_attr( $day_value ); ?>" <?php selected( $day, $day_value ); ?>><?php echo esc_html( $day_label ); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <p class="description"><?php esc_html_e( 'Use this for weekly events without a specific start date.', 'emc-theme' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Selecting a day dynamically updates the day badge and calendar calculations across the site.', 'emc-theme' ); ?></p>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="emc_event_custom_day"><?php esc_html_e( 'Custom Schedule Label', 'emc-theme' ); ?></label></th>
+            <td><input type="text" id="emc_event_custom_day" name="emc_event_custom_day"
+                       value="<?php echo esc_attr( $custom_day ); ?>" class="regular-text"
+                       placeholder="<?php esc_attr_e( 'e.g. Every Sunday & Thursday (optional override)', 'emc-theme' ); ?>">
+                <p class="description"><?php esc_html_e( 'Optional. Custom text entered here takes priority over the standard day label.', 'emc-theme' ); ?></p>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="emc_event_time"><?php esc_html_e( 'Time', 'emc-theme' ); ?></label></th>
+            <td><input type="text" id="emc_event_time" name="emc_event_time"
+                       value="<?php echo esc_attr( $time ); ?>" class="regular-text"
+                       placeholder="<?php esc_attr_e( 'e.g. 10:00 AM – 4:00 PM, 6:00 AM, 8:00 PM to Maghrib', 'emc-theme' ); ?>">
+                <p class="description"><?php esc_html_e( 'Displayed dynamically on the event flyer banner, cards, and single page.', 'emc-theme' ); ?></p>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="emc_event_date"><?php esc_html_e( 'Start Date', 'emc-theme' ); ?></label></th>
+            <td><input type="date" id="emc_event_date" name="emc_event_date"
+                       value="<?php echo esc_attr( $date ); ?>" class="regular-text">
+                <p class="description"><?php esc_html_e( 'Specific date for one-time events. For weekly recurring events, this is optional.', 'emc-theme' ); ?></p>
             </td>
         </tr>
         <tr>
             <th><label for="emc_event_end_date"><?php esc_html_e( 'End Date', 'emc-theme' ); ?></label></th>
             <td><input type="date" id="emc_event_end_date" name="emc_event_end_date"
                        value="<?php echo esc_attr( $end_date ); ?>" class="regular-text"></td>
-        </tr>
-        <tr>
-            <th><label for="emc_event_time"><?php esc_html_e( 'Time', 'emc-theme' ); ?></label></th>
-            <td><input type="text" id="emc_event_time" name="emc_event_time"
-                       value="<?php echo esc_attr( $time ); ?>" class="regular-text"
-                       placeholder="<?php esc_attr_e( 'e.g. 10:00 AM – 4:00 PM', 'emc-theme' ); ?>"></td>
         </tr>
         <tr>
             <th><label for="emc_event_venue"><?php esc_html_e( 'Venue', 'emc-theme' ); ?></label></th>
@@ -527,8 +544,10 @@ function emc_save_meta_boxes( $post_id ) {
         update_post_meta(
             $post_id,
             '_emc_event_day',
-            in_array( $event_day, array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ), true ) ? $event_day : ''
+            in_array( $event_day, array( 'none', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ), true ) ? $event_day : ''
         );
+        update_post_meta( $post_id, '_emc_event_custom_day',
+            sanitize_text_field( wp_unslash( $_POST['emc_event_custom_day'] ?? '' ) ) );
         update_post_meta( $post_id, '_emc_event_end_date',
             sanitize_text_field( wp_unslash( $_POST['emc_event_end_date'] ?? '' ) ) );
         update_post_meta( $post_id, '_emc_event_time',

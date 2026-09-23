@@ -18,6 +18,7 @@ add_filter( 'manage_emc_event_posts_columns', function( $cols ) {
         $new[ $key ] = $label;
         if ( 'title' === $key ) {
             $new['event_date']     = __( 'Date / Day', 'emc-theme' );
+            $new['event_time']     = __( 'Time', 'emc-theme' );
             $new['event_venue']    = __( 'Venue', 'emc-theme' );
             $new['event_featured'] = __( 'Homepage', 'emc-theme' );
         }
@@ -28,10 +29,28 @@ add_filter( 'manage_emc_event_posts_columns', function( $cols ) {
 add_action( 'manage_emc_event_posts_custom_column', function( $col, $post_id ) {
     switch ( $col ) {
         case 'event_date':
-            $d = get_post_meta( $post_id, '_emc_event_date', true );
-            echo $d
-                ? esc_html( date_i18n( get_option( 'date_format' ), strtotime( $d ) ) )
-                : esc_html( emc_get_event_display_day( $post_id ) ?: '—' );
+            $day_slug = function_exists( 'emc_get_event_recurring_day_slug' ) ? emc_get_event_recurring_day_slug( $post_id ) : '';
+            $day_raw  = get_post_meta( $post_id, '_emc_event_day', true );
+            $day_val  = $day_raw ?: $day_slug;
+            $day      = function_exists( 'emc_get_event_display_day' ) ? emc_get_event_display_day( $post_id ) : '';
+            $d        = get_post_meta( $post_id, '_emc_event_date', true );
+            echo '<span class="emc-col-day-slug" style="display:none;">' . esc_attr( $day_val ) . '</span>';
+            echo '<span class="emc-col-date-val" style="display:none;">' . esc_attr( $d ) . '</span>';
+            if ( $day ) {
+                echo '<strong style="color:var(--wp-admin-theme-color,#0073aa);">' . esc_html( $day ) . '</strong>';
+                if ( $d ) {
+                    echo '<br><small style="color:#666;">' . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $d ) ) ) . '</small>';
+                }
+            } elseif ( $d ) {
+                echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $d ) ) );
+            } else {
+                echo '—';
+            }
+            break;
+        case 'event_time':
+            $t = get_post_meta( $post_id, '_emc_event_time', true );
+            echo '<span class="emc-col-time-val" style="display:none;">' . esc_attr( $t ) . '</span>';
+            echo $t ? '<span style="font-weight:600;">' . esc_html( $t ) . '</span>' : '—';
             break;
         case 'event_venue':
             $v = get_post_meta( $post_id, '_emc_event_venue', true );
@@ -44,6 +63,121 @@ add_action( 'manage_emc_event_posts_custom_column', function( $col, $post_id ) {
             break;
     }
 }, 10, 2 );
+
+/**
+ * Render Quick Edit fields for Events (Day, Time, Date).
+ */
+add_action( 'quick_edit_custom_box', function( $column_name, $post_type ) {
+    if ( 'emc_event' !== $post_type || 'event_date' !== $column_name ) {
+        return;
+    }
+    wp_nonce_field( 'emc_event_quick_edit_nonce', 'emc_event_quick_edit_nonce_field' );
+    ?>
+    <fieldset class="inline-edit-col-left" style="margin-top:0.5rem;clear:both;">
+        <div class="inline-edit-col">
+            <span class="title" style="font-weight:600;display:block;margin-bottom:0.5rem;"><?php esc_html_e( 'Event Schedule & Timings', 'emc-theme' ); ?></span>
+            <div class="inline-edit-group wp-clearfix">
+                <label class="alignleft" style="margin-right:1rem;margin-bottom:0.5rem;">
+                    <span class="title"><?php esc_html_e( 'Recurring Day', 'emc-theme' ); ?></span>
+                    <select name="emc_event_day" class="emc-qe-event-day">
+                        <option value=""><?php esc_html_e( '— Select Day —', 'emc-theme' ); ?></option>
+                        <option value="none"><?php esc_html_e( 'None (One-time)', 'emc-theme' ); ?></option>
+                        <option value="monday"><?php esc_html_e( 'Every Monday', 'emc-theme' ); ?></option>
+                        <option value="tuesday"><?php esc_html_e( 'Every Tuesday', 'emc-theme' ); ?></option>
+                        <option value="wednesday"><?php esc_html_e( 'Every Wednesday', 'emc-theme' ); ?></option>
+                        <option value="thursday"><?php esc_html_e( 'Every Thursday', 'emc-theme' ); ?></option>
+                        <option value="friday"><?php esc_html_e( 'Every Friday', 'emc-theme' ); ?></option>
+                        <option value="saturday"><?php esc_html_e( 'Every Saturday', 'emc-theme' ); ?></option>
+                        <option value="sunday"><?php esc_html_e( 'Every Sunday', 'emc-theme' ); ?></option>
+                    </select>
+                </label>
+                <label class="alignleft" style="margin-right:1rem;margin-bottom:0.5rem;">
+                    <span class="title"><?php esc_html_e( 'Time', 'emc-theme' ); ?></span>
+                    <input type="text" name="emc_event_time" class="emc-qe-event-time" value="" placeholder="e.g. 10:00 AM – 4:00 PM">
+                </label>
+                <label class="alignleft" style="margin-bottom:0.5rem;">
+                    <span class="title"><?php esc_html_e( 'Start Date', 'emc-theme' ); ?></span>
+                    <input type="date" name="emc_event_date" class="emc-qe-event-date" value="">
+                </label>
+            </div>
+        </div>
+    </fieldset>
+    <?php
+}, 10, 2 );
+
+/**
+ * Save Quick Edit fields for Events.
+ */
+add_action( 'save_post_emc_event', function( $post_id ) {
+    if ( ! isset( $_POST['emc_event_quick_edit_nonce_field'] ) ||
+         ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['emc_event_quick_edit_nonce_field'] ) ), 'emc_event_quick_edit_nonce' ) ) {
+        return;
+    }
+    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+        return;
+    }
+    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        return;
+    }
+
+    if ( isset( $_POST['emc_event_day'] ) ) {
+        $event_day = sanitize_key( wp_unslash( $_POST['emc_event_day'] ) );
+        update_post_meta(
+            $post_id,
+            '_emc_event_day',
+            in_array( $event_day, array( 'none', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ), true ) ? $event_day : ''
+        );
+    }
+    if ( isset( $_POST['emc_event_time'] ) ) {
+        update_post_meta( $post_id, '_emc_event_time', sanitize_text_field( wp_unslash( $_POST['emc_event_time'] ) ) );
+    }
+    if ( isset( $_POST['emc_event_date'] ) ) {
+        update_post_meta( $post_id, '_emc_event_date', sanitize_text_field( wp_unslash( $_POST['emc_event_date'] ) ) );
+    }
+} );
+
+/**
+ * Enqueue inline Quick Edit script for events admin list.
+ */
+add_action( 'admin_footer-edit.php', function() {
+    global $post_type;
+    if ( 'emc_event' !== $post_type ) {
+        return;
+    }
+    ?>
+    <script>
+    jQuery(function($) {
+        if (typeof inlineEditPost === 'undefined') {
+            return;
+        }
+        var wp_inline_edit = inlineEditPost.edit;
+        inlineEditPost.edit = function(id) {
+            wp_inline_edit.apply(this, arguments);
+            var postId = 0;
+            if (typeof(id) === 'object') {
+                postId = parseInt(this.getId(id));
+            }
+            if (postId > 0) {
+                var $row = $('#post-' + postId);
+                var $editRow = $('#edit-' + postId);
+                var day = $row.find('.emc-col-day-slug').text().trim();
+                var time = $row.find('.emc-col-time-val').text().trim();
+                var date = $row.find('.emc-col-date-val').text().trim();
+                if (day) {
+                    $editRow.find('select[name="emc_event_day"]').val(day);
+                }
+                if (time && time !== '—') {
+                    $editRow.find('input[name="emc_event_time"]').val(time);
+                }
+                if (date) {
+                    $editRow.find('input[name="emc_event_date"]').val(date);
+                }
+            }
+        };
+    });
+    </script>
+    <?php
+} );
 
 add_filter( 'manage_edit-emc_event_sortable_columns', function( $cols ) {
     $cols['event_date'] = 'event_date';

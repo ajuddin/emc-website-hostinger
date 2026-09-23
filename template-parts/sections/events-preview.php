@@ -68,7 +68,7 @@ $events_query = new WP_Query( $query_args );
                     $thumb       = get_the_post_thumbnail_url( get_the_ID(), 'emc-card' );
                     /* Recurring events resolve to their next occurrence. */
                     $display_ts  = emc_get_event_display_timestamp( get_the_ID() );
-                    $day         = $display_ts ? strtoupper( date_i18n( 'D', $display_ts ) ) : '';
+                    $day         = $display_ts ? strtoupper( function_exists( 'wp_date' ) ? wp_date( 'D', $display_ts ) : date_i18n( 'D', $display_ts ) ) : '';
                     $formatted_date = emc_get_event_display_day( get_the_ID() );
                     $formatted_time = $event_time ?: __( 'To be confirmed', 'emc-theme' );
                     $formatted_venue = $event_venue ?: __( 'Essex Muslim Centre', 'emc-theme' );
