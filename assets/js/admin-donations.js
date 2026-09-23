@@ -27,8 +27,15 @@
             if (event.target === dialog) dialog.close();
         });
 
-        const controllers = tables.map((table, tableIndex) => enhanceTable(table, tableIndex, dialog));
-        addSummary(wrap, controllers);
+        const controllers = [];
+        const updateSummary = () => addSummary(wrap, controllers);
+
+        tables.forEach((table, tableIndex) => {
+            const ctrl = enhanceTable(table, tableIndex, dialog, updateSummary);
+            controllers.push(ctrl);
+        });
+
+        updateSummary();
     });
 
     function headingsFor(table) {
@@ -39,7 +46,7 @@
         return headings.findIndex((heading) => candidates.some((candidate) => heading.toLowerCase().includes(candidate)));
     }
 
-    function enhanceTable(table, tableIndex, dialog) {
+    function enhanceTable(table, tableIndex, dialog, onRecordChange) {
         const heading = table.previousElementSibling && /^H[1-6]$/.test(table.previousElementSibling.tagName)
             ? table.previousElementSibling
             : [...table.parentElement.children].reverse().find((node) => node.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING && /^H[1-6]$/.test(node.tagName));
@@ -48,6 +55,9 @@
         const statusIndex = cellIndex(headings, ['status']);
         const fundIndex = cellIndex(headings, ['fund']);
         const amountIndex = cellIndex(headings, ['amount']);
+        const emailIndex = cellIndex(headings, ['email']);
+        const dateIndex = cellIndex(headings, ['date', 'setup date']);
+        const refIndex = cellIndex(headings, ['stripe', 'sub', 'ref']);
         const rows = [...table.querySelectorAll('tbody tr')].filter((row) => row.children.length > 1);
 
         const section = document.createElement('section');
@@ -69,16 +79,88 @@
 
         const detailHead = document.createElement('th');
         detailHead.textContent = 'Details';
+        detailHead.style.textAlign = 'right';
         table.querySelector('thead tr')?.appendChild(detailHead);
+
+        const controller = { title, headings, rows, amountIndex, statusIndex };
+
+        const handleDelete = (row, deleteBtn) => {
+            const confirmMsg = (window.emcDonationsData && window.emcDonationsData.confirmText) || 'Are you sure you want to delete this payment record from the history? This cannot be undone.';
+            if (!window.confirm(confirmMsg)) {
+                return;
+            }
+
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting…';
+
+            const ref = refIndex >= 0 ? clean(row.children[refIndex]?.textContent) : '';
+            const email = emailIndex >= 0 ? clean(row.children[emailIndex]?.textContent) : '';
+            const date = dateIndex >= 0 ? clean(row.children[dateIndex]?.textContent) : '';
+
+            const formData = new FormData();
+            formData.append('action', 'emc_delete_single_donation_record');
+            formData.append('security', (window.emcDonationsData && window.emcDonationsData.nonce) || '');
+            formData.append('table_title', title);
+            formData.append('ref', ref);
+            formData.append('email', email);
+            formData.append('date', date);
+
+            const ajaxUrl = (window.emcDonationsData && window.emcDonationsData.ajaxUrl) || (window.ajaxurl || '/wp-admin/admin-ajax.php');
+
+            fetch(ajaxUrl, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            })
+            .then((res) => res.json())
+            .then((data) => {
+                if (data && data.success) {
+                    const idx = rows.indexOf(row);
+                    if (idx > -1) {
+                        rows.splice(idx, 1);
+                    }
+                    row.remove();
+                    render();
+                    if (typeof onRecordChange === 'function') {
+                        onRecordChange();
+                    }
+                } else {
+                    alert((data && data.data && data.data.message) || 'Failed to delete record.');
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = 'Delete';
+                }
+            })
+            .catch((err) => {
+                console.error('Delete donation record error:', err);
+                alert('An error occurred while deleting the record.');
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete';
+            });
+        };
 
         rows.forEach((row) => {
             const detailCell = document.createElement('td');
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'button emc-view-record';
-            button.textContent = 'View';
-            button.addEventListener('click', () => showDetails(dialog, title, headings, row));
-            detailCell.appendChild(button);
+            detailCell.className = 'emc-actions-cell';
+
+            const actionsWrap = document.createElement('div');
+            actionsWrap.className = 'emc-row-actions';
+
+            const viewButton = document.createElement('button');
+            viewButton.type = 'button';
+            viewButton.className = 'button emc-view-record';
+            viewButton.textContent = 'View';
+            viewButton.addEventListener('click', () => showDetails(dialog, title, headings, row));
+            actionsWrap.appendChild(viewButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'button emc-delete-record';
+            deleteButton.textContent = 'Delete';
+            deleteButton.title = 'Delete this record';
+            deleteButton.addEventListener('click', () => handleDelete(row, deleteButton));
+            actionsWrap.appendChild(deleteButton);
+
+            detailCell.appendChild(actionsWrap);
             row.appendChild(detailCell);
 
             if (statusIndex >= 0 && row.children[statusIndex]) {
@@ -137,7 +219,7 @@
         });
         render();
 
-        return { title, headings, rows, amountIndex, statusIndex };
+        return controller;
     }
 
     function renderPagination(container, state, pages, render) {
@@ -173,15 +255,19 @@
         const paymentTotal = payments ? payments.rows.reduce((total, row) => total + money(row.children[payments.amountIndex]?.textContent), 0) : 0;
         const giftAidIndex = payments ? cellIndex(payments.headings, ['gift aid']) : -1;
         const giftAid = payments && giftAidIndex >= 0 ? payments.rows.filter((row) => /^yes$/i.test(clean(row.children[giftAidIndex]?.textContent))).length : 0;
-        const summary = document.createElement('div');
-        summary.className = 'emc-donation-summary';
+
+        let summary = wrap.querySelector('.emc-donation-summary');
+        if (!summary) {
+            summary = document.createElement('div');
+            summary.className = 'emc-donation-summary';
+            const intro = [...wrap.children].find((node) => node.tagName === 'P');
+            if (intro) intro.insertAdjacentElement('afterend', summary);
+            else wrap.insertBefore(summary, wrap.firstChild.nextSibling);
+        }
         summary.innerHTML = summaryCard('Payments received', payments?.rows.length || 0)
             + summaryCard('Total received', '£' + paymentTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
             + summaryCard('Active schedules', active)
             + summaryCard('Gift Aid payments', giftAid);
-        const intro = [...wrap.children].find((node) => node.tagName === 'P');
-        if (intro) intro.insertAdjacentElement('afterend', summary);
-        else wrap.insertBefore(summary, wrap.firstChild.nextSibling);
     }
 
     function summaryCard(label, value) {
