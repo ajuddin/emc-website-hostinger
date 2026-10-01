@@ -27,8 +27,8 @@ const EMC_MEMBERSHIP_FUND_PREFIX = 'Membership';
 function emc_register_membership_type() {
     register_post_type( 'emc_membership', array(
         'labels' => array(
-            'name'          => __( 'Memberships', 'emc-theme' ),
-            'singular_name' => __( 'Membership', 'emc-theme' ),
+            'name'          => __( 'Regular Giving', 'emc-theme' ),
+            'singular_name' => __( 'Regular Donor', 'emc-theme' ),
         ),
         'public'              => false,
         'show_ui'             => false,
@@ -146,7 +146,7 @@ function emc_membership_payments_available() {
  * @return WP_Post|null
  */
 function emc_get_membership_page() {
-    $page = get_page_by_path( 'membership', OBJECT, 'page' );
+    $page = get_page_by_path( 'donar', OBJECT, 'page' );
 
     if ( ! $page ) {
         $pages = get_posts( array(
@@ -172,7 +172,7 @@ function emc_get_membership_page() {
  */
 function emc_get_membership_url() {
     $page = emc_get_membership_page();
-    return $page ? get_permalink( $page ) : home_url( '/membership/' );
+    return $page ? get_permalink( $page ) : home_url( '/donar/' );
 }
 
 /**
@@ -233,7 +233,7 @@ function emc_create_pending_membership( $data ) {
     $post_id = wp_insert_post( array(
         'post_type'   => 'emc_membership',
         'post_status' => 'private',
-        'post_title'  => sprintf( '%s — %s', $full_name ?: __( 'Member', 'emc-theme' ), current_time( 'Y-m-d H:i:s' ) ),
+        'post_title'  => sprintf( '%s — %s', $full_name ?: __( 'Donor', 'emc-theme' ), current_time( 'Y-m-d H:i:s' ) ),
     ), true );
 
     if ( is_wp_error( $post_id ) ) {
@@ -462,7 +462,7 @@ function emc_notify_new_membership( $post_id, $level, $amount, $subscription_id 
 
         emc_send_form_notification(
             'membership',
-            sprintf( __( 'New membership: %s', 'emc-theme' ), $level['name'] ),
+            sprintf( __( 'New regular donor: %s', 'emc-theme' ), $level['name'] ),
             implode( "\n", $lines )
         );
     }
@@ -471,13 +471,13 @@ function emc_notify_new_membership( $post_id, $level, $amount, $subscription_id 
         return;
     }
 
-    $body  = sprintf( __( "Assalamu Alaikum %s,\n\nJazak Allahu Khairan for becoming a member of Essex Muslim Centre.", 'emc-theme' ), $first ?: __( 'friend', 'emc-theme' ) );
-    $body .= "\n\n" . sprintf( __( 'Membership level: %s', 'emc-theme' ), $level['name'] );
+    $body  = sprintf( __( "Assalamu Alaikum %s,\n\nJazak Allahu Khairan for becoming a regular donor to Essex Muslim Centre.", 'emc-theme' ), $first ?: __( 'friend', 'emc-theme' ) );
+    $body .= "\n\n" . sprintf( __( 'Giving level: %s', 'emc-theme' ), $level['name'] );
     $body .= "\n" . sprintf( __( 'Monthly amount: £%s', 'emc-theme' ), $amount );
     $body .= "\n" . sprintf( __( 'Reference: %s', 'emc-theme' ), $subscription_id );
-    $body .= "\n\n" . __( 'Your membership renews automatically each month. To change the amount or cancel at any time, simply reply to this email and we will take care of it.', 'emc-theme' );
+    $body .= "\n\n" . __( 'Your regular giving renews automatically each month. To change the amount or cancel at any time, simply reply to this email and we will take care of it.', 'emc-theme' );
 
-    wp_mail( $email, __( 'Your Essex Muslim Centre membership', 'emc-theme' ), $body );
+    wp_mail( $email, __( 'Your Essex Muslim Centre regular giving', 'emc-theme' ), $body );
 }
 
 /* ==========================================================================
@@ -495,7 +495,7 @@ function emc_membership_validate_submission( $source ) {
     $level     = emc_membership_level( $level_key );
 
     if ( ! $level ) {
-        return new WP_Error( 'emc_membership_level', __( 'Please choose an available membership level.', 'emc-theme' ) );
+        return new WP_Error( 'emc_membership_level', __( 'Please choose an available giving level.', 'emc-theme' ) );
     }
 
     $data = array(
@@ -544,7 +544,7 @@ function emc_ajax_membership_join() {
     }
 
     if ( ! emc_membership_payments_available() ) {
-        wp_send_json_error( array( 'message' => __( 'Monthly membership payments are temporarily unavailable. Please contact the centre to join.', 'emc-theme' ) ), 503 );
+        wp_send_json_error( array( 'message' => __( 'Monthly giving payments are temporarily unavailable. Please contact the centre to set this up.', 'emc-theme' ) ), 503 );
     }
 
     $validated = emc_membership_validate_submission( $_POST );
@@ -568,7 +568,7 @@ function emc_ajax_membership_join() {
         wp_send_json_error( array( 'message' => __( 'Your application could not be saved. Please contact the centre.', 'emc-theme' ) ), 500 );
     }
 
-    $notes = array( sprintf( 'Membership level: %s', $level['name'] ) );
+    $notes = array( sprintf( 'Giving level: %s', $level['name'] ) );
     if ( $validated['phone'] ) {
         $notes[] = sprintf( 'Phone: %s', $validated['phone'] );
     }
@@ -606,8 +606,8 @@ add_action( 'wp_ajax_nopriv_emc_membership_join', 'emc_ajax_membership_join' );
 function emc_membership_admin_menu() {
     add_submenu_page(
         null,
-        __( 'Memberships', 'emc-theme' ),
-        __( 'Memberships', 'emc-theme' ),
+        __( 'Regular Giving', 'emc-theme' ),
+        __( 'Regular Giving', 'emc-theme' ),
         'manage_options',
         'emc-memberships',
         'emc_membership_admin_page'
@@ -665,12 +665,12 @@ function emc_membership_admin_page() {
     ) );
     ?>
     <div class="wrap">
-        <h1><?php esc_html_e( 'Memberships', 'emc-theme' ); ?></h1>
+        <h1><?php esc_html_e( 'Regular Giving', 'emc-theme' ); ?></h1>
         <p>
             <?php
             printf(
-                /* translators: 1: active members, 2: committed monthly total, 3: applications awaiting payment. */
-                esc_html__( '%1$d active members committing £%2$s each month. %3$d applications have not completed payment.', 'emc-theme' ),
+                /* translators: 1: active donors, 2: committed monthly total, 3: applications awaiting payment. */
+                esc_html__( '%1$d active regular donors committing £%2$s each month. %3$d applications have not completed payment.', 'emc-theme' ),
                 absint( $totals['active'] ),
                 esc_html( number_format( $totals['monthly'], 2 ) ),
                 absint( $totals['pending'] )
@@ -678,18 +678,18 @@ function emc_membership_admin_page() {
             ?>
         </p>
         <p class="description">
-            <?php esc_html_e( 'Memberships are monthly giving schedules created by the EMC Payments plugin. Change or cancel one in Stripe, or on the Donations & Payments screen, using the subscription reference below.', 'emc-theme' ); ?>
-            <a href="<?php echo esc_url( admin_url( 'customize.php?autofocus[section]=emc_pg_membership' ) ); ?>"><?php esc_html_e( 'Edit membership levels', 'emc-theme' ); ?></a>
+            <?php esc_html_e( 'Regular giving schedules are created by the EMC Payments plugin. Change or cancel one in Stripe, or on the Donations & Payments screen, using the subscription reference below.', 'emc-theme' ); ?>
+            <a href="<?php echo esc_url( admin_url( 'customize.php?autofocus[section]=emc_pg_membership' ) ); ?>"><?php esc_html_e( 'Edit giving levels', 'emc-theme' ); ?></a>
         </p>
 
         <?php if ( ! $query->have_posts() ) : ?>
-            <div class="notice notice-info inline"><p><?php esc_html_e( 'No memberships have been taken out yet.', 'emc-theme' ); ?></p></div>
+            <div class="notice notice-info inline"><p><?php esc_html_e( 'No regular giving has been set up yet.', 'emc-theme' ); ?></p></div>
         <?php else : ?>
             <table class="widefat fixed striped">
                 <thead>
                     <tr>
                         <th><?php esc_html_e( 'Applied', 'emc-theme' ); ?></th>
-                        <th><?php esc_html_e( 'Member', 'emc-theme' ); ?></th>
+                        <th><?php esc_html_e( 'Donor', 'emc-theme' ); ?></th>
                         <th><?php esc_html_e( 'Contact', 'emc-theme' ); ?></th>
                         <th><?php esc_html_e( 'Level', 'emc-theme' ); ?></th>
                         <th><?php esc_html_e( 'Monthly', 'emc-theme' ); ?></th>
