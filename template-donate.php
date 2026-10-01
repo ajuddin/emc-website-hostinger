@@ -467,15 +467,15 @@ foreach ( $regular_donation_campaigns as $regular_campaign ) {
                 </ul>
             </div>
 
-            <!-- Membership -->
+            <!-- Regular Giving -->
             <div class="other-way-card glass-card other-way-featured legacy-other-way" hidden>
                 <div class="other-way-icon"><i class="fas fa-id-card"></i></div>
-                <h3><?php esc_html_e( 'Membership', 'emc-theme' ); ?></h3>
-                <p class="other-way-desc"><?php esc_html_e( 'Memberships enable regular support that gives your mosque the stability it needs. If EMC matters to you, a membership is a way to support it with consistency, care and intention.', 'emc-theme' ); ?></p>
-                <?php $member_url = get_permalink( get_page_by_path( 'membership' ) ) ?: home_url( '/membership/' ); ?>
+                <h3><?php esc_html_e( 'Regular Giving', 'emc-theme' ); ?></h3>
+                <p class="other-way-desc"><?php esc_html_e( 'Regular giving provides steady support that gives your mosque the stability it needs. If EMC matters to you, regular giving is a way to support it with consistency, care and intention.', 'emc-theme' ); ?></p>
+                <?php $member_url = emc_get_membership_url(); ?>
                 <a href="<?php echo esc_url( $member_url ); ?>" class="btn btn-primary">
                     <i class="fas fa-id-card" aria-hidden="true"></i>
-                    <?php esc_html_e( 'Become a Member', 'emc-theme' ); ?>
+                    <?php esc_html_e( 'Become a Regular Donor', 'emc-theme' ); ?>
                 </a>
             </div>
 

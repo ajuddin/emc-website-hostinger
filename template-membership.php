@@ -1,17 +1,17 @@
 <?php
 /**
- * Template Name: Membership
+ * Template Name: Regular Giving
  * Template Post Type: page
  *
- * EMC Theme — Become a Member page.
+ * EMC Theme — Become a Regular Donor page.
  *
  * Headings, body copy, the three level names/amounts/descriptions and the
  * progress-bar figures are editable in Appearance → Customize → Page Content →
- * Membership Page. The benefits matrix, allocation chart and dome artwork are
- * part of the page design and live here.
+ * Regular Giving Page. The benefits matrix, allocation chart and dome artwork
+ * are part of the page design and live here.
  *
- * Membership fees are monthly giving schedules created by the licensed EMC
- * Payments plugin, which owns the card form and the Stripe subscription.
+ * Regular giving amounts are monthly giving schedules created by the licensed
+ * EMC Payments plugin, which owns the card form and the Stripe subscription.
  *
  * @package emc-theme
  */
@@ -122,10 +122,11 @@ $allocations = array(
          ============================================================ -->
     <section class="mem-section mem-intro" id="become-a-member" aria-labelledby="mem-intro-title">
         <div class="mem-container mem-narrow">
-            <h1 id="mem-intro-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_intro_heading', __( 'Become a Member', 'emc-theme' ) ) ); ?></h1>
-            <p><?php echo esc_html( emc_acf( 'mem_intro_body_1', __( 'Essex Muslim Centre serves our community every single day through prayer, learning and care.', 'emc-theme' ) ) ); ?></p>
+            <h1 id="mem-intro-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_intro_heading', __( 'Become a Regular Donor', 'emc-theme' ) ) ); ?></h1>
+            <p class="mem-tagline"><?php echo esc_html( emc_acf( 'mem_intro_tagline', __( 'A simple and meaningful way to continue your Sadaqah Jāriyah.', 'emc-theme' ) ) ); ?></p>
+            <p><?php echo esc_html( emc_acf( 'mem_intro_body_1', __( 'Essex Muslim Centre serves our community every single day through prayer, learning and care. Regular giving provides steady support that helps maintain the House of Allah and gives EMC the stability it needs to operate responsibly.', 'emc-theme' ) ) ); ?></p>
             <p><?php echo esc_html( emc_acf( 'mem_intro_body_2', __( 'Supporting your mosque means sharing in the reward of everything that takes place within it — quietly, consistently, and often unseen.', 'emc-theme' ) ) ); ?></p>
-            <p class="mem-note"><?php echo esc_html( emc_acf( 'mem_intro_note', __( 'To learn more about what your regular donations cover, please see Membership Levels and Why Memberships Exist below.', 'emc-theme' ) ) ); ?></p>
+            <p class="mem-note"><?php echo esc_html( emc_acf( 'mem_intro_note', __( 'To learn more about what your regular giving covers, please see the giving levels and why regular giving matters below.', 'emc-theme' ) ) ); ?></p>
         </div>
     </section>
 
@@ -135,7 +136,7 @@ $allocations = array(
     <section class="mem-section mem-levels" id="membership-levels" aria-labelledby="mem-levels-title">
         <div class="mem-container">
             <header class="mem-section-head">
-                <h2 id="mem-levels-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_levels_heading', __( 'Membership Levels', 'emc-theme' ) ) ); ?></h2>
+                <h2 id="mem-levels-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_levels_heading', __( 'Choose Your Giving Level', 'emc-theme' ) ) ); ?></h2>
                 <p><?php echo esc_html( emc_acf( 'mem_levels_intro', __( 'Choose the level of monthly support that feels right for you.', 'emc-theme' ) ) ); ?></p>
             </header>
 
@@ -170,8 +171,8 @@ $allocations = array(
                         <?php if ( isset( $available_levels[ $level['key'] ] ) && $stripe_ready ) : ?>
                             <button type="button" class="mem-btn mem-btn-primary mem-dome-cta" data-select-level="<?php echo esc_attr( $level['key'] ); ?>">
                                 <?php
-                                /* translators: %s: membership level name. */
-                                echo esc_html( sprintf( __( 'Join as %s', 'emc-theme' ), $level['name'] ) );
+                                /* translators: %s: giving level name. */
+                                echo esc_html( sprintf( __( 'Give as %s', 'emc-theme' ), $level['name'] ) );
                                 ?>
                             </button>
                             <p class="mem-dome-cta-note">
@@ -183,7 +184,7 @@ $allocations = array(
                         <?php else : ?>
                             <a class="mem-btn mem-btn-primary mem-dome-cta" href="<?php echo esc_url( $contact_url ); ?>">
                                 <?php
-                                /* translators: %s: membership level name. */
+                                /* translators: %s: giving level name. */
                                 echo esc_html( sprintf( __( 'Enquire about %s', 'emc-theme' ), $level['name'] ) );
                                 ?>
                             </a>
@@ -198,7 +199,7 @@ $allocations = array(
 
             <div class="mem-table-scroll">
                 <table class="mem-benefits-table">
-                    <caption class="mem-visually-hidden"><?php esc_html_e( 'Benefits included at each membership level', 'emc-theme' ); ?></caption>
+                    <caption class="mem-visually-hidden"><?php esc_html_e( 'Benefits included at each giving level', 'emc-theme' ); ?></caption>
                     <thead>
                         <tr>
                             <th scope="col"><?php esc_html_e( 'Benefit', 'emc-theme' ); ?></th>
@@ -251,10 +252,10 @@ $allocations = array(
          ============================================================ -->
     <section class="mem-section mem-why" id="why-memberships-exist" aria-labelledby="mem-why-title">
         <div class="mem-container mem-narrow">
-            <h2 id="mem-why-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_why_heading', __( 'Why Memberships Exist', 'emc-theme' ) ) ); ?></h2>
+            <h2 id="mem-why-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_why_heading', __( 'Why Regular Giving Matters', 'emc-theme' ) ) ); ?></h2>
             <p><?php echo esc_html( emc_acf( 'mem_why_body_1', __( 'Much of EMC\'s work takes place every day and requires reliable support.', 'emc-theme' ) ) ); ?></p>
             <p><?php echo esc_html( emc_acf( 'mem_why_body_2', __( 'It costs a substantial annual sum to operate and maintain Essex Muslim Centre at its present level.', 'emc-theme' ) ) ); ?></p>
-            <p><?php echo esc_html( emc_acf( 'mem_why_body_3', __( 'Memberships are about helping meet essential running costs so the centre remains stable and resilient.', 'emc-theme' ) ) ); ?></p>
+            <p><?php echo esc_html( emc_acf( 'mem_why_body_3', __( 'Regular giving is about helping meet essential running costs so the centre remains stable and resilient.', 'emc-theme' ) ) ); ?></p>
         </div>
     </section>
 
@@ -265,7 +266,7 @@ $allocations = array(
         <div class="mem-container">
             <header class="mem-section-head">
                 <h2 id="mem-chart-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_chart_heading', __( 'How Your Donations Are Used', 'emc-theme' ) ) ); ?></h2>
-                <p><?php echo esc_html( emc_acf( 'mem_chart_note', __( 'Approximate allocation of membership income across core running costs and education.', 'emc-theme' ) ) ); ?></p>
+                <p><?php echo esc_html( emc_acf( 'mem_chart_note', __( 'Approximate allocation of regular giving income across core running costs and education.', 'emc-theme' ) ) ); ?></p>
             </header>
 
             <div class="mem-chart-layout">
@@ -290,7 +291,7 @@ $allocations = array(
                 ?>
                 <div class="mem-chart">
                     <svg viewBox="0 0 200 200" role="img" aria-labelledby="mem-chart-desc">
-                        <title id="mem-chart-desc"><?php esc_html_e( 'Allocation of membership income across core running costs and education', 'emc-theme' ); ?></title>
+                        <title id="mem-chart-desc"><?php esc_html_e( 'Allocation of regular giving income across core running costs and education', 'emc-theme' ); ?></title>
                         <g transform="rotate(-90 100 100)">
                             <?php foreach ( $allocations as $slice ) : ?>
                                 <?php
@@ -320,7 +321,7 @@ $allocations = array(
          ============================================================ -->
     <section class="mem-section mem-progress-section" id="funds-raised" aria-labelledby="mem-progress-title">
         <div class="mem-container mem-narrow">
-            <h2 id="mem-progress-title" class="mem-heading mem-heading-sm"><?php echo esc_html( emc_acf( 'mem_progress_heading', __( 'Funds Raised To Date Via Memberships', 'emc-theme' ) ) ); ?></h2>
+            <h2 id="mem-progress-title" class="mem-heading mem-heading-sm"><?php echo esc_html( emc_acf( 'mem_progress_heading', __( 'Funds Raised To Date Via Regular Giving', 'emc-theme' ) ) ); ?></h2>
 
             <?php
             /*
@@ -334,12 +335,12 @@ $allocations = array(
             $progress_label = $goal > 0
                 ? sprintf(
                     /* translators: 1: percentage raised, 2: amount raised, 3: target amount. */
-                    __( '%1$s per cent of the membership target raised so far — £%2$s of £%3$s', 'emc-theme' ),
+                    __( '%1$s per cent of the giving target raised so far — £%2$s of £%3$s', 'emc-theme' ),
                     number_format( $progress, 0 ),
                     number_format( $raised, 0 ),
                     number_format( $goal, 0 )
                 )
-                : __( 'Membership target not yet published', 'emc-theme' );
+                : __( 'Giving target not yet published', 'emc-theme' );
             ?>
 
             <div class="mem-progress<?php echo $progress <= 0 ? ' is-empty' : ''; ?>" style="--mem-pct:<?php echo esc_attr( $progress_attr ); ?>">
@@ -372,7 +373,7 @@ $allocations = array(
             <h2 id="mem-waqf-title" class="mem-heading"><?php echo esc_html( emc_acf( 'mem_waqf_heading', __( 'Stability, Waqf & The Future', 'emc-theme' ) ) ); ?></h2>
             <p><?php echo esc_html( emc_acf( 'mem_waqf_body_1', __( 'Once core running costs are covered, surplus funds allow EMC to plan responsibly for the future.', 'emc-theme' ) ) ); ?></p>
             <p><?php echo esc_html( emc_acf( 'mem_waqf_body_2', __( 'Regular support provides the stability required not only to maintain EMC today, but for the years ahead.', 'emc-theme' ) ) ); ?></p>
-            <p class="mem-closing"><?php echo esc_html( emc_acf( 'mem_waqf_closing', __( 'If Essex Muslim Centre matters to you, Memberships are a way to support it with consistency, care and intention.', 'emc-theme' ) ) ); ?></p>
+            <p class="mem-closing"><?php echo esc_html( emc_acf( 'mem_waqf_closing', __( 'If Essex Muslim Centre matters to you, regular giving is a way to support it with consistency, care and intention.', 'emc-theme' ) ) ); ?></p>
         </div>
     </section>
 
@@ -391,12 +392,12 @@ $allocations = array(
         <div class="mem-container">
             <article class="mem-form-card<?php echo $form_is_compact ? ' is-compact' : ''; ?>">
                 <header class="mem-form-head">
-                    <h2 id="mem-form-title" class="mem-heading mem-heading-sm"><?php echo esc_html( emc_acf( 'mem_form_heading', __( 'Join Today', 'emc-theme' ) ) ); ?></h2>
+                    <h2 id="mem-form-title" class="mem-heading mem-heading-sm"><?php echo esc_html( emc_acf( 'mem_form_heading', __( 'Give Today', 'emc-theme' ) ) ); ?></h2>
                     <p>
                         <?php if ( $form_is_compact ) : ?>
-                            <?php esc_html_e( 'Online card sign-up is not switched on yet, so memberships are being set up by the centre directly.', 'emc-theme' ); ?>
+                            <?php esc_html_e( 'Online card sign-up is not switched on yet, so regular giving is being set up by the centre directly.', 'emc-theme' ); ?>
                         <?php else : ?>
-                            <?php echo esc_html( emc_acf( 'mem_form_desc', __( 'Set up your monthly membership securely by card.', 'emc-theme' ) ) ); ?>
+                            <?php echo esc_html( emc_acf( 'mem_form_desc', __( 'Set up your regular giving securely by card.', 'emc-theme' ) ) ); ?>
                         <?php endif; ?>
                     </p>
                 </header>
@@ -424,7 +425,7 @@ $allocations = array(
                         </div>
 
                         <div class="mem-field mem-field-wide">
-                            <label for="membership-level"><?php esc_html_e( 'Membership level *', 'emc-theme' ); ?></label>
+                            <label for="membership-level"><?php esc_html_e( 'Giving level *', 'emc-theme' ); ?></label>
                             <select id="membership-level" name="level" required>
                                 <?php foreach ( $available_levels as $level ) : ?>
                                     <option value="<?php echo esc_attr( $level['key'] ); ?>">
@@ -487,7 +488,7 @@ $allocations = array(
                             </label>
                             <label class="mem-checkbox" for="membership-consent">
                                 <input type="checkbox" id="membership-consent" name="consent" value="1" required>
-                                <span><?php echo esc_html( emc_acf( 'mem_consent_text', __( 'I agree that Essex Muslim Centre may hold these details to administer my membership.', 'emc-theme' ) ) ); ?></span>
+                                <span><?php echo esc_html( emc_acf( 'mem_consent_text', __( 'I agree that Essex Muslim Centre may hold these details to administer my regular giving.', 'emc-theme' ) ) ); ?></span>
                             </label>
                         </div>
 
@@ -502,7 +503,7 @@ $allocations = array(
                         </div>
 
                         <button type="submit" class="mem-btn mem-btn-primary mem-submit">
-                            <span><?php echo esc_html( emc_acf( 'mem_form_button', __( 'Set Up Monthly Membership', 'emc-theme' ) ) ); ?></span>
+                            <span><?php echo esc_html( emc_acf( 'mem_form_button', __( 'Set Up Monthly Giving', 'emc-theme' ) ) ); ?></span>
                         </button>
 
                         <p class="mem-secure-note"><?php echo esc_html( emc_acf( 'mem_secure_note', __( 'Encrypted and secured by Stripe. Your card details are never stored on our website.', 'emc-theme' ) ) ); ?></p>
@@ -512,8 +513,8 @@ $allocations = array(
                 <?php endif; ?>
 
                 <footer class="mem-form-footer">
-                    <p><?php echo esc_html( emc_acf( 'mem_terms_text', __( 'Your membership renews automatically each month.', 'emc-theme' ) ) ); ?></p>
-                    <p><?php echo esc_html( emc_acf( 'mem_contact_note', __( 'Prefer to join in person? Contact the centre office.', 'emc-theme' ) ) ); ?></p>
+                    <p><?php echo esc_html( emc_acf( 'mem_terms_text', __( 'Your regular giving renews automatically each month.', 'emc-theme' ) ) ); ?></p>
+                    <p><?php echo esc_html( emc_acf( 'mem_contact_note', __( 'Prefer to set this up in person? Contact the centre office.', 'emc-theme' ) ) ); ?></p>
 
                     <?php
                     /*
@@ -534,7 +535,7 @@ $allocations = array(
                             <svg class="mem-whatsapp-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
                                 <path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23a8.18 8.18 0 0 1 8.23 8.24c0 4.54-3.7 8.23-8.23 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.47-.28Z"/>
                             </svg>
-                            <?php echo esc_html( emc_acf( 'mem_whatsapp_label', __( 'Join Via WhatsApp', 'emc-theme' ) ) ); ?>
+                            <?php echo esc_html( emc_acf( 'mem_whatsapp_label', __( 'Set Up Giving Via WhatsApp', 'emc-theme' ) ) ); ?>
                         </a>
                     <?php endif; ?>
                 </footer>

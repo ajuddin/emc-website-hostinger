@@ -336,10 +336,10 @@ function emc_register_page_content_sections( $wp_customize ) {
        MEMBERSHIP PAGE
        ================================================================ */
     $wp_customize->add_section( 'emc_pg_membership', array(
-        'title'       => __( 'Membership Page', 'emc-theme' ),
+        'title'       => __( 'Regular Giving Page', 'emc-theme' ),
         'panel'       => 'emc_pages',
         'priority'    => $p++,
-        'description' => __( 'Wording and monthly amounts for the Membership page. Fees are charged every month through the existing Stripe connection.', 'emc-theme' ),
+        'description' => __( 'Wording and monthly amounts for the Regular Giving page. Fees are charged every month through the existing Stripe connection.', 'emc-theme' ),
     ) );
 
     $membership = array(
@@ -349,13 +349,14 @@ function emc_register_page_content_sections( $wp_customize ) {
         'mem_ayah_reference'    => 'Qur\'an · Surah At-Tawbah (9:18)',
 
         /* Introduction */
-        'mem_intro_heading'     => 'Become a Member',
-        'mem_intro_body_1'      => 'Essex Muslim Centre serves our community every single day through prayer, learning and care. Memberships enable regular support that helps maintain the House of Allah and gives EMC the stability it needs to operate responsibly.',
+        'mem_intro_heading'     => 'Become a Regular Donor',
+        'mem_intro_tagline'     => 'A simple and meaningful way to continue your Sadaqah Jāriyah.',
+        'mem_intro_body_1'      => 'Essex Muslim Centre serves our community every single day through prayer, learning and care. Regular giving provides steady support that helps maintain the House of Allah and gives EMC the stability it needs to operate responsibly.',
         'mem_intro_body_2'      => 'Supporting your mosque means sharing in the reward of everything that takes place within it — quietly, consistently, and often unseen.',
-        'mem_intro_note'        => 'To learn more about what your regular donations cover, please see Membership Levels and Why Memberships Exist below.',
+        'mem_intro_note'        => 'To learn more about what your regular giving covers, please see the giving levels and why regular giving matters below.',
 
         /* Levels */
-        'mem_levels_heading'    => 'Membership Levels',
+        'mem_levels_heading'    => 'Choose Your Giving Level',
         'mem_levels_intro'      => 'Choose the level of monthly support that feels right for you. Every level renews automatically each month and can be changed or cancelled at any time.',
         'mem_benefits_heading'  => 'What Each Level Includes',
 
@@ -363,35 +364,35 @@ function emc_register_page_content_sections( $wp_customize ) {
         'mem_delivers_heading'  => 'What Your Mosque Delivers',
         'mem_delivers_intro'    => 'Your regular support keeps all of this running, all year round.',
 
-        /* Why memberships exist */
-        'mem_why_heading'       => 'Why Memberships Exist',
-        'mem_why_body_1'        => 'Much of EMC\'s work takes place every day and requires reliable support. Daily prayers, education, pastoral care, building maintenance and welcoming the community all depend on consistent funding. Memberships exist to provide that stability, enabling an opportunity to support EMC in a regular and responsible way.',
+        /* Why regular giving matters */
+        'mem_why_heading'       => 'Why Regular Giving Matters',
+        'mem_why_body_1'        => 'Much of EMC\'s work takes place every day and requires reliable support. Daily prayers, education, pastoral care, building maintenance and welcoming the community all depend on consistent funding. Regular giving exists to provide that stability, enabling an opportunity to support EMC in a steady and responsible way.',
         'mem_why_body_2'        => 'It costs a substantial annual sum to operate and maintain Essex Muslim Centre at its present level. These core costs include facilities and utilities, systems, finance and administration, outreach, education and events, professional fees, and communication costs.',
-        'mem_why_body_3'        => 'Memberships are not about covering everything EMC does. They are about helping meet essential running costs so the centre remains stable and resilient.',
+        'mem_why_body_3'        => 'Regular giving is not about covering everything EMC does. It is about helping meet essential running costs so the centre remains stable and resilient.',
 
         /* Allocation chart */
         'mem_chart_heading'     => 'How Your Donations Are Used',
-        'mem_chart_note'        => 'Approximate allocation of membership income across core running costs and education.',
+        'mem_chart_note'        => 'Approximate allocation of regular giving income across core running costs and education.',
 
         /* Progress bar */
-        'mem_progress_heading'  => 'Funds Raised To Date Via Memberships',
+        'mem_progress_heading'  => 'Funds Raised To Date Via Regular Giving',
 
         /* Stability and waqf */
         'mem_waqf_heading'      => 'Stability, Waqf & The Future',
         'mem_waqf_body_1'       => 'Once core running costs are covered, surplus funds allow EMC to plan responsibly for the future. This includes strengthening long-term sustainability through the development of a waqf, as well as supporting outreach and community projects as needs arise.',
         'mem_waqf_body_2'       => 'Regular support provides the stability required not only to maintain EMC today, but to make careful, considered decisions about how it can continue to serve the community in the years ahead.',
-        'mem_waqf_closing'      => 'If Essex Muslim Centre matters to you, Memberships are a way to support it with consistency, care and intention.',
+        'mem_waqf_closing'      => 'If Essex Muslim Centre matters to you, regular giving is a way to support it with consistency, care and intention.',
 
         /* Application form */
-        'mem_form_heading'      => 'Join Today',
-        'mem_form_desc'         => 'Set up your monthly membership securely by card. It takes less than two minutes.',
-        'mem_form_button'       => 'Set Up Monthly Membership',
+        'mem_form_heading'      => 'Give Today',
+        'mem_form_desc'         => 'Set up your regular giving securely by card. It takes less than two minutes.',
+        'mem_form_button'       => 'Set Up Monthly Giving',
         'mem_secure_note'       => 'Encrypted and secured by Stripe. Your card details are never stored on our website.',
         'mem_giftaid_text'      => 'I am a UK taxpayer and Essex Muslim Centre may treat eligible payments as Gift Aid donations.',
-        'mem_consent_text'      => 'I agree that Essex Muslim Centre may hold these details to administer my membership.',
-        'mem_terms_text'        => 'Your membership renews automatically each month. You can change the amount or cancel at any time by contacting the centre.',
-        'mem_contact_note'      => 'Prefer to join in person? Speak to a trustee after Jumu\'ah or contact the centre office.',
-        'mem_whatsapp_label'    => 'Join Via WhatsApp',
+        'mem_consent_text'      => 'I agree that Essex Muslim Centre may hold these details to administer my regular giving.',
+        'mem_terms_text'        => 'Your regular giving renews automatically each month. You can change the amount or cancel at any time by contacting the centre.',
+        'mem_contact_note'      => 'Prefer to set this up in person? Speak to a trustee after Jumu\'ah or contact the centre office.',
+        'mem_whatsapp_label'    => 'Set Up Giving Via WhatsApp',
     );
     emc_bulk_text_settings( $wp_customize, $membership, 'emc_pg_membership' );
 
@@ -439,7 +440,7 @@ function emc_register_page_content_sections( $wp_customize ) {
         $wp_customize->add_control( 'mem_level_' . $key . '_amount', array(
             /* translators: %s: membership level name. */
             'label'       => sprintf( __( '%s — amount per month (£)', 'emc-theme' ), $level['name'] ),
-            'description' => __( 'Minimum £0.50. Changing this creates a new Stripe price; existing members stay on the amount they signed up to.', 'emc-theme' ),
+            'description' => __( 'Minimum £0.50. Changing this creates a new Stripe price; existing donors stay on the amount they signed up to.', 'emc-theme' ),
             'section'     => 'emc_pg_membership',
             'type'        => 'number',
             'input_attrs' => array( 'min' => '0.50', 'max' => 10000, 'step' => '0.01' ),
@@ -466,7 +467,7 @@ function emc_register_page_content_sections( $wp_customize ) {
     ) );
     $wp_customize->add_control( 'mem_progress_raised', array(
         'label'       => __( 'Funds raised to date (£)', 'emc-theme' ),
-        'description' => __( 'Shown on the progress bar. Update this as membership income grows.', 'emc-theme' ),
+        'description' => __( 'Shown on the progress bar. Update this as regular giving income grows.', 'emc-theme' ),
         'section'     => 'emc_pg_membership',
         'type'        => 'number',
         'input_attrs' => array( 'min' => 0, 'step' => '0.01' ),
@@ -478,7 +479,7 @@ function emc_register_page_content_sections( $wp_customize ) {
         'transport'         => 'refresh',
     ) );
     $wp_customize->add_control( 'mem_progress_goal', array(
-        'label'       => __( 'Membership target (£)', 'emc-theme' ),
+        'label'       => __( 'Giving target (£)', 'emc-theme' ),
         'description' => __( 'Leave at 0 to show the progress bar empty with no target.', 'emc-theme' ),
         'section'     => 'emc_pg_membership',
         'type'        => 'number',

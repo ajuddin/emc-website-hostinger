@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitButton = form.querySelector('.mem-submit');
     const buttonLabel = submitButton?.querySelector('span');
-    const defaultLabel = buttonLabel?.textContent || 'Set Up Monthly Membership';
+    const defaultLabel = buttonLabel?.textContent || 'Set Up Monthly Giving';
     const status = form.querySelector('.mem-form-status');
     const levelSelect = form.querySelector('#membership-level');
     const totalDisplay = form.querySelector('[data-membership-total]');
@@ -70,13 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!window.emcMembershipConfig?.ajaxUrl || !window.emcMembershipConfig?.nonce) {
-            setStatus('Memberships are temporarily unavailable. Please try again later.', 'is-error');
+            setStatus('Regular giving is temporarily unavailable. Please try again later.', 'is-error');
             return;
         }
 
         // The bridge is injected by the EMC Payments plugin's donate script.
         if (typeof window.emcOpenStripeModal !== 'function') {
-            setStatus('Card payments are not available on this page yet. Please contact the centre to join.', 'is-error');
+            setStatus('Card payments are not available on this page yet. Please contact the centre to set this up.', 'is-error');
             return;
         }
 
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 message: result.data.message,
             });
 
-            setStatus('Complete your card details in the secure payment window to finish setting up your membership.');
+            setStatus('Complete your card details in the secure payment window to finish setting up your regular giving.');
         } catch (error) {
             setStatus(error.message || 'Your application could not be submitted. Please try again.', 'is-error');
         } finally {

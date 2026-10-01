@@ -15,7 +15,7 @@ function emc_form_notification_types() {
 		'volunteer_signup'   => __( 'Volunteer applications', 'emc-theme' ),
 		'gift_aid'           => __( 'Gift Aid declarations', 'emc-theme' ),
 		'event_registration' => __( 'Event registrations and event payments', 'emc-theme' ),
-		'membership'         => __( 'Membership applications and fees', 'emc-theme' ),
+		'membership'         => __( 'Regular giving applications and fees', 'emc-theme' ),
 		'newsletter'         => __( 'Newsletter signups', 'emc-theme' ),
 		'donation'           => __( 'Donation and Badr Wall payments', 'emc-theme' ),
 		'subscription'       => __( 'Regular and Ramadan giving schedules', 'emc-theme' ),

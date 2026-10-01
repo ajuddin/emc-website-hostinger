@@ -412,8 +412,7 @@ function emc_social_icons( $class = '' ) {
  * @return array[]
  */
 function emc_get_header_nav_items() {
-    $campaign_url   = emc_get_campaign_url();
-    $membership_url = get_permalink( get_page_by_path( 'membership' ) ) ?: $campaign_url . '#badr-membership';
+    $membership_url = emc_get_membership_url();
     $service_items  = array(
         array( 'slug' => 'islamic-education',   'label' => __( 'Islamic Education', 'emc-theme' ) ),
         array( 'slug' => 'nikah-marriage',      'label' => __( 'Nikah Marriage', 'emc-theme' ) ),
@@ -439,7 +438,7 @@ function emc_get_header_nav_items() {
         array( 'slug' => 'about',      'label' => __( 'About Us', 'emc-theme' ),    'url' => get_permalink( get_page_by_path( 'about' ) ) ?: home_url( '/about/' ) ),
         array( 'slug' => 'services',   'label' => __( 'Services', 'emc-theme' ),    'url' => get_permalink( get_page_by_path( 'services' ) ) ?: home_url( '/services/' ), 'children' => $service_children ),
         array( 'slug' => 'events',     'label' => __( 'Events', 'emc-theme' ),      'url' => get_permalink( get_page_by_path( 'events' ) ) ?: home_url( '/events/' ) ),
-        array( 'slug' => 'membership', 'label' => __( 'Membership', 'emc-theme' ),  'url' => $membership_url ),
+        array( 'slug' => 'donar', 'label' => __( 'Regular Giving', 'emc-theme' ),  'url' => $membership_url ),
         array( 'slug' => 'contact',    'label' => __( 'Contact', 'emc-theme' ),     'url' => get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) ),
     );
 }
