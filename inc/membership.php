@@ -146,7 +146,7 @@ function emc_membership_payments_available() {
  * @return WP_Post|null
  */
 function emc_get_membership_page() {
-    $page = get_page_by_path( 'donar', OBJECT, 'page' );
+    $page = get_page_by_path( 'donor', OBJECT, 'page' );
 
     if ( ! $page ) {
         $pages = get_posts( array(
@@ -172,7 +172,7 @@ function emc_get_membership_page() {
  */
 function emc_get_membership_url() {
     $page = emc_get_membership_page();
-    return $page ? get_permalink( $page ) : home_url( '/donar/' );
+    return $page ? get_permalink( $page ) : home_url( '/donor/' );
 }
 
 /**

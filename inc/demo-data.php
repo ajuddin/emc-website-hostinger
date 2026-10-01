@@ -170,7 +170,7 @@ function emc_demo_get_primary_menu() {
             ),
         ),
         array( 'label' => 'Events',      'slug' => 'events',     'children' => array() ),
-        array( 'label' => 'Regular Giving', 'slug' => 'donar', 'children' => array() ),
+        array( 'label' => 'Regular Giving', 'slug' => 'donor', 'children' => array() ),
         array( 'label' => 'Contact',     'slug' => 'contact',    'children' => array() ),
     );
 }

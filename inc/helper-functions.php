@@ -517,7 +517,7 @@ function emc_get_header_nav_items() {
         array( 'slug' => 'about',      'label' => __( 'About Us', 'emc-theme' ),    'url' => get_permalink( get_page_by_path( 'about' ) ) ?: home_url( '/about/' ) ),
         array( 'slug' => 'services',   'label' => __( 'Services', 'emc-theme' ),    'url' => get_permalink( get_page_by_path( 'services' ) ) ?: home_url( '/services/' ), 'children' => $service_children ),
         array( 'slug' => 'events',     'label' => __( 'Events', 'emc-theme' ),      'url' => get_permalink( get_page_by_path( 'events' ) ) ?: home_url( '/events/' ) ),
-        array( 'slug' => 'donar', 'label' => __( 'Regular Giving', 'emc-theme' ),  'url' => $membership_url ),
+        array( 'slug' => 'donor', 'label' => __( 'Regular Giving', 'emc-theme' ),  'url' => $membership_url ),
         array( 'slug' => 'contact',    'label' => __( 'Contact', 'emc-theme' ),     'url' => get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) ),
     );
 }
