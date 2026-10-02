@@ -215,7 +215,7 @@ while ( have_posts() ) :
                         <strong><?php esc_html_e( 'Support This Service', 'emc-theme' ); ?></strong>
                         <p><?php esc_html_e( 'Your donation keeps our community programmes running.', 'emc-theme' ); ?></p>
                     </div>
-                    <a href="<?php echo esc_url( get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' ) ); ?>" class="btn btn-outline btn-sm">
+                    <a href="<?php echo esc_url( emc_get_donate_url() ); ?>" class="btn btn-outline btn-sm">
                         <?php esc_html_e( 'Donate', 'emc-theme' ); ?>
                     </a>
                 </div>

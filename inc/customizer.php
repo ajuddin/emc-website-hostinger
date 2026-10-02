@@ -769,7 +769,7 @@ function emc_customize_register( $wp_customize ) {
     emc_add_text_setting( $wp_customize, 'emc_cta_btn1_label', __( 'Donate Now', 'emc-theme' ),
         'emc_hp_cta', __( 'Button 1 Label', 'emc-theme' ) );
     emc_add_url_setting( $wp_customize, 'emc_cta_btn1_url', '',
-        'emc_hp_cta', __( 'Button 1 URL (blank = /donate/)', 'emc-theme' ) );
+        'emc_hp_cta', __( 'Button 1 URL (blank = /donations/)', 'emc-theme' ) );
 
     emc_add_text_setting( $wp_customize, 'emc_cta_btn2_label', __( 'Get in Touch', 'emc-theme' ),
         'emc_hp_cta', __( 'Button 2 Label (optional)', 'emc-theme' ) );

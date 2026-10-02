@@ -31,8 +31,8 @@ class EMC_Widget_Donate_Button extends \Elementor\Widget_Base {
         $this->add_control( 'custom_url', array(
             'label'       => __( 'Custom URL (optional)', 'emc-theme' ),
             'type'        => \Elementor\Controls_Manager::URL,
-            'placeholder' => home_url( '/donate/' ),
-            'description' => __( 'Leave blank to use the /donate/ page.', 'emc-theme' ),
+            'placeholder' => home_url( '/donations/' ),
+            'description' => __( 'Leave blank to use the /donations/ page.', 'emc-theme' ),
         ) );
 
         $this->add_control( 'variant', array(
@@ -79,8 +79,7 @@ class EMC_Widget_Donate_Button extends \Elementor\Widget_Base {
             $url    = esc_url( $s['custom_url']['url'] );
             $target = ! empty( $s['custom_url']['is_external'] ) ? ' target="_blank" rel="noopener noreferrer"' : '';
         } else {
-            $page   = get_page_by_path( 'donate' );
-            $url    = esc_url( $page ? get_permalink( $page ) : home_url( '/donate/' ) );
+            $url    = esc_url( emc_get_donate_url() );
             $target = '';
         }
 
