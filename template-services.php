@@ -13,7 +13,7 @@ get_header();
 wp_enqueue_style( 'emc-page-services', EMC_ASSETS . '/css/services.css', array( 'emc-style' ), EMC_VERSION );
 
 $contact_url = get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' );
-$donate_url  = get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' );
+$donate_url  = emc_get_donate_url();
 
 $service_fallbacks = array(
     array(

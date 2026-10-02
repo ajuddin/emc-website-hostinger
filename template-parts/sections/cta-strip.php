@@ -8,7 +8,7 @@
 $heading      = emc_option( 'emc_cta_heading',   __( 'Ready to Make a Difference?', 'emc-theme' ) );
 $subtitle     = emc_option( 'emc_cta_subtitle',  __( 'Every donation, every volunteer hour, and every shared message helps us serve the community better.', 'emc-theme' ) );
 $btn1_label   = emc_option( 'emc_cta_btn1_label', __( 'Donate Now', 'emc-theme' ) );
-$btn1_url     = emc_option( 'emc_cta_btn1_url', '' ) ?: ( get_permalink( get_page_by_path( 'donate' ) )  ?: home_url( '/donate/' ) );
+$btn1_url     = emc_option( 'emc_cta_btn1_url', '' ) ?: emc_get_donate_url();
 $btn2_label   = emc_option( 'emc_cta_btn2_label', __( 'Get in Touch', 'emc-theme' ) );
 $btn2_url     = emc_option( 'emc_cta_btn2_url', '' ) ?: ( get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) );
 ?>

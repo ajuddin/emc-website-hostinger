@@ -31,7 +31,7 @@ if ( ! emc_payment_license_is_active() ) {
     return;
 }
 
-$donate_url = get_permalink( get_page_by_path( 'donate' ) ) ?: home_url( '/donate/' );
+$donate_url = emc_get_donate_url();
 $ramadan_schedule       = emc_ramadan_giving_schedule();
 $ramadan_window_active  = 'active' === $ramadan_schedule['status'];
 $ramadan_start_display  = wp_date( 'j F Y \a\t g:i a', $ramadan_schedule['start']->getTimestamp(), wp_timezone() );

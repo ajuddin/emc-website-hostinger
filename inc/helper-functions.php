@@ -637,6 +637,18 @@ function emc_footer_community_links() {
    ========================================================================== */
 
 /**
+ * Canonical Donate page URL. The page's actual slug is "donations" — several
+ * older templates guessed "donate" instead, which 404s, so route every donate
+ * link through this one lookup rather than repeating the guess.
+ *
+ * @return string
+ */
+function emc_get_donate_url() {
+    $page = get_page_by_path( 'donations' );
+    return $page ? get_permalink( $page ) : home_url( '/donations/' );
+}
+
+/**
  * Output a Donate button linked to the donate page.
  *
  * @param string $label  Button label.
@@ -646,8 +658,7 @@ function emc_footer_community_links() {
  */
 function emc_donate_button( $label = '', $class = '', $url = '' ) {
     $label    = $label ?: __( 'Donate Now', 'emc-theme' );
-    $page     = get_page_by_path( 'donations' );
-    $page_url = $url ?: ( $page ? get_permalink( $page ) : home_url( '/donations/' ) );
+    $page_url = $url ?: emc_get_donate_url();
     return sprintf(
         '<a href="%s" class="btn btn-primary%s">%s</a>',
         esc_url( $page_url ),
