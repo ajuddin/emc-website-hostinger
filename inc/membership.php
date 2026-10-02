@@ -460,6 +460,16 @@ function emc_notify_new_membership( $post_id, $level, $amount, $subscription_id 
             $lines[] = sprintf( __( 'Notes: %s', 'emc-theme' ), $notes );
         }
 
+        /*
+         * Every level includes a one-time welcome gift (see the benefits matrix
+         * on the public page). Companions and Custodians also get a Qur'an gift
+         * at their first anniversary — emc_membership_send_anniversary_gift_emails()
+         * reminds about that separately once the year is up, so it is not noted
+         * here.
+         */
+        $lines[] = '';
+        $lines[] = __( 'Gift to send: welcome gift (not urgent — send whenever convenient).', 'emc-theme' );
+
         emc_send_form_notification(
             'membership',
             sprintf( __( 'New regular donor: %s', 'emc-theme' ), $level['name'] ),
@@ -745,3 +755,85 @@ function emc_membership_admin_page() {
     </div>
     <?php
 }
+
+/* ==========================================================================
+   Anniversary gift reminder
+   ========================================================================== */
+
+/**
+ * Levels that include a Qur'an gift at their first anniversary (see the
+ * benefits matrix on the public page). Supporters are not included.
+ */
+const EMC_MEMBERSHIP_ANNIVERSARY_GIFT_LEVELS = array( 'companions', 'custodians' );
+
+/**
+ * Schedule the daily anniversary-gift check.
+ */
+function emc_schedule_membership_anniversary_check() {
+    if ( ! wp_next_scheduled( 'emc_membership_anniversary_check' ) ) {
+        wp_schedule_event( time(), 'daily', 'emc_membership_anniversary_check' );
+    }
+}
+add_action( 'init', 'emc_schedule_membership_anniversary_check' );
+
+/**
+ * Email a one-off reminder once a Companion or Custodian reaches their first
+ * anniversary, so the centre can send the year-one Qur'an gift. Run daily by
+ * WP-Cron; each record is flagged once sent so it is never emailed twice —
+ * and never silently forgotten, since the flag only gets set after the email
+ * goes out.
+ */
+function emc_membership_send_anniversary_gift_emails() {
+    $ids = get_posts( array(
+        'post_type'      => 'emc_membership',
+        'post_status'    => 'private',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'no_found_rows'  => true,
+        'meta_query'     => array(
+            array( 'key' => '_emc_membership_status', 'value' => array( 'active', 'trialing' ), 'compare' => 'IN' ),
+            array( 'key' => '_emc_membership_year1_gift_sent', 'compare' => 'NOT EXISTS' ),
+        ),
+    ) );
+
+    foreach ( $ids as $id ) {
+        $level_key = get_post_meta( $id, '_emc_membership_level_key', true );
+        if ( ! in_array( $level_key, EMC_MEMBERSHIP_ANNIVERSARY_GIFT_LEVELS, true ) ) {
+            continue;
+        }
+
+        $start_date = get_post_meta( $id, '_emc_membership_start_date', true );
+        if ( ! $start_date || strtotime( $start_date ) > strtotime( '-1 year', current_time( 'timestamp' ) ) ) {
+            continue;
+        }
+
+        $name    = trim( get_post_meta( $id, '_emc_membership_first_name', true ) . ' ' . get_post_meta( $id, '_emc_membership_last_name', true ) );
+        $email   = get_post_meta( $id, '_emc_membership_email', true );
+        $level   = get_post_meta( $id, '_emc_membership_level_name', true );
+        $address = trim( implode( ', ', array_filter( array(
+            get_post_meta( $id, '_emc_membership_address_1', true ),
+            get_post_meta( $id, '_emc_membership_address_2', true ),
+            get_post_meta( $id, '_emc_membership_city', true ),
+            get_post_meta( $id, '_emc_membership_postcode', true ),
+        ) ) ) );
+
+        if ( function_exists( 'emc_send_form_notification' ) ) {
+            emc_send_form_notification(
+                'membership',
+                sprintf( __( 'Gift due: 1-year Qur\'an gift for %s', 'emc-theme' ), $name ?: $email ),
+                implode( "\n", array(
+                    sprintf( __( 'Name: %s', 'emc-theme' ), $name ?: '—' ),
+                    sprintf( __( 'Email: %s', 'emc-theme' ), $email ?: '—' ),
+                    sprintf( __( 'Level: %s', 'emc-theme' ), $level ),
+                    sprintf( __( 'Giving since: %s', 'emc-theme' ), $start_date ),
+                    sprintf( __( 'Posting address: %s', 'emc-theme' ), $address ?: '—' ),
+                    '',
+                    __( 'This donor has completed one year of regular giving. Please send the year-one Qur\'an gift whenever convenient — not urgent.', 'emc-theme' ),
+                ) )
+            );
+        }
+
+        update_post_meta( $id, '_emc_membership_year1_gift_sent', current_time( 'mysql' ) );
+    }
+}
+add_action( 'emc_membership_anniversary_check', 'emc_membership_send_anniversary_gift_emails' );
