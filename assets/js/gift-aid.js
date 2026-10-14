@@ -126,6 +126,26 @@ document.addEventListener('DOMContentLoaded', () => {
             status.textContent = '';
         }
 
+        // The page markup can be served from a long-lived cache, so the nonce
+        // baked into it at render time may have expired. Replace it with a
+        // freshly issued one (this admin-ajax request is never page-cached)
+        // before relying on it below.
+        const nonceField = form.querySelector('[name="nonce"]');
+        try {
+            const nonceResponse = await fetch(form.dataset.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: new URLSearchParams({action: 'emc_fresh_nonce', nonce_action: 'emc_nonce'}),
+            });
+            const nonceResult = await nonceResponse.json();
+            if (nonceField && nonceResponse.ok && nonceResult?.success && nonceResult?.data?.nonce) {
+                nonceField.value = nonceResult.data.nonce;
+            }
+        } catch (error) {
+            // Fall back to the nonce already on the page; the submit below will
+            // surface a clear error if it turns out to be stale.
+        }
+
         try {
             const response = await fetch(form.dataset.ajaxUrl, {
                 method: 'POST',

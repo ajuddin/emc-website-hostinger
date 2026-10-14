@@ -10,6 +10,30 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Issue a fresh nonce for one of the public form actions.
+ *
+ * Event, membership, gift aid, and volunteering pages are served from
+ * LiteSpeed's full-page cache for logged-out visitors (see
+ * emc_disable_logged_in_page_cache() in inc/performance.php), so a nonce
+ * baked into the cached HTML at render time can outlive WordPress's
+ * ~12-24 hour nonce lifetime before that cache entry is next purged. Each
+ * form's JS calls this uncached admin-ajax endpoint right before submitting
+ * so it always has a currently-valid nonce, regardless of page cache age.
+ */
+function emc_ajax_fresh_nonce() {
+    $allowed_actions = array( 'emc_nonce', 'emc_membership', 'emc_event_registration' );
+    $nonce_action    = isset( $_POST['nonce_action'] ) ? sanitize_key( wp_unslash( $_POST['nonce_action'] ) ) : '';
+
+    if ( ! in_array( $nonce_action, $allowed_actions, true ) ) {
+        wp_send_json_error( array( 'message' => __( 'Invalid request.', 'emc-theme' ) ), 400 );
+    }
+
+    wp_send_json_success( array( 'nonce' => wp_create_nonce( $nonce_action ) ) );
+}
+add_action( 'wp_ajax_emc_fresh_nonce', 'emc_ajax_fresh_nonce' );
+add_action( 'wp_ajax_nopriv_emc_fresh_nonce', 'emc_ajax_fresh_nonce' );
+
+/**
  * Legacy Gift Aid declaration email handler.
  *
  * The full Gift Aid records feature is implemented in inc/gift-aid.php; this
