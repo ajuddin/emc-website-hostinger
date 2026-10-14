@@ -7,7 +7,7 @@
  */
 
 $email           = emc_option( 'emc_admin_email',           'info@essexmuslimcentre.org' );
-$phone           = emc_option( 'emc_phone',                 '' );
+$phone           = emc_option( 'emc_phone',                 '07716 173861' );
 $charity         = emc_option( 'emc_charity_number',        '1209815' );
 $about_text      = emc_option( 'emc_footer_about_text',     __( 'Advancing Islamic faith, education, and community welfare in Chelmsford, Essex.', 'emc-theme' ) );
 $col2_heading    = emc_option( 'emc_footer_col2_heading',   __( 'Quick Links', 'emc-theme' ) );

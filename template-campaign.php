@@ -46,7 +46,7 @@ $badge      = emc_option( 'emc_campaign_badge',   __( 'Building Fund', 'emc-them
 $heading    = emc_option( 'emc_campaign_heading',  __( 'Be One of the 313', 'emc-theme' ) );
 $desc       = emc_option( 'emc_campaign_desc',     __( 'Help us build a lasting place of worship for future generations. Our building campaign needs your generous support. Every pound brings us closer to our goal.', 'emc-theme' ) );
 $bank_pay_url = emc_site_setting( 'emc_bank_pay_url', 'https://paymentrequest.natwestpayit.com/reusable-link/39ee348b-8fe1-41fe-aa6b-9109dc847445' );
-$phone_digits = preg_replace( '/\D+/', '', emc_option( 'emc_phone', '' ) );
+$phone_digits = preg_replace( '/\D+/', '', emc_option( 'emc_phone', '07716173861' ) );
 $pledge_text  = rawurlencode( 'Assalamu alaikum, I would like to pledge towards the Badr Wall building fund.' );
 $whatsapp_url = $phone_digits ? 'https://wa.me/' . $phone_digits . '?text=' . $pledge_text : ( get_permalink( get_page_by_path( 'contact' ) ) ?: home_url( '/contact/' ) );
 $badr_levels          = emc_get_badr_levels();
