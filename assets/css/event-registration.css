@@ -131,10 +131,29 @@ html {
     font-size: var(--step--2);
 }
 
+.event-registration-age-notice {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    margin: 0 0 1.25rem;
+    padding: .7rem 1rem;
+    border: 1px solid rgba(201, 168, 76, .35);
+    border-radius: 12px;
+    color: #6b5313;
+    background: rgba(201, 168, 76, .14);
+    font-weight: 600;
+    font-size: var(--step--1);
+}
+
+.event-registration-age-notice i {
+    color: var(--accent-gold);
+}
+
 .event-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .event-form-field-wide {
@@ -371,6 +390,7 @@ html {
 
 .event-register-submit {
     min-width: 220px;
+    margin-top: 1.5rem;
 }
 
 .event-register-submit:disabled {

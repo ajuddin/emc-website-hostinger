@@ -356,7 +356,7 @@ function emc_get_address() {
  * @return string
  */
 function emc_get_phone_href() {
-    $phone = emc_option( 'emc_phone', '' );
+    $phone = emc_option( 'emc_phone', '07716 173861' );
     return $phone ? preg_replace( '/[^+\d]/', '', $phone ) : '';
 }
 

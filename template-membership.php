@@ -522,7 +522,7 @@ $allocations = array(
                      * punctuation; the Customizer sanitiser guarantees that, and
                      * returns an empty string when the button should be hidden.
                      */
-                    $whatsapp_number = preg_replace( '/\D+/', '', (string) get_theme_mod( 'mem_whatsapp_number', '447399079436' ) );
+                    $whatsapp_number = preg_replace( '/\D+/', '', (string) get_theme_mod( 'mem_whatsapp_number', '447716173861' ) );
 
                     if ( $whatsapp_number ) :
                         ?>

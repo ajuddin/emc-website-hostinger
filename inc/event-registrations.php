@@ -46,6 +46,19 @@ function emc_event_registration_fields( $event_id ) {
 }
 
 /**
+ * Minimum age (in years) required for this event's registration, if set.
+ *
+ * Checked against a "date_of_birth" field's submitted value, if the event's
+ * form includes one. Returns 0 when no minimum is configured.
+ *
+ * @param int $event_id Event post ID.
+ * @return int
+ */
+function emc_event_registration_min_age( $event_id ) {
+    return absint( get_post_meta( $event_id, '_emc_event_registration_min_age', true ) );
+}
+
+/**
  * Fields commonly used by event, class, and madrasa registrations.
  *
  * @return array<string,array>
@@ -294,6 +307,11 @@ function emc_event_registration_meta_box_html( $post ) {
 
     <hr>
     <h3><?php esc_html_e( 'Registration fields', 'emc-theme' ); ?></h3>
+    <p>
+        <label for="emc-event-registration-min-age"><strong><?php esc_html_e( 'Minimum age for admission (years)', 'emc-theme' ); ?></strong></label><br>
+        <input type="number" id="emc-event-registration-min-age" name="emc_event_registration_min_age" value="<?php echo esc_attr( emc_event_registration_min_age( $post->ID ) ?: '' ); ?>" min="0" max="120" step="1" class="small-text">
+        <span class="description"><?php esc_html_e( 'Optional. Leave blank for no restriction. Shown to visitors above the form and checked against the "Student date of birth" field if the form includes one.', 'emc-theme' ); ?></span>
+    </p>
     <p class="description"><?php esc_html_e( 'Drag rows into any order. Add only the fields you need, mark them required, and enter dropdown, radio, or checkbox choices one per line.', 'emc-theme' ); ?></p>
     <table class="widefat striped" id="emc-event-form-builder">
         <thead><tr>
@@ -475,6 +493,8 @@ function emc_save_event_registration_config( $post_id ) {
     }
 
     update_post_meta( $post_id, '_emc_event_registration_fields', $fields );
+    $min_age = absint( wp_unslash( $_POST['emc_event_registration_min_age'] ?? 0 ) );
+    update_post_meta( $post_id, '_emc_event_registration_min_age', $min_age >= 1 && $min_age <= 120 ? $min_age : '' );
     update_post_meta( $post_id, '_emc_event_payment_enabled', isset( $_POST['emc_event_payment_enabled'] ) ? '1' : '' );
     $price = round( (float) wp_unslash( $_POST['emc_event_registration_price'] ?? 0 ), 2 );
     update_post_meta( $post_id, '_emc_event_registration_price', $price >= 0.50 && $price <= 10000 ? number_format( $price, 2, '.', '' ) : '' );
@@ -560,6 +580,7 @@ function emc_render_event_registration_form( $event_id ) {
     $is_full    = $capacity && $remaining < 1;
     $quantity_unavailable = $payment['enabled'] && ! $ticket_quantities;
     $stripe_ok  = ! $payment['enabled'] || emc_event_stripe_is_available();
+    $min_age    = emc_event_registration_min_age( $event_id );
     ?>
     <section class="event-registration-card scroll-reveal" id="event-registration" aria-labelledby="event-registration-title">
         <div class="event-registration-heading">
@@ -595,6 +616,13 @@ function emc_render_event_registration_form( $event_id ) {
             <p class="event-registration-availability">
                 <strong><?php echo esc_html( $remaining ); ?></strong>
                 <?php echo esc_html( _n( 'place remaining', 'places remaining', $remaining, 'emc-theme' ) ); ?>
+            </p>
+            <?php endif; ?>
+
+            <?php if ( $min_age ) : ?>
+            <p class="event-registration-age-notice">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <?php echo esc_html( sprintf( __( 'Minimum age for admission: %d years.', 'emc-theme' ), $min_age ) ); ?>
             </p>
             <?php endif; ?>
 
@@ -672,10 +700,13 @@ function emc_render_event_registration_form( $event_id ) {
                                         <?php endforeach; ?>
                                     </select>
                                 <?php else :
-                                    $autocomplete = 'email' === $type ? 'email' : ( 'tel' === $type ? 'tel' : ( 'full_name' === $key ? 'name' : 'off' ) );
+                                    $autocomplete = 'email' === $type ? 'email' : ( 'tel' === $type ? 'tel' : ( 'full_name' === $key ? 'name' : ( 'date' === $type && 'date_of_birth' === $key ? 'bday' : 'off' ) ) );
                                     $is_attendees = 'attendees' === $key && 'number' === $type;
+                                    $date_bounds  = 'date' === $type
+                                        ? sprintf( 'min="%s" max="%s"', esc_attr( gmdate( 'Y-m-d', strtotime( '-120 years' ) ) ), esc_attr( gmdate( 'Y-m-d' ) ) )
+                                        : '';
                                 ?>
-                                    <input id="<?php echo esc_attr( $field_id ); ?>" type="<?php echo esc_attr( $type ); ?>" name="fields[<?php echo esc_attr( $key ); ?>]" autocomplete="<?php echo esc_attr( $autocomplete ); ?>" <?php echo $is_attendees ? 'value="1" min="1" max="' . esc_attr( $capacity ? max( 1, min( 100, $remaining ) ) : 100 ) . '"' : ''; ?> <?php echo $required ? 'required' : ''; ?>>
+                                    <input id="<?php echo esc_attr( $field_id ); ?>" type="<?php echo esc_attr( $type ); ?>" name="fields[<?php echo esc_attr( $key ); ?>]" autocomplete="<?php echo esc_attr( $autocomplete ); ?>" <?php echo $date_bounds; ?> <?php echo $is_attendees ? 'value="1" min="1" max="' . esc_attr( $capacity ? max( 1, min( 100, $remaining ) ) : 100 ) . '"' : ''; ?> <?php echo $required ? 'required' : ''; ?>>
                                 <?php endif; ?>
                             <?php endif; ?>
                         </label>
@@ -887,6 +918,11 @@ function emc_event_validate_registration_fields( $event_id, $submitted ) {
             }
         } elseif ( 'number' === $type ) {
             $value = (string) absint( $raw );
+        } elseif ( 'tel' === $type ) {
+            $value = sanitize_text_field( $raw );
+            if ( '' !== $value && strlen( preg_replace( '/\D/', '', $value ) ) < 8 ) {
+                return new WP_Error( 'invalid_phone', sprintf( __( 'Please enter a valid value for “%s”.', 'emc-theme' ), $field['label'] ) );
+            }
         } elseif ( in_array( $type, array( 'select', 'radio' ), true ) ) {
             $value = sanitize_text_field( $raw );
             if ( '' !== $value && ! in_array( $value, $field['options'] ?? array(), true ) ) {
@@ -941,6 +977,17 @@ function emc_event_validate_registration_fields( $event_id, $submitted ) {
             if ( 'text' === $field['type'] && $field['value'] ) {
                 $identity['name'] = $field['value'];
                 break;
+            }
+        }
+    }
+
+    $min_age = emc_event_registration_min_age( $event_id );
+    if ( $min_age && ! empty( $values['date_of_birth']['value'] ) ) {
+        $dob = date_create( $values['date_of_birth']['value'] );
+        if ( $dob ) {
+            $age = $dob->diff( new DateTime( 'today' ) )->y;
+            if ( $age < $min_age ) {
+                return new WP_Error( 'below_minimum_age', sprintf( __( 'The minimum age for admission is %d years.', 'emc-theme' ), $min_age ) );
             }
         }
     }

@@ -246,7 +246,7 @@ function emc_customize_register( $wp_customize ) {
         emc_add_url_setting(
             $wp_customize,
             'emc_social_' . $network,
-            '',
+            'whatsapp' === $network ? 'https://wa.me/447716173861' : '',
             'emc_social',
             ucfirst( $network ) . ' URL'
         );

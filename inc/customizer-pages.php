@@ -402,13 +402,13 @@ function emc_register_page_content_sections( $wp_customize ) {
      * hides the WhatsApp button on the Membership page.
      */
     $wp_customize->add_setting( 'mem_whatsapp_number', array(
-        'default'           => '447399079436',
+        'default'           => '447716173861',
         'sanitize_callback' => 'emc_sanitize_whatsapp_number',
         'transport'         => 'refresh',
     ) );
     $wp_customize->add_control( 'mem_whatsapp_number', array(
         'label'       => __( 'WhatsApp number', 'emc-theme' ),
-        'description' => __( 'Full international number, digits only — for example 447399079436. Leave blank to hide the WhatsApp button.', 'emc-theme' ),
+        'description' => __( 'Full international number, digits only — for example 447716173861. Leave blank to hide the WhatsApp button.', 'emc-theme' ),
         'section'     => 'emc_pg_membership',
         'type'        => 'text',
     ) );
