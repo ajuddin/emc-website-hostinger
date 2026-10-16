@@ -1082,8 +1082,10 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
         $confirmation .= "\n" . __( '1. A member of the Madrasa admin team will review your registration and contact you by phone or email to confirm admission and answer any questions.', 'emc-theme' );
         $confirmation .= "\n" . __( '2. Once admission is confirmed, we will share the class details, timetable, fees and any items your child needs to bring.', 'emc-theme' );
         $confirmation .= "\n" . __( '3. We will then let you know the start date and welcome your child to the Madrasa, insha’Allah.', 'emc-theme' );
-        $confirmation .= "\n\n" . __( 'Your registration details:', 'emc-theme' );
-        $confirmation .= "\n" . implode( "\n", array_slice( $details, 4 ) );
+        $child_name = trim( ( $registration['fields']['first_name']['value'] ?? '' ) . ' ' . ( $registration['fields']['last_name']['value'] ?? '' ) );
+        if ( $child_name ) {
+            $confirmation .= "\n\n" . sprintf( __( 'Child’s name: %s', 'emc-theme' ), $child_name );
+        }
         $confirmation .= "\n\n" . __( 'If any of the details above are incorrect, or you have a question in the meantime, please reply to this email.', 'emc-theme' );
         $confirmation .= "\n\n" . __( 'Jazakum Allahu Khayran,', 'emc-theme' ) . "\n" . __( 'Essex Muslim Centre Madrasa', 'emc-theme' ) . "\nCuton Hall Lane, CM2 6PB";
         $confirmation_sent = wp_mail( $email, __( 'We have received your Madrasa registration – Essex Muslim Centre', 'emc-theme' ), $confirmation );
