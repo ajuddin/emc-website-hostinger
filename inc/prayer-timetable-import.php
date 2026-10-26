@@ -24,7 +24,9 @@ function emc_prayer_data_url() {
 		return add_query_arg( 'ver', (string) filemtime( $import['file'] ), $import['url'] );
 	}
 
-	return EMC_ASSETS . '/js/prayer-data.json';
+	// Version the bundled file too, so browsers and page caches pick up theme updates.
+	$bundled = EMC_DIR . '/assets/js/prayer-data.json';
+	return add_query_arg( 'ver', file_exists( $bundled ) ? (string) filemtime( $bundled ) : EMC_VERSION, EMC_ASSETS . '/js/prayer-data.json' );
 }
 
 /**
