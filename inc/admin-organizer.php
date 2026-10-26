@@ -60,7 +60,7 @@ function emc_admin_workspace_cards() {
 			array( 'Customizer', 'Logo, colours, fonts, header, footer and homepage section settings.', 'dashicons-admin-customizer', admin_url( 'customize.php' ), 'edit_theme_options' ),
 			array( 'Menus', 'Control the header, footer and community navigation links.', 'dashicons-menu', admin_url( 'nav-menus.php' ), 'edit_theme_options' ),
 			array( 'Form Notifications', 'Choose recipients and test delivery for every website form.', 'dashicons-email-alt', admin_url( 'admin.php?page=emc-form-notifications' ), 'manage_options' ),
-			array( 'Prayer Timetable', 'Upload the annual Masjidbox XLSX timetable and review import status.', 'dashicons-clock', admin_url( 'admin.php?page=emc-prayer-timetable' ), 'manage_options' ),
+			array( 'Prayer Timetable', 'Update prayer times from a Masjidbox XLSX or CSV file, change selected times only, or undo the last import.', 'dashicons-clock', admin_url( 'admin.php?page=emc-prayer-timetable' ), 'manage_options' ),
 			array( 'Event Registration Settings', 'Confirmation emails, retention and registration defaults.', 'dashicons-forms', admin_url( 'admin.php?page=emc-event-registration-settings' ), 'manage_options' ),
 			array( 'Mailchimp', 'Audience connection, double opt-in and connection testing.', 'dashicons-megaphone', admin_url( 'admin.php?page=emc-newsletter-settings' ), 'manage_options' ),
 			array( 'Annual Reports', 'Upload and organise annual report documents.', 'dashicons-media-document', admin_url( 'admin.php?page=emc-annual-reports' ), 'edit_pages' ),
@@ -186,7 +186,7 @@ function emc_admin_guide_page() {
 		<section><h2>1. Updating visible content</h2><p>Use Content Manager for events, services, team profiles and other structured content. Use Pages for general page articles and Website Content for fixed labels or operational values.</p></section>
 		<section><h2>2. Reviewing customer responses</h2><p>Open Form Responses to review registrations, messages, declarations and applications. Records remain stored in WordPress even when an email cannot be delivered.</p></section>
 		<section><h2>3. Payments and exports</h2><p>Donations & Payments contains confirmed Stripe payments and giving schedules. Use search, filters, record details and CSV downloads for reporting.</p></section>
-		<section><h2>4. Prayer timetable updates</h2><p>Upload the annual Masjidbox XLSX file under Website Settings → Prayer Timetable. Confirm the reported date range before leaving the screen.</p></section>
+		<section><h2>4. Prayer timetable updates</h2><p>Under Website Settings → Prayer Timetable, upload the Masjidbox XLSX workbook or a CSV file. To change only some times (for example Iqamah Isha), choose “Update selected times only” and tick just those times. Check the list of changes shown after upload; use “Undo last import” if anything looks wrong.</p></section>
 		<section><h2>5. Email delivery</h2><p>Form Notifications controls administrator recipients. Send a test notification after changing an address. Reliable production delivery requires SMTP.</p></section>
 		<section><h2>6. Before publishing</h2><p>Preview important changes, check links and images, avoid deleting historical payment/form records, and keep Stripe or Mailchimp credentials private.</p></section>
 	</div>
