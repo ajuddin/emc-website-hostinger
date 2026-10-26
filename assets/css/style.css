@@ -6085,3 +6085,17 @@ img[width][height] {
     opacity: 0.62;
     box-shadow: none;
 }
+
+/* Prayer strip / compact widget: Jama'at time is primary, begin time secondary. */
+.prayer-strip-begins,
+.pwc-begins {
+    display: block;
+    font-size: calc(var(--step--2) - 0.1rem);
+    color: #64748b;
+    white-space: nowrap;
+}
+.pwc-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+}

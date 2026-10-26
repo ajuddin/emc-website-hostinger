@@ -10,7 +10,7 @@
         <div class="prayer-strip-inner">
             <div class="prayer-strip-label">
                 <i class="fas fa-mosque" aria-hidden="true"></i>
-                <strong><?php esc_html_e( 'Today\'s Prayer Times', 'emc-theme' ); ?></strong>
+                <strong><?php esc_html_e( 'Today\'s Jama\'at Times', 'emc-theme' ); ?></strong>
                 <span class="prayer-strip-location">— <?php echo esc_html( emc_option( 'emc_location', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ) ); ?></span>
             </div>
 
@@ -21,7 +21,8 @@
                 ?>
                 <div class="prayer-strip-item" data-prayer="<?php echo esc_attr( strtolower( $prayer ) ); ?>">
                     <span class="prayer-strip-name"><?php echo esc_html( $prayer ); ?></span>
-                    <span class="prayer-strip-time">--:--</span>
+                    <span class="prayer-strip-time" title="<?php esc_attr_e( "Jama'at (congregation) time", 'emc-theme' ); ?>">--:--</span>
+                    <span class="prayer-strip-begins"><?php esc_html_e( 'Begins', 'emc-theme' ); ?> <span class="prayer-strip-adhan">--:--</span></span>
                 </div>
                 <?php endforeach; ?>
             </div>
