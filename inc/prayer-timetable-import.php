@@ -919,6 +919,50 @@ function emc_parse_masjidbox_prayer_xlsx( $file ) {
 }
 
 /**
+ * Sanity-check a timetable before it goes live.
+ *
+ * Catches mistakes such as an Iqamah earlier than its Athan (e.g. a time
+ * pasted into the wrong column) so wrong times are never published.
+ *
+ * @param array $data Timetable entries.
+ * @return true|WP_Error
+ */
+function emc_prayer_validate_timetable( $data ) {
+	foreach ( $data as $entry ) {
+		$adhan  = $entry['adhan'] ?? array();
+		$iqamah = $entry['iqamah'] ?? array();
+
+		foreach ( array( 'fajr', 'dhuhr', 'asr', 'maghrib', 'isha' ) as $prayer ) {
+			if ( empty( $adhan[ $prayer ] ) ) {
+				return new WP_Error( 'missing_time', sprintf( __( 'The Athan time for %1$s on %2$s is missing. Nothing was changed.', 'emc-theme' ), ucfirst( $prayer ), $entry['date'] ) );
+			}
+			if ( ! empty( $iqamah[ $prayer ] ) && $iqamah[ $prayer ] < $adhan[ $prayer ] ) {
+				return new WP_Error(
+					'iqamah_before_adhan',
+					sprintf(
+						/* translators: 1: prayer, 2: date, 3: iqamah, 4: adhan. */
+						__( 'On %2$s the %1$s Iqamah (%3$s) would be before its Athan (%4$s). Please check the file – nothing was changed.', 'emc-theme' ),
+						ucfirst( $prayer ),
+						$entry['date'],
+						$iqamah[ $prayer ],
+						$adhan[ $prayer ]
+					)
+				);
+			}
+		}
+
+		$order = array( 'fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha' );
+		for ( $i = 1, $count = count( $order ); $i < $count; $i++ ) {
+			if ( ! empty( $adhan[ $order[ $i ] ] ) && ! empty( $adhan[ $order[ $i - 1 ] ] ) && $adhan[ $order[ $i ] ] <= $adhan[ $order[ $i - 1 ] ] ) {
+				return new WP_Error( 'times_out_of_order', sprintf( __( 'On %1$s the %2$s Athan (%3$s) is not after %4$s (%5$s). Please check the file – nothing was changed.', 'emc-theme' ), $entry['date'], ucfirst( $order[ $i ] ), $adhan[ $order[ $i ] ], ucfirst( $order[ $i - 1 ] ), $adhan[ $order[ $i - 1 ] ] ) );
+			}
+		}
+	}
+
+	return true;
+}
+
+/**
  * Persist generated prayer JSON in WordPress uploads.
  *
  * @param array  $data        Timetable entries.
@@ -927,6 +971,11 @@ function emc_parse_masjidbox_prayer_xlsx( $file ) {
  * @return array|WP_Error Import metadata.
  */
 function emc_save_prayer_timetable_data( $data, $source_name, $extra = array() ) {
+	$valid = emc_prayer_validate_timetable( $data );
+	if ( is_wp_error( $valid ) ) {
+		return $valid;
+	}
+
 	$upload = wp_upload_dir();
 	if ( ! empty( $upload['error'] ) ) {
 		return new WP_Error( 'uploads_unavailable', $upload['error'] );

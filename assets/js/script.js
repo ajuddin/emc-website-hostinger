@@ -334,18 +334,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const adhan  = entry.adhan  || {};
                 const iqamah = entry.iqamah || {};
 
-                // ── Prayer strip (homepage section) ───────────────────────
-                document.querySelectorAll('.prayer-strip-item[data-prayer]').forEach(el => {
-                    const key    = el.getAttribute('data-prayer');
-                    const timeEl = el.querySelector('.prayer-strip-time');
-                    if (timeEl && adhan[key]) timeEl.textContent = fmtT(adhan[key]);
-                });
-
-                // ── Compact widget ─────────────────────────────────────────
-                document.querySelectorAll('.pwc-item[data-prayer]').forEach(el => {
-                    const key    = el.getAttribute('data-prayer');
-                    const timeEl = el.querySelector('.pwc-time');
-                    if (timeEl && adhan[key]) timeEl.textContent = fmtT(adhan[key]);
+                // ── Prayer strip (homepage) + compact widget ──────────────
+                // The large time is the Jama'at (iqamah) time people attend;
+                // the begin (adhan) time is shown underneath and labelled,
+                // so a start time is never mistaken for the congregation time.
+                [
+                    ['.prayer-strip-item[data-prayer]', '.prayer-strip-time', '.prayer-strip-adhan'],
+                    ['.pwc-item[data-prayer]', '.pwc-time', '.pwc-adhan'],
+                ].forEach(([itemSel, jamaatSel, beginsSel]) => {
+                    document.querySelectorAll(itemSel).forEach(el => {
+                        const key      = el.getAttribute('data-prayer');
+                        const jamaatEl = el.querySelector(jamaatSel);
+                        const beginsEl = el.querySelector(beginsSel);
+                        if (jamaatEl) jamaatEl.textContent = fmtT(iqamah[key] || '');
+                        if (beginsEl) beginsEl.textContent = fmtT(adhan[key] || '');
+                    });
                 });
 
                 // ── Full widget ────────────────────────────────────────────
