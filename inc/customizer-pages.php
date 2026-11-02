@@ -459,18 +459,34 @@ function emc_register_page_content_sections( $wp_customize ) {
         ) );
     }
 
-    /* Funds raised progress bar. */
-    $wp_customize->add_setting( 'mem_progress_raised', array(
-        'default'           => 0,
-        'sanitize_callback' => 'emc_sanitize_membership_amount',
+    /*
+     * Funds raised progress bar. The amount itself is calculated automatically
+     * from regular giving records (see emc_membership_regular_giving_raised())
+     * rather than entered here — these two settings only control the cutoff
+     * date for that calculation and the explanatory footnote shown with it.
+     */
+    $wp_customize->add_setting( 'mem_progress_tracked_since', array(
+        'default'           => '2026-10-01',
+        'sanitize_callback' => 'sanitize_text_field',
         'transport'         => 'refresh',
     ) );
-    $wp_customize->add_control( 'mem_progress_raised', array(
-        'label'       => __( 'Funds raised to date (£)', 'emc-theme' ),
-        'description' => __( 'Shown on the progress bar. Update this as regular giving income grows.', 'emc-theme' ),
+    $wp_customize->add_control( 'mem_progress_tracked_since', array(
+        'label'       => __( 'Tracking start date (YYYY-MM-DD)', 'emc-theme' ),
+        'description' => __( 'Regular giving that started before this date is not included in the total raised, since it predates this tracking.', 'emc-theme' ),
         'section'     => 'emc_pg_membership',
-        'type'        => 'number',
-        'input_attrs' => array( 'min' => 0, 'step' => '0.01' ),
+        'type'        => 'text',
+    ) );
+
+    $wp_customize->add_setting( 'mem_progress_footnote', array(
+        'default'           => 'Tracked from 1 October 2026, when this online regular giving system launched. Regular giving collected before that date through our previous system is not included in this total.',
+        'sanitize_callback' => 'sanitize_textarea_field',
+        'transport'         => 'refresh',
+    ) );
+    $wp_customize->add_control( 'mem_progress_footnote', array(
+        'label'       => __( 'Progress bar footnote', 'emc-theme' ),
+        'description' => __( 'Shown underneath the funds raised figure. Leave blank to hide it.', 'emc-theme' ),
+        'section'     => 'emc_pg_membership',
+        'type'        => 'textarea',
     ) );
 
     $wp_customize->add_setting( 'mem_progress_goal', array(
