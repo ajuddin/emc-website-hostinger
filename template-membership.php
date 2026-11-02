@@ -49,7 +49,7 @@ $featured_key = count( $level_keys ) > 2
 
 /* Progress bar. A goal of zero means "no target set", so the bar stays empty. */
 $progress_since = (string) get_theme_mod( 'mem_progress_tracked_since', '2026-10-01' );
-$raised         = emc_membership_regular_giving_raised( $progress_since );
+$raised         = emc_regular_giving_raised( $progress_since );
 $goal           = (float) get_theme_mod( 'mem_progress_goal', 0 );
 $progress       = $goal > 0 ? max( 0, min( 100, ( $raised / $goal ) * 100 ) ) : 0;
 $progress_note  = (string) get_theme_mod( 'mem_progress_footnote', 'Tracked from 1 October 2026, when this online regular giving system launched. Regular giving collected before that date through our previous system is not included in this total.' );

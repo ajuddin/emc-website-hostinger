@@ -520,6 +520,7 @@ $emc_includes = array(
     '/inc/volunteer-signups.php',   // Separate volunteer applications and admin records
     '/inc/event-registrations.php', // Event forms, email notifications, submissions, and settings
     '/inc/membership.php',          // Membership categories, applications, Stripe fees, and admin records
+    '/inc/regular-giving-sync.php', // Daily Stripe sync for the regular giving progress total
     '/inc/elementor-compat.php',    // Elementor compatibility (locations, style fixes)
     '/inc/elementor-widgets.php',   // Custom Elementor widgets (donate, prayer, counter)
     // Phase 11 — Demo Import System
