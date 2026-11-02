@@ -626,6 +626,109 @@ function emc_membership_admin_menu() {
 add_action( 'admin_menu', 'emc_membership_admin_menu' );
 
 /**
+ * Count completed billing periods between a start date and now.
+ *
+ * The first charge happens at $start itself, so a subscription that started
+ * today has already completed one period.
+ *
+ * @param int    $start     Start timestamp.
+ * @param int    $now       Timestamp to count up to.
+ * @param string $frequency One of daily, weekly, monthly, quarterly, annually.
+ * @return int
+ */
+function emc_count_completed_billing_periods( $start, $now, $frequency ) {
+    if ( $start > $now ) {
+        return 0;
+    }
+
+    $steps = array(
+        'daily'     => '+1 day',
+        'weekly'    => '+1 week',
+        'monthly'   => '+1 month',
+        'quarterly' => '+3 months',
+        'annually'  => '+1 year',
+    );
+    $step   = $steps[ $frequency ] ?? '+1 month';
+    $count  = 1;
+    $cursor = $start;
+
+    while ( true ) {
+        $next = strtotime( $step, $cursor );
+        if ( ! $next || $next > $now ) {
+            break;
+        }
+        $cursor = $next;
+        $count++;
+    }
+
+    return $count;
+}
+
+/**
+ * Total collected via regular giving (membership subscriptions) since a date.
+ *
+ * There is no separate log of every individual renewal charge, so this is
+ * estimated from completed billing cycles per membership — amount × elapsed
+ * periods since its start date — rather than depending on one. The
+ * membership record is the one place that reliably carries amount,
+ * frequency, start date, and status for every regular giver.
+ *
+ * @param string $since Y-m-d cutoff; memberships starting before this date are excluded.
+ * @return float
+ */
+function emc_membership_regular_giving_raised( $since ) {
+    $cutoff = strtotime( $since . ' 00:00:00' );
+    if ( ! $cutoff ) {
+        return 0.0;
+    }
+
+    $cache_key = 'emc_mem_raised_' . md5( $since );
+    $cached    = get_transient( $cache_key );
+    if ( false !== $cached ) {
+        return (float) $cached;
+    }
+
+    $ids = get_posts( array(
+        'post_type'      => 'emc_membership',
+        'post_status'    => 'private',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'no_found_rows'  => true,
+    ) );
+
+    $now   = current_time( 'timestamp' );
+    $total = 0.0;
+
+    foreach ( $ids as $id ) {
+        if ( 'pending' === get_post_meta( $id, '_emc_membership_status', true ) ) {
+            continue;
+        }
+
+        $email = get_post_meta( $id, '_emc_membership_email', true );
+        if ( function_exists( 'emc_is_test_donation_record' ) && emc_is_test_donation_record( array( 'email' => $email ) ) ) {
+            continue;
+        }
+
+        $start = strtotime( (string) get_post_meta( $id, '_emc_membership_start_date', true ) );
+        if ( ! $start || $start < $cutoff || $start > $now ) {
+            continue;
+        }
+
+        $amount = (float) get_post_meta( $id, '_emc_membership_amount', true );
+        if ( $amount <= 0 ) {
+            continue;
+        }
+        $frequency = strtolower( (string) get_post_meta( $id, '_emc_membership_frequency', true ) ) ?: 'monthly';
+
+        $total += $amount * emc_count_completed_billing_periods( $start, $now, $frequency );
+    }
+
+    set_transient( $cache_key, $total, HOUR_IN_SECONDS );
+
+    return $total;
+}
+
+/**
  * Active member count and the monthly income they commit.
  *
  * @return array{active:int,pending:int,monthly:float}
