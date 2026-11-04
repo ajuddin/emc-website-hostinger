@@ -527,6 +527,20 @@ function emc_save_event_registration_config( $post_id ) {
 add_action( 'save_post_emc_event', 'emc_save_event_registration_config' );
 
 /**
+ * Whether an event is the Madrasa, by title or slug.
+ *
+ * Used to send the Madrasa-specific registration confirmation email and to
+ * offer a separate "Madrasa Registrations" CSV export, without needing a
+ * dedicated settings field for what is currently a single named event.
+ *
+ * @param int $event_id Event post ID.
+ * @return bool
+ */
+function emc_event_is_madrasa( $event_id ) {
+    return false !== stripos( get_the_title( $event_id ) . ' ' . get_post_field( 'post_name', $event_id ), 'madrasa' );
+}
+
+/**
  * Whether the built-in registration form should be offered for an event.
  */
 function emc_event_registration_is_open( $event_id ) {
@@ -1073,7 +1087,7 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
     update_option( 'emc_event_registrations', array_slice( $registrations, -2000 ), false );
 
     $confirmation_sent = false;
-    $is_madrasa        = false !== stripos( get_the_title( $event_id ) . ' ' . get_post_field( 'post_name', $event_id ), 'madrasa' );
+    $is_madrasa        = emc_event_is_madrasa( $event_id );
     if ( $settings['confirmation'] && $email && $is_madrasa ) {
         $confirmation  = sprintf( __( "Assalamu Alaikum %s,", 'emc-theme' ), $name ?: __( 'parent/guardian', 'emc-theme' ) );
         $confirmation .= "\n\n" . __( 'JazakAllah Khair for registering your child with Essex Muslim Centre Madrasa. We have received your registration request.', 'emc-theme' );

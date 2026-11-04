@@ -152,6 +152,7 @@ function emc_admin_responses_page() {
 		$exports = array(
 			array( 'all', __( 'All Form Responses', 'emc-theme' ), 'manage_options' ),
 			array( 'event-registrations', __( 'Event Registrations', 'emc-theme' ), 'edit_posts' ),
+			array( 'madrasa-registrations', __( 'Madrasa Registrations', 'emc-theme' ), 'edit_posts' ),
 			array( 'contact-messages', __( 'Contact Messages', 'emc-theme' ), 'manage_options' ),
 			array( 'volunteer', __( 'Job Applications', 'emc-theme' ), 'manage_options' ),
 			array( 'volunteer-signups', __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),

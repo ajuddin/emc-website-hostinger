@@ -11,6 +11,7 @@ function emc_form_response_export_types() {
 	return array(
 		'all'                  => array( __( 'All Form Responses', 'emc-theme' ), 'manage_options' ),
 		'event-registrations'  => array( __( 'Event Registrations', 'emc-theme' ), 'edit_posts' ),
+		'madrasa-registrations' => array( __( 'Madrasa Registrations', 'emc-theme' ), 'edit_posts' ),
 		'contact-messages'     => array( __( 'Contact Messages', 'emc-theme' ), 'manage_options' ),
 		'volunteer'            => array( __( 'Job Applications', 'emc-theme' ), 'manage_options' ),
 		'volunteer-signups'    => array( __( 'Volunteer Applications', 'emc-theme' ), 'manage_options' ),
@@ -40,9 +41,15 @@ function emc_form_response_ids( $post_type ) {
 	) );
 }
 
-function emc_event_registration_export_data() {
+/**
+ * @param callable|null $filter Optional predicate( $record ): bool to limit which registrations are included.
+ */
+function emc_event_registration_export_data( $filter = null ) {
 	$records = get_option( 'emc_event_registrations', array() );
 	$records = is_array( $records ) ? array_reverse( $records ) : array();
+	if ( $filter ) {
+		$records = array_values( array_filter( $records, $filter ) );
+	}
 	$dynamic = array();
 	foreach ( $records as $record ) {
 		foreach ( is_array( $record['fields'] ?? null ) ? $record['fields'] : array() as $key => $field ) {
@@ -59,6 +66,13 @@ function emc_event_registration_export_data() {
 		$rows[] = $row;
 	}
 	return array( $headers, $rows );
+}
+
+/** Madrasa registrations only, so they can be exported separately from every other event. */
+function emc_madrasa_registration_export_data() {
+	return emc_event_registration_export_data( static function( $record ) {
+		return emc_event_is_madrasa( absint( $record['event_id'] ?? 0 ) );
+	} );
 }
 
 function emc_contact_export_data() {
@@ -171,13 +185,16 @@ function emc_giving_schedules_export_data() {
 }
 
 function emc_form_response_export_data( $type ) {
-	$callbacks = array( 'event-registrations' => 'emc_event_registration_export_data', 'contact-messages' => 'emc_contact_export_data', 'volunteer' => 'emc_volunteer_export_data', 'volunteer-signups' => 'emc_volunteer_signup_export_data', 'gift-aid' => 'emc_gift_aid_export_data', 'memberships' => 'emc_membership_export_data', 'newsletter' => 'emc_newsletter_export_data' );
+	$callbacks = array( 'event-registrations' => 'emc_event_registration_export_data', 'madrasa-registrations' => 'emc_madrasa_registration_export_data', 'contact-messages' => 'emc_contact_export_data', 'volunteer' => 'emc_volunteer_export_data', 'volunteer-signups' => 'emc_volunteer_signup_export_data', 'gift-aid' => 'emc_gift_aid_export_data', 'memberships' => 'emc_membership_export_data', 'newsletter' => 'emc_newsletter_export_data' );
 	if ( 'all' !== $type ) return isset( $callbacks[ $type ] ) ? call_user_func( $callbacks[ $type ] ) : array( array(), array() );
 
 	$headers = array( 'Response Type', 'Record ID', 'Submitted', 'Name', 'Email', 'Phone', 'Related Form or Event', 'Status', 'Amount (GBP)', 'Complete Response Details' );
 	$rows = array();
 	$labels = emc_form_response_export_types();
-	$all_sources = $callbacks + array( 'donation-payments' => 'emc_donation_payments_export_data', 'giving-schedules' => 'emc_giving_schedules_export_data' );
+	// madrasa-registrations is a subset of event-registrations, not a distinct
+	// source — including it here would duplicate those rows.
+	$all_sources = array_diff_key( $callbacks, array( 'madrasa-registrations' => true ) )
+		+ array( 'donation-payments' => 'emc_donation_payments_export_data', 'giving-schedules' => 'emc_giving_schedules_export_data' );
 	$source_labels = array( 'donation-payments' => __( 'Donation Payments', 'emc-theme' ), 'giving-schedules' => __( 'Giving Schedules', 'emc-theme' ) );
 	foreach ( $all_sources as $response_type => $callback ) {
 		list( $source_headers, $source_rows ) = call_user_func( $callback );
