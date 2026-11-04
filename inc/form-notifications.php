@@ -15,6 +15,8 @@ function emc_form_notification_types() {
 		'volunteer_signup'   => __( 'Volunteer applications', 'emc-theme' ),
 		'gift_aid'           => __( 'Gift Aid declarations', 'emc-theme' ),
 		'event_registration' => __( 'Event registrations and event payments', 'emc-theme' ),
+		'madrasa_registration' => __( 'Madrasa registration notifications', 'emc-theme' ),
+		'madrasa_confirmation' => __( 'Madrasa registration confirmation (to parent)', 'emc-theme' ),
 		'membership'         => __( 'Regular giving applications and fees', 'emc-theme' ),
 		'newsletter'         => __( 'Newsletter signups', 'emc-theme' ),
 		'donation'           => __( 'Donation and Badr Wall payments', 'emc-theme' ),
@@ -30,6 +32,8 @@ function emc_form_legacy_recipient( $type ) {
 		'volunteer_signup'   => get_option( 'admin_email' ),
 		'gift_aid'           => get_option( 'emc_gift_aid_notification_email', get_option( 'admin_email' ) ),
 		'event_registration' => get_option( 'emc_event_registration_email', get_option( 'admin_email' ) ),
+		'madrasa_registration' => get_option( 'emc_event_registration_email', get_option( 'admin_email' ) ),
+		'madrasa_confirmation' => '', // Always sent to the parent/guardian who registered; this is only an optional BCC.
 		'membership'         => get_option( 'admin_email' ),
 		'newsletter'         => get_option( 'admin_email' ),
 		'donation'           => get_option( 'admin_email' ),
@@ -202,9 +206,19 @@ function emc_form_notifications_admin_page() {
 				<tbody>
 				<?php foreach ( emc_form_notification_types() as $type => $label ) : $setting = emc_form_notification_setting( $type ); ?>
 				<tr>
-					<th scope="row"><?php echo esc_html( $label ); ?></th>
+					<th scope="row">
+						<?php echo esc_html( $label ); ?>
+						<?php if ( 'madrasa_confirmation' === $type ) : ?>
+							<p class="description"><?php esc_html_e( 'Always sent to the parent/guardian who registered. Enabled controls whether it sends at all.', 'emc-theme' ); ?></p>
+						<?php endif; ?>
+					</th>
 					<td><label><input type="checkbox" name="emc_form_notification_settings[<?php echo esc_attr( $type ); ?>][enabled]" value="1" <?php checked( $setting['enabled'] ); ?>> <?php esc_html_e( 'Enabled', 'emc-theme' ); ?></label></td>
-					<td><input type="text" class="large-text" name="emc_form_notification_settings[<?php echo esc_attr( $type ); ?>][recipients]" value="<?php echo esc_attr( $setting['recipients'] ); ?>" placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>"></td>
+					<td>
+						<input type="text" class="large-text" name="emc_form_notification_settings[<?php echo esc_attr( $type ); ?>][recipients]" value="<?php echo esc_attr( $setting['recipients'] ); ?>" placeholder="<?php echo esc_attr( 'madrasa_confirmation' === $type ? __( 'Optional — leave blank for none', 'emc-theme' ) : get_option( 'admin_email' ) ); ?>">
+						<?php if ( 'madrasa_confirmation' === $type ) : ?>
+							<p class="description"><?php esc_html_e( 'Optional BCC copy of the parent confirmation, e.g. the Madrasa office.', 'emc-theme' ); ?></p>
+						<?php endif; ?>
+					</td>
 				</tr>
 				<?php endforeach; ?>
 				</tbody>
