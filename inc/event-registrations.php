@@ -1077,7 +1077,7 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
         $headers[] = 'Reply-To: ' . ( $name ?: $email ) . ' <' . $email . '>';
     }
     $notification_sent = emc_send_form_notification(
-        'event_registration',
+        emc_event_is_madrasa( $event_id ) ? 'madrasa_registration' : 'event_registration',
         sprintf( __( 'New event registration: %s', 'emc-theme' ), get_the_title( $event_id ) ),
         implode( "\n", $details ),
         $headers
@@ -1088,7 +1088,8 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
 
     $confirmation_sent = false;
     $is_madrasa        = emc_event_is_madrasa( $event_id );
-    if ( $settings['confirmation'] && $email && $is_madrasa ) {
+    $madrasa_confirmation_enabled = emc_form_notification_setting( 'madrasa_confirmation' )['enabled'];
+    if ( $is_madrasa && $madrasa_confirmation_enabled && $email ) {
         $confirmation  = sprintf( __( "Assalamu Alaikum %s,", 'emc-theme' ), $name ?: __( 'parent/guardian', 'emc-theme' ) );
         $confirmation .= "\n\n" . __( 'JazakAllah Khair for registering your child with Essex Muslim Centre Madrasa. We have received your registration request.', 'emc-theme' );
         $confirmation .= "\n\n" . __( 'Please note that this email is an acknowledgement only and does not yet confirm a place.', 'emc-theme' );
@@ -1102,8 +1103,13 @@ function emc_event_store_completed_registration( $pending, $payment = array() ) 
         }
         $confirmation .= "\n\n" . __( 'If any of the details above are incorrect, or you have a question in the meantime, please reply to this email.', 'emc-theme' );
         $confirmation .= "\n\n" . __( 'Jazakum Allahu Khayran,', 'emc-theme' ) . "\n" . __( 'Essex Muslim Centre Madrasa', 'emc-theme' ) . "\nCuton Hall Lane, CM2 6PB";
-        $confirmation_sent = wp_mail( $email, __( 'We have received your Madrasa registration – Essex Muslim Centre', 'emc-theme' ), $confirmation );
-    } elseif ( $settings['confirmation'] && $email ) {
+        $confirmation_headers = array();
+        $confirmation_bcc     = emc_form_notification_recipients( 'madrasa_confirmation' );
+        if ( $confirmation_bcc ) {
+            $confirmation_headers[] = 'Bcc: ' . implode( ', ', $confirmation_bcc );
+        }
+        $confirmation_sent = wp_mail( $email, __( 'We have received your Madrasa registration – Essex Muslim Centre', 'emc-theme' ), $confirmation, $confirmation_headers );
+    } elseif ( $settings['confirmation'] && $email && ! $is_madrasa ) {
         $confirmation  = sprintf( __( "Assalamu Alaikum %s,\n\nYour registration has been confirmed.", 'emc-theme' ), $name ?: __( 'guest', 'emc-theme' ) );
         $confirmation .= "\n\n" . implode( "\n", array_slice( $details, 0, 4 ) );
         $confirmation .= "\n" . sprintf( _n( 'Attendees: %d', 'Attendees: %d', $registration['attendees'], 'emc-theme' ), $registration['attendees'] );
@@ -1354,6 +1360,7 @@ function emc_event_registration_settings_page() {
                     <td>
                         <input type="hidden" name="emc_event_confirmation_enabled" value="0">
                         <label><input type="checkbox" name="emc_event_confirmation_enabled" value="1" <?php checked( $settings['confirmation'] ); ?>> <?php esc_html_e( 'Email a confirmation to the person registering', 'emc-theme' ); ?></label>
+                        <p class="description"><?php echo wp_kses_post( sprintf( __( 'Applies to every event except the Madrasa, which has its own confirmation control under <a href="%s">Form Notifications</a>.', 'emc-theme' ), esc_url( admin_url( 'admin.php?page=emc-form-notifications' ) ) ) ); ?></p>
                     </td>
                 </tr>
             </table>
