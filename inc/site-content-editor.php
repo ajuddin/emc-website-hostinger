@@ -164,8 +164,8 @@ function emc_site_content_fields() {
 			'emc_badr_tier2_desc'    => array( 'Tier 2 description', 'textarea', 'Your name permanently displayed on a co-founder tile.' ),
 		),
 		'Prayer header and contact map' => array(
-			'emc_header_first_jumuah_override' => array( 'First Jumu’ah time override (leave blank to use the Prayer Timetable Import)', 'text', '' ),
-			'emc_header_second_jumuah'=> array( 'Second Jumu’ah time', 'text', '14:15' ),
+			'emc_header_first_jumuah_override' => array( 'First Jumu’ah time override, format HH:MM e.g. 12:50 (leave blank to use the Prayer Timetable Import)', 'text', '' ),
+			'emc_header_second_jumuah'=> array( 'Second Jumu’ah time, format HH:MM e.g. 14:15', 'text', '14:15' ),
 			'emc_contact_map_embed'  => array( 'Default map embed URL', 'url', 'https://www.google.com/maps?q=51.745083,0.507917&output=embed' ),
 			'emc_contact_map_link'   => array( 'Open exact location URL', 'url', 'https://maps.app.goo.gl/ctL7XFdazy4xsHAA7' ),
 			'emc_default_vacancy_location' => array( 'Default vacancy location', 'text', 'Essex Muslim Centre, Chelmsford, Essex' ),
@@ -273,9 +273,30 @@ function emc_sanitize_site_content_values( $input ) {
 			} else {
 				$output[ $key ] = sanitize_text_field( $value );
 			}
+			if ( in_array( $key, array( 'emc_header_first_jumuah_override', 'emc_header_second_jumuah' ), true ) ) {
+				$output[ $key ] = emc_normalize_time_string( $output[ $key ] );
+			}
 		}
 	}
 	return $output;
+}
+
+/**
+ * Normalize a time typed as "12.50" or "12 50" to "12:50".
+ *
+ * These are plain text fields so an admin can type the hour/minute
+ * separator however feels natural; this quietly fixes the common slip of
+ * using a period instead of a colon rather than silently displaying a
+ * value visitors won't recognise as a time.
+ *
+ * @param string $value Raw input.
+ * @return string
+ */
+function emc_normalize_time_string( $value ) {
+	if ( preg_match( '/^(\d{1,2})[.\s](\d{2})(\s*[AaPp][Mm])?$/', trim( $value ), $matches ) ) {
+		return $matches[1] . ':' . $matches[2] . ( $matches[3] ?? '' );
+	}
+	return $value;
 }
 
 function emc_register_site_content_settings() {
