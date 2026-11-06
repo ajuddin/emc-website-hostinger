@@ -145,8 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const jumuahEl = document.getElementById('ptb-jumuah');
                 if (jumuahEl) {
-                    const jTime = fmt24(adhan.jumuah);
-                    jumuahEl.textContent = jTime !== '--:--' ? jTime : '13:15';
+                    const override = (typeof emcPrayer !== 'undefined' && emcPrayer.jumuahOverride) ? emcPrayer.jumuahOverride.trim() : '';
+                    if (override) {
+                        jumuahEl.textContent = override;
+                    } else {
+                        const jTime = fmt24(adhan.jumuah);
+                        jumuahEl.textContent = jTime !== '--:--' ? jTime : '13:15';
+                    }
                 }
 
                 PRAYERS.forEach(prayer => {

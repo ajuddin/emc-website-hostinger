@@ -164,6 +164,7 @@ function emc_site_content_fields() {
 			'emc_badr_tier2_desc'    => array( 'Tier 2 description', 'textarea', 'Your name permanently displayed on a co-founder tile.' ),
 		),
 		'Prayer header and contact map' => array(
+			'emc_header_first_jumuah_override' => array( 'First Jumu’ah time override (leave blank to use the Prayer Timetable Import)', 'text', '' ),
 			'emc_header_second_jumuah'=> array( 'Second Jumu’ah time', 'text', '14:15' ),
 			'emc_contact_map_embed'  => array( 'Default map embed URL', 'url', 'https://www.google.com/maps?q=51.745083,0.507917&output=embed' ),
 			'emc_contact_map_link'   => array( 'Open exact location URL', 'url', 'https://maps.app.goo.gl/ctL7XFdazy4xsHAA7' ),
