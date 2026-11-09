@@ -24,10 +24,11 @@ if ( file_exists( $prayer_pdf_js_path ) ) {
 if ( file_exists( $prayer_js_path ) ) {
     wp_enqueue_script( 'emc-page-prayer', EMC_ASSETS . '/js/prayer-times.js', $prayer_js_deps, filemtime( $prayer_js_path ), true );
     wp_localize_script( 'emc-page-prayer', 'emcPrayer', array(
-        'dataUrl'  => $prayer_data_url,
-        'siteName' => get_bloginfo( 'name' ),
-        'location' => emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ),
-        'timezone' => wp_timezone_string() ?: 'UTC',
+        'dataUrl'        => $prayer_data_url,
+        'siteName'       => get_bloginfo( 'name' ),
+        'location'       => emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ),
+        'timezone'       => wp_timezone_string() ?: 'UTC',
+        'jumuahOverride' => emc_site_setting( 'emc_header_first_jumuah_override', '' ),
     ) );
 }
 ?>
