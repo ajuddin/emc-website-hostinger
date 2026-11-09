@@ -24,10 +24,11 @@ if ( file_exists( $prayer_pdf_js_path ) ) {
 if ( file_exists( $prayer_js_path ) ) {
     wp_enqueue_script( 'emc-page-prayer', EMC_ASSETS . '/js/prayer-times.js', $prayer_js_deps, filemtime( $prayer_js_path ), true );
     wp_localize_script( 'emc-page-prayer', 'emcPrayer', array(
-        'dataUrl'  => $prayer_data_url,
-        'siteName' => get_bloginfo( 'name' ),
-        'location' => emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ),
-        'timezone' => wp_timezone_string() ?: 'UTC',
+        'dataUrl'        => $prayer_data_url,
+        'siteName'       => get_bloginfo( 'name' ),
+        'location'       => emc_acf( 'prayer_location_city', 'Essex Muslim Centre, Cuton Hall Lane, CM2 6PB' ),
+        'timezone'       => wp_timezone_string() ?: 'UTC',
+        'jumuahOverride' => emc_site_setting( 'emc_header_first_jumuah_override', '' ),
     ) );
 }
 ?>
@@ -120,8 +121,8 @@ if ( file_exists( $prayer_js_path ) ) {
             <div class="prayer-info-card scroll-reveal">
                 <div class="info-icon"><i class="fas fa-clock"></i></div>
                 <h4><?php echo esc_html( emc_acf( 'prayer_jumuah_card_heading', "Jumu'ah (Friday Prayer)" ) ); ?></h4>
-                <p><?php echo esc_html( emc_acf( 'prayer_jumuah_1_label', 'First Khutbah:' ) ); ?> <strong><?php echo esc_html( emc_acf( 'prayer_jumuah_1', '12:30 PM' ) ); ?></strong></p>
-                <p><?php echo esc_html( emc_acf( 'prayer_jumuah_2_label', 'Second Khutbah:' ) ); ?> <strong><?php echo esc_html( emc_acf( 'prayer_jumuah_2', '1:30 PM' ) ); ?></strong></p>
+                <p><?php echo esc_html( emc_acf( 'prayer_jumuah_1_label', 'First Khutbah:' ) ); ?> <strong><?php echo esc_html( emc_site_setting( 'emc_header_first_jumuah_override', '' ) ?: emc_acf( 'prayer_jumuah_1', '12:30 PM' ) ); ?></strong></p>
+                <p><?php echo esc_html( emc_acf( 'prayer_jumuah_2_label', 'Second Khutbah:' ) ); ?> <strong><?php echo esc_html( emc_site_setting( 'emc_header_second_jumuah', '' ) ?: emc_acf( 'prayer_jumuah_2', '1:30 PM' ) ); ?></strong></p>
             </div>
             <div class="prayer-info-card scroll-reveal" style="transition-delay:0.1s">
                 <div class="info-icon"><i class="fas fa-moon"></i></div>

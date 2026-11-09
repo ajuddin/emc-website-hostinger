@@ -307,6 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const todayDate      = zonedParts(new Date());
             const isCurrentMonth = todayDate.year === year && (todayDate.month - 1) === month;
 
+            const jumuahOverride = (typeof emcPrayer !== 'undefined' && emcPrayer.jumuahOverride)
+                ? emcPrayer.jumuahOverride.trim()
+                : '';
+
             let html = '';
             let hasData = false;
             for (let d = 1; d <= daysInMonth; d++) {
@@ -329,9 +333,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     return v !== null ? fmtTime(v) : '—';
                 };
 
-                // Jumu'ah: show adhan time (Friday only)
+                // Jumu'ah: show adhan time (Friday only), or the manual override if one is set
                 const jumuahCell = isFriday
-                    ? `<td class="jumuah-col">${fmt(a, 'jumuah')}</td>`
+                    ? `<td class="jumuah-col">${jumuahOverride || fmt(a, 'jumuah')}</td>`
                     : `<td class="jumuah-col">—</td>`;
 
                 html += `
