@@ -858,6 +858,7 @@ function emc_prayer_apply_updates( $current, $parsed, $fields ) {
 				$entry = &$current[ $index[ $date ] ];
 				if ( ( $entry[ $section ][ $field ] ?? '' ) !== $time ) {
 					$entry[ $section ][ $field ] = $time;
+					unset( $entry['carried_over'] ); // A real import confirms this date.
 					$record( $key, $date );
 				}
 				unset( $entry );
@@ -969,6 +970,10 @@ function emc_save_prayer_timetable_data( $data, $source_name, $extra = array() )
 		$extra
 	);
 	update_option( 'emc_prayer_timetable_import', $metadata, false );
+
+	if ( function_exists( 'emc_prayer_extend_timetable' ) ) {
+		emc_prayer_extend_timetable();
+	}
 
 	return $metadata;
 }
@@ -1186,6 +1191,9 @@ function emc_prayer_timetable_admin_page() {
 	$restore = emc_handle_prayer_timetable_restore();
 	$result  = $restore ?: emc_handle_prayer_timetable_upload();
 	$current = get_option( 'emc_prayer_timetable_import', array() );
+	$carried = function_exists( 'emc_prayer_carried_over_summary' ) ? emc_prayer_carried_over_summary() : null;
+
+	$edit_result = isset( $_GET['edit_result'] ) ? sanitize_key( wp_unslash( $_GET['edit_result'] ) ) : '';
 
 	$posted_fields = isset( $_POST['emc_prayer_fields'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['emc_prayer_fields'] ) ) : null;
 	$posted_mode   = isset( $_POST['emc_prayer_mode'] ) && 'replace' === $_POST['emc_prayer_mode'] ? 'replace' : 'update';
@@ -1219,16 +1227,44 @@ function emc_prayer_timetable_admin_page() {
 			</div>
 		<?php endif; ?>
 
+		<?php if ( 'saved' === $edit_result ) : ?>
+			<div class="notice notice-success is-dismissible"><p><?php echo esc_html( sprintf( __( 'Saved — %d date(s) updated.', 'emc-theme' ), absint( $_GET['edit_count'] ?? 0 ) ) ); ?></p>
+				<?php $invalid = get_transient( 'emc_prayer_manual_edit_invalid' ); if ( $invalid ) : delete_transient( 'emc_prayer_manual_edit_invalid' ); ?>
+					<p><?php esc_html_e( 'These values were not recognised as times and were left unchanged:', 'emc-theme' ); ?> <?php echo esc_html( implode( '; ', $invalid ) ); ?></p>
+				<?php endif; ?>
+			</div>
+		<?php elseif ( 'nochange' === $edit_result ) : ?>
+			<div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'Nothing was changed.', 'emc-theme' ); ?></p></div>
+		<?php endif; ?>
+
 		<p><?php esc_html_e( 'Prayer times shown in the sitewide prayer bar, today’s prayer widget and the monthly timetable come from this timetable.', 'emc-theme' ); ?></p>
+
+		<?php if ( $carried ) : ?>
+			<div class="notice notice-warning inline"><p>
+				<strong><?php esc_html_e( 'Awaiting confirmation:', 'emc-theme' ); ?></strong>
+				<?php
+				echo esc_html( sprintf(
+					/* translators: 1: number of dates, 2: first date, 3: last date. */
+					__( '%1$d date(s), %2$s to %3$s, were carried over automatically from the same date the year before and have not been confirmed by a real import or manual edit yet. Adhan times for these dates are an estimate.', 'emc-theme' ),
+					$carried['count'],
+					$carried['first'],
+					$carried['last']
+				) );
+				?>
+			</p></div>
+		<?php endif; ?>
 
 		<h2><?php esc_html_e( 'Current timetable', 'emc-theme' ); ?></h2>
 		<?php if ( ! empty( $current['source'] ) ) : ?>
 			<table class="widefat striped" style="max-width:760px;margin:12px 0;">
 				<tbody>
 					<tr><th><?php esc_html_e( 'Last file imported', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['source'] ); ?></td></tr>
-					<tr><th><?php esc_html_e( 'Calendar year', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['year'] ); ?></td></tr>
-					<tr><th><?php esc_html_e( 'Dates', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['days'] ); ?></td></tr>
+					<tr><th><?php esc_html_e( 'Originally imported for', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['year'] ); ?></td></tr>
+					<tr><th><?php esc_html_e( 'Dates (incl. carried-over)', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['days'] ); ?></td></tr>
 					<tr><th><?php esc_html_e( 'Last imported', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['imported_at'] ); ?></td></tr>
+					<?php if ( ! empty( $current['extended_at'] ) ) : ?>
+						<tr><th><?php esc_html_e( 'Last auto-extended', 'emc-theme' ); ?></th><td><?php echo esc_html( $current['extended_at'] ); ?></td></tr>
+					<?php endif; ?>
 				</tbody>
 			</table>
 		<?php else : ?>
@@ -1301,6 +1337,14 @@ function emc_prayer_timetable_admin_page() {
 			</table>
 			<?php submit_button( __( 'Upload and Update Timetable', 'emc-theme' ) ); ?>
 		</form>
+
+		<?php
+		if ( function_exists( 'emc_prayer_render_month_editor' ) ) {
+			$edit_month = isset( $_GET['edit_month'] ) ? max( 1, min( 12, absint( $_GET['edit_month'] ) ) ) : (int) current_time( 'n' );
+			$edit_year  = isset( $_GET['edit_year'] ) ? absint( $_GET['edit_year'] ) : (int) current_time( 'Y' );
+			emc_prayer_render_month_editor( $edit_month, $edit_year );
+		}
+		?>
 	</div>
 	<?php
 }
