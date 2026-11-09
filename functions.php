@@ -504,6 +504,7 @@ $emc_includes = array(
     '/inc/form-notifications.php',  // Central recipients and delivery controls for every public form
     '/inc/helper-functions.php',    // Utility functions
     '/inc/prayer-timetable-import.php', // Admin Masjidbox XLSX timetable importer
+    '/inc/prayer-timetable-tools.php', // Automatic forward extension and month-by-month manual editor
     '/inc/donation-csv-export.php', // Admin CSV exports for EMC Payments records
     '/inc/form-response-exports.php', // CSV exports for every stored website form response
     '/inc/badr-wall.php',           // Badr Wall tile records, gallery, and payment intake
